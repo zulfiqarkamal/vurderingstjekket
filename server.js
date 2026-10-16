@@ -182,22 +182,26 @@ app.get("/api/adresse", async (req, res) => {
   if (q.length < 3) return res.json({ suggestions: [] });
 
   try {
-    const url = `https://adressevaelger.dk/adresser/soeg?tekst=${encodeURIComponent(q)}&token=${ADR_TOKEN}`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`Adressevælger ${r.status}`);
+    // DAWA – Danmarks officielle adresse-API, gratis uden token
+    const url = `https://api.dataforsyningen.dk/adresser/autocomplete?q=${encodeURIComponent(q)}&type=adresse&fuzzy=true&per_side=8`;
+    const r = await fetch(url, { headers: { "Accept": "application/json" } });
+    if (!r.ok) throw new Error(`DAWA HTTP ${r.status}`);
     const raw = await r.json();
 
-    const suggestions = (Array.isArray(raw) ? raw : raw.results ?? [])
+    const suggestions = (Array.isArray(raw) ? raw : [])
       .slice(0, 8)
-      .map(s => ({
-        adresseId:    s.adresseidentificerer || s.id || null,
-        husnummerId:  s.husnummeridentificerer || s.husnummerUUID || null,
-        label:        s.betegnelse || s.adresse || s.tekst || "",
-        postnr:       s.postnummer || s.postnr || "",
-        by:           s.postdistrikt || s.by || "",
-        kommunekode:  s.kommunekode || "",
-        vejnavn:      s.vejnavn || "",
-      }));
+      .map(s => {
+        const a = s.adresse || {};
+        return {
+          adresseId:   a.id || null,
+          husnummerId: a.adgangsadresseid || null,
+          label:       s.tekst || s.forslagstekst || "",
+          postnr:      a.postnr || "",
+          by:          a.postnrnavn || "",
+          kommunekode: a.kommunekode ? String(a.kommunekode).padStart(4,"0") : "",
+          vejnavn:     a.vejnavn || "",
+        };
+      });
 
     res.json({ suggestions });
   } catch (err) {
@@ -274,7 +278,7 @@ app.post("/api/free-check", async (req, res) => {
     else if (gap_pct > -10) { verdict="USIKKER";   label="Usikkert – kan ikke udelukkes";            color="amber"; }
     else                    { verdict="INGEN";     label="Næppe grund til klage baseret på disse tal"; color="green"; }
 
-    res.json({
+    const result = {
       verdict, label, color,
       evNum, targetEV,
       marketValue2022: Math.round(marketValue2022),
@@ -282,7 +286,13 @@ app.post("/api/free-check", async (req, res) => {
       gap_pct: Math.round(gap_pct * 10) / 10,
       landsdel, landsdelnavn: LANDSDEL_NAVN[landsdel],
       ejenData,
+    };
+    // Log the free check (address may not be available here, added from client later)
+    logEvent("free_check", {
+      m2: m2Num, ev: evNum, kommunekode: String(kommunekode).padStart(4,"0"),
+      verdict, gap_pct: result.gap_pct, targetEV,
     });
+    res.json(result);
   } catch (err) {
     res.status(502).json({ error: "Markedsdata fejlede: " + err.message });
   }
@@ -290,6 +300,154 @@ app.post("/api/free-check", async (req, res) => {
 
 // ─── In-memory session store ──────────────────────────────────
 const SESSIONS = new Map(); // sessionId → { status, ... }
+
+// ─── History log (persistent JSON file) ───────────────────────
+const HISTORY_FILE = path.join(__dirname, "history.json");
+let HISTORY = [];
+try {
+  if (fs.existsSync(HISTORY_FILE)) {
+    HISTORY = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf8"));
+    console.log(`📋 Indlæste ${HISTORY.length} historikposter`);
+  }
+} catch(e) { console.warn("Kunne ikke læse history.json:", e.message); }
+
+function saveHistory() {
+  try { fs.writeFileSync(HISTORY_FILE, JSON.stringify(HISTORY, null, 2)); }
+  catch(e) { console.warn("Kunne ikke skrive history.json:", e.message); }
+}
+
+function logEvent(type, data) {
+  const entry = { id: Date.now(), type, ts: new Date().toISOString(), ...data };
+  HISTORY.unshift(entry); // nyeste først
+  if (HISTORY.length > 2000) HISTORY = HISTORY.slice(0, 2000);
+  saveHistory();
+  return entry;
+}
+
+// ─── Admin dashboard ──────────────────────────────────────────
+const ADMIN_KEY = process.env.ADMIN_KEY || "admin1234";
+
+app.get("/admin", (req, res) => {
+  if (req.query.key !== ADMIN_KEY) {
+    return res.status(401).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Admin</title>
+<style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f4f6f9}
+.box{background:#fff;padding:32px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1);max-width:320px;width:100%;text-align:center}
+input{width:100%;padding:10px;margin:12px 0;border:1px solid #d1d5db;border-radius:8px;font-size:1rem}
+button{width:100%;padding:11px;background:#1c6dc4;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;font-weight:600}
+</style></head><body>
+<div class="box"><h2>🔐 Admin login</h2>
+<form method="get" action="/admin">
+<input type="password" name="key" placeholder="Admin-nøgle" autofocus>
+<button type="submit">Log ind</button>
+</form></div></body></html>`);
+  }
+
+  const search = (req.query.q || "").toLowerCase();
+  const typeFilter = req.query.type || "";
+  const page = Math.max(1, parseInt(req.query.page || "1"));
+  const perPage = 50;
+
+  let rows = HISTORY;
+  if (search) rows = rows.filter(r =>
+    (r.address||"").toLowerCase().includes(search) ||
+    (r.sessionId||"").toLowerCase().includes(search)
+  );
+  if (typeFilter) rows = rows.filter(r => r.type === typeFilter);
+
+  const total = rows.length;
+  const pages = Math.max(1, Math.ceil(total / perPage));
+  const slice = rows.slice((page - 1) * perPage, page * perPage);
+
+  // Stats
+  const payments  = HISTORY.filter(r => r.type === "payment").length;
+  const klager    = HISTORY.filter(r => r.type === "klage_done").length;
+  const freeChecks= HISTORY.filter(r => r.type === "free_check").length;
+  const revenue   = payments * 350;
+
+  const rowHtml = slice.map(r => {
+    const ico = r.type === "payment" ? "💳" : r.type === "klage_done" ? "📄" : r.type === "klage_error" ? "❌" : "🔍";
+    const label = r.type === "payment" ? "Betaling" : r.type === "klage_done" ? "Klagetekst" : r.type === "klage_error" ? "Fejl" : "Gratis tjek";
+    const snippet = (r.klageTekst||"").slice(0,120).replace(/</g,"&lt;") || "";
+    return `<tr>
+      <td style="white-space:nowrap;font-size:0.78rem;color:#6b7280">${r.ts.slice(0,16).replace("T"," ")}</td>
+      <td>${ico} <strong>${label}</strong></td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.address||"").replace(/"/g,"'")}">
+        ${(r.address||"-").replace(/</g,"&lt;")}</td>
+      <td style="text-align:right">${r.ev ? (Number(r.ev)/1000000).toFixed(1)+"M" : "-"}</td>
+      <td style="text-align:right">${r.m2 ? r.m2+" m²" : "-"}</td>
+      <td style="font-size:0.75rem;color:#6b7280;max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${snippet}">${snippet||""}</td>
+    </tr>`;
+  }).join("");
+
+  const pagerHtml = pages > 1 ? Array.from({length:pages},(_,i)=>
+    `<a href="/admin?key=${ADMIN_KEY}&q=${encodeURIComponent(search)}&type=${typeFilter}&page=${i+1}"
+      style="padding:4px 10px;border-radius:6px;background:${i+1===page?"#1c6dc4":"#e8f1fc"};color:${i+1===page?"#fff":"#1c6dc4"};text-decoration:none;font-size:0.85rem;font-weight:600">${i+1}</a>`
+  ).join(" ") : "";
+
+  res.send(`<!DOCTYPE html><html lang="da"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin — Vurderingstjekket</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f6f9;color:#1a2130;margin:0}
+header{background:#0b2447;color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between}
+header h1{margin:0;font-size:1.1rem}
+header a{color:#aac4e8;font-size:0.82rem;text-decoration:none}
+.stats{display:flex;gap:12px;padding:18px 24px;flex-wrap:wrap}
+.stat{background:#fff;border-radius:10px;padding:14px 20px;min-width:130px;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid #e2e8f0}
+.stat .n{font-size:1.7rem;font-weight:700;color:#0b2447}
+.stat .l{font-size:0.78rem;color:#6b7280;margin-top:2px}
+.bar{padding:0 24px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.bar form{display:flex;gap:8px;flex:1;min-width:240px}
+.bar input{flex:1;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem}
+.bar select{padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem}
+.bar button{padding:9px 16px;background:#1c6dc4;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600}
+table{width:100%;border-collapse:collapse;background:#fff;margin:0 0 24px}
+th{text-align:left;padding:10px 12px;font-size:0.78rem;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;border-bottom:2px solid #e2e8f0}
+td{padding:9px 12px;border-bottom:1px solid #f0f2f5;font-size:0.87rem;vertical-align:top}
+tr:hover td{background:#f8fafc}
+.pager{padding:0 24px 32px;display:flex;gap:6px;flex-wrap:wrap}
+.empty{text-align:center;padding:40px;color:#9ca3af;font-size:0.9rem}
+</style></head><body>
+<header>
+  <h1>📊 Vurderingstjekket — Admin Dashboard</h1>
+  <a href="/admin?key=${ADMIN_KEY}">← Alle poster</a>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="n">💳 ${payments}</div><div class="l">Betalinger</div></div>
+  <div class="stat"><div class="n">💰 ${revenue.toLocaleString("da-DK")} kr</div><div class="l">Total omsætning</div></div>
+  <div class="stat"><div class="n">📄 ${klager}</div><div class="l">Klagetekster</div></div>
+  <div class="stat"><div class="n">🔍 ${freeChecks}</div><div class="l">Gratis tjek</div></div>
+  <div class="stat"><div class="n">${total}</div><div class="l">Filtrerede poster</div></div>
+</div>
+
+<div class="bar">
+  <form method="get" action="/admin">
+    <input type="hidden" name="key" value="${ADMIN_KEY}">
+    <input type="text" name="q" placeholder="Søg adresse eller session-ID..." value="${(req.query.q||"").replace(/"/g,"&quot;")}">
+    <select name="type">
+      <option value="">Alle typer</option>
+      <option value="payment"${typeFilter==="payment"?" selected":""}>💳 Betalinger</option>
+      <option value="klage_done"${typeFilter==="klage_done"?" selected":""}>📄 Klagetekster</option>
+      <option value="klage_error"${typeFilter==="klage_error"?" selected":""}>❌ Fejl</option>
+      <option value="free_check"${typeFilter==="free_check"?" selected":""}>🔍 Gratis tjek</option>
+    </select>
+    <button type="submit">Søg</button>
+  </form>
+</div>
+
+<table>
+<thead><tr>
+  <th>Tidspunkt</th><th>Type</th><th>Adresse</th><th>EV</th><th>Areal</th><th>Uddrag</th>
+</tr></thead>
+<tbody>
+${rowHtml || '<tr><td colspan="6" class="empty">Ingen poster fundet</td></tr>'}
+</tbody>
+</table>
+${pagerHtml ? `<div class="pager">${pagerHtml}</div>` : ""}
+</body></html>`);
+});
 
 // ─── Create Stripe payment session ───────────────────────────
 // POST /api/create-payment  body: { address, label, m2, kommunekode, anvKode, ev, gv, freeResult }
@@ -360,12 +518,21 @@ app.post("/api/stripe-webhook", async (req, res) => {
     if (!sess) return;
 
     sess.status = "generating";
+    // Log payment event
+    logEvent("payment", {
+      sessionId,
+      address: sess.label || sess.address || "",
+      ev: sess.ev, gv: sess.gv, m2: sess.m2,
+      kommunekode: sess.kommunekode,
+      stripePaymentId: co.payment_intent || co.id,
+    });
     console.log(`✅ Payment OK for session ${sessionId} — starting klage generation`);
 
     generateKlage(sessionId, sess).catch(err => {
       console.error("generateKlage fejl:", err);
       sess.status = "error";
       sess.error = err.message;
+      logEvent("klage_error", { sessionId, address: sess.label||"", error: err.message });
     });
   }
 });
@@ -449,6 +616,17 @@ async function generateKlage(sessionId, sess) {
   sess.estimatedMarket = estimatedMarket;
   sess.targetEV      = targetEV;
   sess.medianSqm     = medianSqm;
+
+  // Log successful klage generation
+  logEvent("klage_done", {
+    sessionId,
+    address: sess.label || sess.address || "",
+    ev: sess.ev, gv: sess.gv, m2: sess.m2,
+    kommunekode: sess.kommunekode,
+    estimatedMarket, targetEV, medianSqm,
+    compsCount: topComps.length,
+    klageTekst: (sess.klageTekst || "").slice(0, 300),
+  });
 }
 
 function fmtKr(n) { return Math.round(n).toLocaleString("da-DK") + " kr"; }
