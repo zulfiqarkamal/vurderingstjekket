@@ -23,6 +23,15 @@ import Stripe from "stripe";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
+// CORS
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.sendStatus(200);
+  next();
+});
+
 // Stripe webhook needs raw body for signature verification
 app.use("/api/stripe-webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
