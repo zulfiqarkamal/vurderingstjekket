@@ -177,6 +177,23 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
            autocomplete="off" oninput="onAdresseInput(event)" onkeydown="onAdresseKey(event)" />
     <div class="dropdown hidden" id="adresse-dropdown"></div>
   </div>
+  <p style="margin:8px 0 0;font-size:0.82rem;color:var(--gray-600);">Skriv mindst 3 tegn — adresser foreslås automatisk.</p>
+
+  <!-- Skjult manual-fallback — vises kun hvis dropdown ikke finder adressen -->
+  <div id="manual-entry-box" class="hidden" style="margin-top:14px;border:1px dashed var(--gray-300);border-radius:8px;padding:14px;background:var(--gray-100);">
+    <p style="margin:0 0 10px;font-size:0.85rem;color:var(--gray-600);">⚠️ Hvis din adresse ikke dukker op i listen, udfyld manuelt:</p>
+    <div class="row">
+      <div>
+        <label for="manual-m2">Boligareal (m²)</label>
+        <input type="number" id="manual-m2" placeholder="130" min="10" max="2000" />
+      </div>
+      <div>
+        <label for="manual-kv">Kommunekode <span class="hint">4 cifre, fx 0657 for Ishøj</span></label>
+        <input type="text" id="manual-kv" placeholder="0657" maxlength="4" />
+      </div>
+    </div>
+    <button class="btn btn-secondary" style="margin-top:10px;" onclick="proceedManual()">Fortsæt manuelt →</button>
+  </div>
 
   <div id="bbr-status" class="hidden">
     <div style="display:flex;align-items:center;gap:8px;margin-top:14px;color:var(--gray-600);font-size:0.87rem;">
@@ -236,6 +253,9 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
   <button class="btn btn-pay" id="pay-btn" onclick="startPayment()">
     Betal 350 kr og få min klagetekst →
   </button>
+  <button class="btn btn-secondary hidden" id="test-btn" onclick="startTest()" style="margin-top:8px;">
+    🧪 Test: Generer klagetekst gratis (testmode)
+  </button>
 </div>
 
 <!-- ══ STEP 5: KLAGE ════════════════════════════════════════════ -->
@@ -268,6 +288,9 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 </footer>
 
 <script>
+// ─── Test mode (URL: /?test=1) ───────────────────────────────
+const TEST_MODE = new URLSearchParams(location.search).has("test");
+
 // ─── State ───────────────────────────────────────────────────
 let state = {
   adresseId:    null,
@@ -289,6 +312,42 @@ let state = {
   // Session
   sessionId:    null,
 };
+
+// ─── Manual address entry ─────────────────────────────────────
+function showManualEntry() {
+  document.getElementById("manual-entry-box").classList.remove("hidden");
+  const btn = document.getElementById("manual-toggle-btn");
+  if (btn) btn.style.display = "none";
+}
+
+function proceedManual() {
+  const addrText = document.getElementById("address-input").value.trim();
+  const m2 = parseFloat(document.getElementById("manual-m2").value);
+  const kv = (document.getElementById("manual-kv").value || "").trim().padStart(4, "0");
+
+  if (!addrText || addrText.length < 5) { alert("Skriv venligst din fulde adresse i adressefeltet ovenfor."); return; }
+  if (!m2 || m2 < 10) { alert("Angiv boligareal i m²."); return; }
+  if (!kv || kv.length !== 4 || isNaN(kv)) { alert("Angiv kommunekode (4 cifre), fx 0657 for Ishøj."); return; }
+
+  state.label = addrText;
+  state.postnr = "";
+  state.by = "";
+  state.kommunekode = kv;
+  state.m2 = m2;
+  state.anvKode = "120";
+  state.boligtypeLabel = "Fritliggende enfamilieshus";
+  state.isEnfamilie = true;
+  state.landsdel = null;
+  state.landsdelnavn = "Kommunekode " + kv;
+
+  const chip = document.getElementById("bbr-chip");
+  chip.innerHTML = `<div class="bbr-chip"><span class="ico">📝</span><div>
+    <strong>Manuel indtastning</strong> · <strong>${m2} m²</strong>
+    <div class="dim">Kommunekode ${kv}</div></div></div>`;
+  chip.classList.remove("hidden");
+  document.getElementById("manual-entry-box").classList.add("hidden");
+  document.getElementById("card-ev").classList.remove("hidden");
+}
 
 // ─── Autocomplete ─────────────────────────────────────────────
 let debounceTimer = null;
@@ -340,14 +399,23 @@ async function fetchSuggestions(q) {
 
 function renderDropdown(suggestions) {
   const dd = document.getElementById("adresse-dropdown");
-  if (!suggestions.length) { hideDropdown(); return; }
+  const manualItem = `<div class="dropdown-item" onmousedown="showManualEntry();hideDropdown();" style="color:var(--gray-600);font-size:0.82rem;border-top:1px solid var(--gray-100);">
+    📝 Min adresse er ikke på listen — udfyld manuelt
+  </div>`;
+
+  if (!suggestions.length) {
+    dd.innerHTML = `<div class="dropdown-item" style="color:var(--gray-600);font-style:italic;cursor:default;">
+      Ingen resultater for denne adresse</div>` + manualItem;
+    dd.classList.remove("hidden");
+    return;
+  }
 
   dd.innerHTML = suggestions.map((s, i) =>
     `<div class="dropdown-item" onmousedown="selectSuggestion(currentSuggestions[${i}])">
        <div class="main-text">${escHtml(s.label)}</div>
        <div class="sub-text">${escHtml(s.postnr)} ${escHtml(s.by)}</div>
      </div>`
-  ).join("");
+  ).join("") + manualItem;
   dd.classList.remove("hidden");
 }
 
@@ -580,6 +648,10 @@ function renderFreeResult(d, ev, m2) {
     document.getElementById("pay-btn").textContent = ctaText;
     document.getElementById("pay-sub").textContent = paySubText || "";
     document.getElementById("card-pay").classList.remove("hidden");
+    // Show test button in test mode
+    if (TEST_MODE) {
+      document.getElementById("test-btn").classList.remove("hidden");
+    }
   }
 }
 
@@ -653,6 +725,37 @@ async function pollKlage(sessionId) {
       // Network error → keep trying
     }
   }, 2000);
+}
+
+// ─── Test mode: generate without payment ─────────────────────
+async function startTest() {
+  const testBtn = document.getElementById("test-btn");
+  testBtn.disabled = true;
+  testBtn.innerHTML = '<span class="spinner spinner-dark"></span>Genererer testklage…';
+
+  document.getElementById("card-klage").classList.remove("hidden");
+  document.getElementById("klage-status").classList.remove("hidden");
+  document.getElementById("card-klage").scrollIntoView({ behavior: "smooth", block: "start" });
+
+  try {
+    const params = new URLSearchParams({
+      address:     state.label      || "Testvej 1, 2635 Ishøj",
+      ev:          state.ev         || 4000000,
+      m2:          state.m2         || 130,
+      kommunekode: state.kommunekode || "0657",
+    });
+    const r = await fetch("/api/test-klage?" + params);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    document.getElementById("klage-status").classList.add("hidden");
+    document.getElementById("klage-text").value = data.klageTekst || "(ingen tekst)";
+  } catch(err) {
+    document.getElementById("klage-status").innerHTML =
+      `<span style="color:var(--red-600)">Fejl: ${escHtml(err.message)}</span>`;
+  } finally {
+    testBtn.disabled = false;
+    testBtn.innerHTML = "🧪 Test: Generer klagetekst gratis (testmode)";
+  }
 }
 
 // ─── Copy klage ───────────────────────────────────────────────
