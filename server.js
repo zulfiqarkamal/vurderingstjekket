@@ -536,41 +536,19 @@ app.get("/api/test-klage", async (req, res) => {
   let sessData;
 
   if (addressQuery.length > 3) {
-    // Slå rigtig adresse op
-    try {
-      // 1. DAWA (Danmarks officielle adresse-API)
-      const dawaUrl = `https://api.dataforsyningen.dk/adresser/autocomplete?q=${encodeURIComponent(addressQuery)}&per_side=1&fuzzy=`;
-      const dawaR = await fetch(dawaUrl);
-      const dawaRaw = await dawaR.json();
-      const hits = Array.isArray(dawaRaw) ? dawaRaw : [];
-      if (!hits.length) return res.status(404).json({ error: "Adresse ikke fundet — prøv en anden stavemåde" });
-      const hit = hits[0];
-      const adresse = hit.adresse || hit.data || hit;
-      const husnummerId = adresse.husnummerid || adresse.id;
-      const kommunekode = String(adresse.kommunekode || "0101").padStart(4, "0");
-      const label       = hit.tekst || adresse.vejnavn + " " + adresse.husnr + ", " + adresse.postnr + " " + adresse.postnrnavn || addressQuery;
-
-      // 2. BBR
-      const auth   = `username=${BBR_USER}&password=${encodeURIComponent(BBR_PASS)}`;
-      const bbrUrl = `https://services.datafordeler.dk/BBR/BBRPublic/1/rest/bygning?Husnummer=${husnummerId}&${auth}&format=JSON`;
-      const bbrR   = await fetch(bbrUrl);
-      const bygninger = await bbrR.json();
-      const byg    = Array.isArray(bygninger) && bygninger[0] ? bygninger[0] : {};
-      const m2     = parseInt(byg.bygningSamletBoligareal || byg.bygningSamletBygningsareal || 120);
-      const anvKode = String(byg.bygningsAnvendelse || "120");
-
-      sessData = {
-        status: "generating",
-        address: label, label,
-        m2, kommunekode, anvKode,
-        boligtypeLabel: bbrAnvendelseLabel(anvKode),
-        ev: evOverride || 4000000,
-        gv: null,
-        createdAt: Date.now(),
-      };
-    } catch (err) {
-      return res.status(502).json({ error: "Opslag fejlede: " + err.message });
-    }
+    // Brug direkte indtastede værdier — spring adresseopslag over
+    const m2Input  = req.query.m2  ? parseInt(req.query.m2)  : 120;
+    const kvKode   = req.query.kommunekode ? String(req.query.kommunekode).padStart(4,"0") : "0657";
+    const anvKode  = req.query.anvKode || "120";
+    sessData = {
+      status: "generating",
+      address: addressQuery, label: addressQuery,
+      m2: m2Input, kommunekode: kvKode, anvKode,
+      boligtypeLabel: bbrAnvendelseLabel(anvKode),
+      ev: evOverride || 4000000,
+      gv: null,
+      createdAt: Date.now(),
+    };
   } else {
     // Ingen adresse → brug testdata
     sessData = {
@@ -663,9 +641,27 @@ app.get("/test", (_req, res) => {
 </div>
 
 <div class="card">
-  <h2>2. Ejendomsværdi (fra skat.dk)</h2>
-  <label>Ejendomsværdi (kr)</label>
-  <input type="number" id="ev-input" placeholder="f.eks. 3500000" min="100000" step="50000">
+  <h2>2. Boligoplysninger</h2>
+  <div class="row">
+    <div>
+      <label>Ejendomsværdi kr (fra skat.dk)</label>
+      <input type="number" id="ev-input" placeholder="f.eks. 4100000" min="100000" step="50000">
+    </div>
+    <div>
+      <label>Boligareal m²</label>
+      <input type="number" id="m2-input" placeholder="f.eks. 130" min="20" max="1000">
+    </div>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <div>
+      <label>Kommunekode (4 cifre)</label>
+      <input type="text" id="kv-input" placeholder="f.eks. 0657 = Ishøj" maxlength="4">
+    </div>
+    <div style="font-size:.8rem;color:#6b7280;padding-top:22px">
+      Find kommunekode på <a href="https://danmarksadresser.dk" target="_blank">danmarksadresser.dk</a><br>
+      Ishøj=0657 · Kbh=0101 · Aarhus=0751
+    </div>
+  </div>
   <button class="btn btn-primary" id="gen-btn" disabled onclick="generer()">Generer klagetekst</button>
   <div id="status"></div>
 </div>
@@ -735,6 +731,8 @@ async function pick(i) {
 }
 
 evInput.addEventListener('input', checkBtn);
+document.getElementById('m2-input').addEventListener('input', checkBtn);
+document.getElementById('kv-input').addEventListener('input', checkBtn);
 function checkBtn() {
   genBtn.disabled = !(addrInput.value.trim().length > 3 && evInput.value > 0);
 }
@@ -746,7 +744,9 @@ async function generer() {
   statusEl.innerHTML='<span class="spinner"></span>Henter data og genererer klagetekst… (30-60 sek)';
   try {
     const addrStr = chosen ? chosen.label : addrInput.value.trim();
-    const url = '/api/test-klage?address='+encodeURIComponent(addrStr)+'&ev='+evInput.value;
+    const m2Val = document.getElementById('m2-input').value || '130';
+    const kvVal = document.getElementById('kv-input').value || '0657';
+    const url = '/api/test-klage?address='+encodeURIComponent(addrStr)+'&ev='+evInput.value+'&m2='+m2Val+'&kommunekode='+kvVal;
     const r = await fetch(url);
     const d = await r.json();
     if (d.error) throw new Error(d.error);
