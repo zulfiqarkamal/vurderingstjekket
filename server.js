@@ -58,7 +58,10 @@ const EMAIL_USER            = process.env.EMAIL_USER; // Gmail-adresse f.eks. di
 const EMAIL_PASS            = process.env.EMAIL_PASS; // Gmail App Password (16 tegn)
 
 const stripe = STRIPE_SECRET
-  ? new Stripe(STRIPE_SECRET)
+  ? new Stripe(STRIPE_SECRET, {
+      httpClient: Stripe.createFetchHttpClient(),
+      maxNetworkRetries: 2,
+    })
   : null;
 
 // ─── E-mail transport (Gmail SMTP) ────────────────────────────
