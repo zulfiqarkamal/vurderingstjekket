@@ -27,6 +27,11 @@ app.use("/api/stripe-webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+// Explicit fallback so "/" always returns index.html even if static middleware misses it
+app.get("/", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 // ─── Credentials / keys ───────────────────────────────────────
 const APIFY_TOKEN           = process.env.APIFY_TOKEN;
 const STRIPE_SECRET         = process.env.STRIPE_SECRET_KEY;
@@ -515,6 +520,35 @@ app.get("/api/klage/:sessionId", (req, res) => {
     medianSqm:       sess.medianSqm     || null,
     comps:           sess.comps         || null,
   });
+});
+
+// ─── Test: generer klagetekst uden betaling ───────────────────
+app.get("/api/test-klage", async (_req, res) => {
+  const sessionId = crypto.randomUUID();
+  const testSess = {
+    status:        "generating",
+    address:       "Testvej 1, 2100 København Ø",
+    label:         "Testvej 1, 2100 København Ø",
+    m2:            120,
+    kommunekode:   "0101",
+    anvKode:       "120",
+    boligtypeLabel:"Fritliggende enfamilieshus",
+    ev:            4500000,
+    gv:            null,
+    createdAt:     Date.now(),
+  };
+  SESSIONS.set(sessionId, testSess);
+  try {
+    await generateKlage(sessionId, testSess);
+    res.json({
+      sessionId,
+      status:    testSess.status,
+      klageTekst: testSess.klageTekst || null,
+      error:     testSess.error      || null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ─── Health check ─────────────────────────────────────────────
