@@ -735,7 +735,7 @@ async function pick(i) {
 
 evInput.addEventListener('input', checkBtn);
 function checkBtn() {
-  genBtn.disabled = !(chosen && evInput.value > 0);
+  genBtn.disabled = !(addrInput.value.trim().length > 3 && evInput.value > 0);
 }
 
 async function generer() {
@@ -744,7 +744,8 @@ async function generer() {
   statusEl.className='loading'; statusEl.style.display='block';
   statusEl.innerHTML='<span class="spinner"></span>Henter data og genererer klagetekst… (30-60 sek)';
   try {
-    const url = '/api/test-klage?address='+encodeURIComponent(chosen.label)+'&ev='+evInput.value;
+    const addrStr = chosen ? chosen.label : addrInput.value.trim();
+    const url = '/api/test-klage?address='+encodeURIComponent(addrStr)+'&ev='+evInput.value;
     const r = await fetch(url);
     const d = await r.json();
     if (d.error) throw new Error(d.error);
