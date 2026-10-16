@@ -187,7 +187,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
   <label for="address-input">Adresse</label>
   <div class="field-wrap">
     <input type="text" id="address-input" placeholder="f.eks. Ishøj Store Torv 14, 2635 Ishøj"
-           autocomplete="off" oninput="onAdresseInput(event)" onkeydown="onAdresseKey(event)" />
+           autocomplete="off" />
     <div class="dropdown hidden" id="adresse-dropdown"></div>
   </div>
   <div id="manual-entry-box" class="hidden" style="margin-top:10px;border:1px dashed var(--gray-300);border-radius:8px;padding:14px;">
@@ -239,7 +239,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
     Tjek din præcise frist på <a href="https://vurderingsportalen.dk" target="_blank" rel="noopener">vurderingsportalen.dk</a> inden du handler.
   </div>
 
-  <button class="btn btn-primary" id="check-btn" onclick="runFreeCheck()">
+  <button class="btn btn-primary" id="check-btn">
     Tjek om jeg kan klage →
   </button>
 </div>
@@ -260,7 +260,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
     Klageteksten er baseret på en individuel analyse med konkrete omsætningstal fra dit postnummerområde (2020–2022) — samme periode Vurderingsstyrelsen selv har lagt til grund. Du kopierer teksten direkte ind i Skatteankestyrelsens klageformular.
   </div>
 
-  <button class="btn btn-pay" id="pay-btn" onclick="startPayment()">
+  <button class="btn btn-pay" id="pay-btn">
     Betal 350 kr og få min klagetekst →
   </button>
   <button class="btn btn-secondary hidden" id="test-btn" onclick="startTest()" style="margin-top:8px;">
@@ -881,6 +881,15 @@ async function sendKlageByEmail() {
     state.sessionId = sessionId;
     pollKlage(sessionId);
   }
+})();
+
+(function(){
+  var inp = document.getElementById("address-input");
+  if(!inp) return;
+  inp.addEventListener("input", onAdresseInput);
+  inp.addEventListener("keydown", onAdresseKey);
+  document.getElementById("check-btn").addEventListener("click", runFreeCheck);
+  document.getElementById("pay-btn").addEventListener("click", startPayment);
 })();
 </script>
 
