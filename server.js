@@ -528,28 +528,71 @@ app.get("/api/klage/:sessionId", (req, res) => {
 });
 
 // ─── Test: generer klagetekst uden betaling ───────────────────
-app.get("/api/test-klage", async (_req, res) => {
+// Brug: /api/test-klage?address=Din+Adresse&ev=3500000
+app.get("/api/test-klage", async (req, res) => {
+  const addressQuery = (req.query.address || "").trim();
+  const evOverride   = req.query.ev ? parseInt(req.query.ev) : null;
+
+  let sessData;
+
+  if (addressQuery.length > 3) {
+    // Slå rigtig adresse op
+    try {
+      // 1. Adressevælger
+      const adrUrl = `https://adressevaelger.dk/adresser/soeg?tekst=${encodeURIComponent(addressQuery)}&token=${ADR_TOKEN}`;
+      const adrR = await fetch(adrUrl);
+      const adrRaw = await adrR.json();
+      const hits = (Array.isArray(adrRaw) ? adrRaw : adrRaw.results ?? []);
+      if (!hits.length) return res.status(404).json({ error: "Adresse ikke fundet" });
+      const hit = hits[0];
+      const husnummerId = hit.husnummeridentificerer || hit.husnummerUUID;
+      const kommunekode = String(hit.kommunekode || "0101").padStart(4, "0");
+      const label       = hit.betegnelse || hit.adresse || addressQuery;
+
+      // 2. BBR
+      const auth   = `username=${BBR_USER}&password=${encodeURIComponent(BBR_PASS)}`;
+      const bbrUrl = `https://services.datafordeler.dk/BBR/BBRPublic/1/rest/bygning?Husnummer=${husnummerId}&${auth}&format=JSON`;
+      const bbrR   = await fetch(bbrUrl);
+      const bygninger = await bbrR.json();
+      const byg    = Array.isArray(bygninger) && bygninger[0] ? bygninger[0] : {};
+      const m2     = parseInt(byg.bygningSamletBoligareal || byg.bygningSamletBygningsareal || 120);
+      const anvKode = String(byg.bygningsAnvendelse || "120");
+
+      sessData = {
+        status: "generating",
+        address: label, label,
+        m2, kommunekode, anvKode,
+        boligtypeLabel: bbrAnvendelseLabel(anvKode),
+        ev: evOverride || 4000000,
+        gv: null,
+        createdAt: Date.now(),
+      };
+    } catch (err) {
+      return res.status(502).json({ error: "Opslag fejlede: " + err.message });
+    }
+  } else {
+    // Ingen adresse → brug testdata
+    sessData = {
+      status: "generating",
+      address: "Testvej 1, 2100 København Ø",
+      label:   "Testvej 1, 2100 København Ø",
+      m2: 120, kommunekode: "0101", anvKode: "120",
+      boligtypeLabel: "Fritliggende enfamilieshus",
+      ev: evOverride || 4500000,
+      gv: null, createdAt: Date.now(),
+    };
+  }
+
   const sessionId = crypto.randomUUID();
-  const testSess = {
-    status:        "generating",
-    address:       "Testvej 1, 2100 København Ø",
-    label:         "Testvej 1, 2100 København Ø",
-    m2:            120,
-    kommunekode:   "0101",
-    anvKode:       "120",
-    boligtypeLabel:"Fritliggende enfamilieshus",
-    ev:            4500000,
-    gv:            null,
-    createdAt:     Date.now(),
-  };
-  SESSIONS.set(sessionId, testSess);
+  SESSIONS.set(sessionId, sessData);
   try {
-    await generateKlage(sessionId, testSess);
+    await generateKlage(sessionId, sessData);
     res.json({
       sessionId,
-      status:    testSess.status,
-      klageTekst: testSess.klageTekst || null,
-      error:     testSess.error      || null,
+      adresse:    sessData.label,
+      status:     sessData.status,
+      klageTekst: sessData.klageTekst || null,
+      error:      sessData.error      || null,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
