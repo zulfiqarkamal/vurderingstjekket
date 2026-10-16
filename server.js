@@ -17,6 +17,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
+import fs from "fs";
 import Stripe from "stripe";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -27,9 +28,13 @@ app.use("/api/stripe-webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Explicit fallback so "/" always returns index.html even if static middleware misses it
+// Fallback: serve index.html from public/ or root
 app.get("/", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  const pub  = path.join(__dirname, "public", "index.html");
+  const root = path.join(__dirname, "index.html");
+  const target = fs.existsSync(pub) ? pub : fs.existsSync(root) ? root : null;
+  if (target) res.sendFile(target);
+  else res.status(404).send("Mangler index.html — upload public/index.html til GitHub");
 });
 
 // ─── Credentials / keys ───────────────────────────────────────
