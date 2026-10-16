@@ -538,16 +538,17 @@ app.get("/api/test-klage", async (req, res) => {
   if (addressQuery.length > 3) {
     // Slå rigtig adresse op
     try {
-      // 1. Adressevælger
-      const adrUrl = `https://adressevaelger.dk/adresser/soeg?tekst=${encodeURIComponent(addressQuery)}&token=${ADR_TOKEN}`;
-      const adrR = await fetch(adrUrl);
-      const adrRaw = await adrR.json();
-      const hits = (Array.isArray(adrRaw) ? adrRaw : adrRaw.results ?? []);
-      if (!hits.length) return res.status(404).json({ error: "Adresse ikke fundet" });
+      // 1. DAWA (Danmarks officielle adresse-API)
+      const dawaUrl = `https://api.dataforsyningen.dk/adresser/autocomplete?q=${encodeURIComponent(addressQuery)}&per_side=1&fuzzy=`;
+      const dawaR = await fetch(dawaUrl);
+      const dawaRaw = await dawaR.json();
+      const hits = Array.isArray(dawaRaw) ? dawaRaw : [];
+      if (!hits.length) return res.status(404).json({ error: "Adresse ikke fundet — prøv en anden stavemåde" });
       const hit = hits[0];
-      const husnummerId = hit.husnummeridentificerer || hit.husnummerUUID;
-      const kommunekode = String(hit.kommunekode || "0101").padStart(4, "0");
-      const label       = hit.betegnelse || hit.adresse || addressQuery;
+      const adresse = hit.adresse || hit.data || hit;
+      const husnummerId = adresse.husnummerid || adresse.id;
+      const kommunekode = String(adresse.kommunekode || "0101").padStart(4, "0");
+      const label       = hit.tekst || adresse.vejnavn + " " + adresse.husnr + ", " + adresse.postnr + " " + adresse.postnrnavn || addressQuery;
 
       // 2. BBR
       const auth   = `username=${BBR_USER}&password=${encodeURIComponent(BBR_PASS)}`;
