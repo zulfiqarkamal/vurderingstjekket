@@ -202,7 +202,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
         <input type="text" id="manual-kv" placeholder="0657" maxlength="4" />
       </div>
     </div>
-    <button class="btn btn-secondary" style="margin-top:10px;" onclick="proceedManual()">Fortsæt →</button>
+    <button class="btn btn-secondary" style="margin-top:10px;">Fortsæt →</button>
   </div>
 
   <div id="bbr-status" class="hidden">
@@ -248,7 +248,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 <div class="card hidden" id="card-result">
   <h2>3. Dit resultat</h2>
   <div id="result-body"></div>
-  <button class="btn btn-secondary" style="margin-top:12px;" onclick="resetApp()">Tjek en anden ejendom</button>
+  <button class="btn btn-secondary" style="margin-top:12px;">Tjek en anden ejendom</button>
 </div>
 
 <!-- ══ STEP 4: PAYMENT ══════════════════════════════════════════ -->
@@ -263,7 +263,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
   <button class="btn btn-pay" id="pay-btn">
     Betal 350 kr og få min klagetekst →
   </button>
-  <button class="btn btn-secondary hidden" id="test-btn" onclick="startTest()" style="margin-top:8px;">
+  <button class="btn btn-secondary hidden" id="test-btn" style="margin-top:8px;">
     🧪 Test: Generer klagetekst gratis (testmode)
   </button>
 </div>
@@ -276,13 +276,13 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
     <span class="spinner spinner-dark"></span> Henter data og genererer klagetekst…
   </div>
   <textarea id="klage-text" readonly></textarea>
-  <button class="copybtn" onclick="copyKlage()">📋 Kopiér klagetekst</button>
+  <button class="copybtn">📋 Kopiér klagetekst</button>
 
   <div class="email-box">
     <h4>📧 Få klageteksten tilsendt på mail</h4>
     <div class="email-row">
       <input type="email" id="send-email" placeholder="din@email.dk" autocomplete="email" />
-      <button id="send-email-btn" onclick="sendKlageByEmail()">Send til mig</button>
+      <button id="send-email-btn">Send til mig</button>
     </div>
     <div id="email-msg"></div>
   </div>
@@ -885,11 +885,22 @@ async function sendKlageByEmail() {
 
 (function(){
   var inp = document.getElementById("address-input");
-  if(!inp) return;
-  inp.addEventListener("input", onAdresseInput);
-  inp.addEventListener("keydown", onAdresseKey);
-  document.getElementById("check-btn").addEventListener("click", runFreeCheck);
-  document.getElementById("pay-btn").addEventListener("click", startPayment);
+  if(inp){
+    inp.addEventListener("input", onAdresseInput);
+    inp.addEventListener("keydown", onAdresseKey);
+  }
+  function wire(id, fn){ var el=document.getElementById(id); if(el) el.addEventListener("click",fn); }
+  wire("check-btn", runFreeCheck);
+  wire("pay-btn", startPayment);
+  wire("test-btn", startTest);
+  wire("send-email-btn", sendKlageByEmail);
+  document.querySelectorAll(".btn-secondary").forEach(function(btn){
+    if(btn.textContent.includes("Forts")) btn.addEventListener("click", proceedManual);
+    if(btn.textContent.includes("anden")) btn.addEventListener("click", resetApp);
+  });
+  document.querySelectorAll(".copybtn").forEach(function(btn){
+    btn.addEventListener("click", copyKlage);
+  });
 })();
 </script>
 
