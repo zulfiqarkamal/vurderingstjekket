@@ -267,24 +267,28 @@ app.get("/api/adresse", async (req, res) => {
   if (q.length < 3) return res.json({ suggestions: [] });
 
   try {
-    // DAWA – Danmarks officielle adresse-API, gratis uden token
-    const url = `https://api.dataforsyningen.dk/adresser/autocomplete?q=${encodeURIComponent(q)}&type=adresse&fuzzy=true&per_side=8`;
+       // Adressevælgeren – erstatter DAWA (lukket 1. oktober 2026)
+    const url = `https://adressevaelger.dk/adresser/soeg?tekst=${encodeURIComponent(q)}&token=${ADR_TOKEN}&maksimum=8`;
     const r = await fetch(url, { headers: { "Accept": "application/json" } });
-    if (!r.ok) throw new Error(`DAWA HTTP ${r.status}`);
+    if (!r.ok) throw new Error(`Adressevælgeren HTTP ${r.status}`);
     const raw = await r.json();
 
-    const suggestions = (Array.isArray(raw) ? raw : [])
+    const items = Array.isArray(raw.fund) ? raw.fund : [];
+    const suggestions = items
+      .filter(s => s.type === "adresse")
       .slice(0, 8)
       .map(s => {
-        const a = s.adresse || {};
+        const postnrMatch = (s.titel || "").match(/\b(\d{4})\b/);
+        const postnr = postnrMatch ? postnrMatch[1] : "";
+        const by = postnr ? (s.titel || "").replace(/^.*\b\d{4}\b\s*/, "").trim() : "";
         return {
-          adresseId:   a.id || null,
-          husnummerId: a.adgangsadresseid || null,
-          label:       s.tekst || s.forslagstekst || "",
-          postnr:      a.postnr || "",
-          by:          a.postnrnavn || "",
-          kommunekode: a.kommunekode ? String(a.kommunekode).padStart(4,"0") : "",
-          vejnavn:     a.vejnavn || "",
+          adresseId:   s.id || null,
+          husnummerId: s.husnummerId || null,
+          label:       s.titel || "",
+          postnr,
+          by,
+          kommunekode: "",
+          vejnavn:     "",
         };
       });
 
