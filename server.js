@@ -19,6 +19,7 @@ import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs";
 import Stripe from "stripe";
+import nodemailer from "nodemailer";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -53,10 +54,94 @@ const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const BBR_USER              = process.env.BBR_USER || "IUXUCSLFZW";
 const BBR_PASS              = process.env.BBR_PASS || "Ghulab.4u";
 const ADR_TOKEN             = "adressevaelger123"; // official free-tier token
+const EMAIL_USER            = process.env.EMAIL_USER; // Gmail-adresse f.eks. din@gmail.com
+const EMAIL_PASS            = process.env.EMAIL_PASS; // Gmail App Password (16 tegn)
 
 const stripe = STRIPE_SECRET
   ? new Stripe(STRIPE_SECRET)
   : null;
+
+// ─── E-mail transport (Gmail SMTP) ────────────────────────────
+const emailTransporter = EMAIL_USER && EMAIL_PASS
+  ? nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: { user: EMAIL_USER, pass: EMAIL_PASS },
+    })
+  : null;
+
+async function sendKlageMail(to, address, klageTekst) {
+  if (!emailTransporter) {
+    console.warn("⚠️  E-mail ikke konfigureret (mangler EMAIL_USER / EMAIL_PASS)");
+    return false;
+  }
+  if (!to || !to.includes("@")) {
+    console.warn("⚠️  Ingen gyldig e-mail-adresse til kunde — spring over");
+    return false;
+  }
+
+  const htmlBody = `<!DOCTYPE html>
+<html lang="da">
+<head><meta charset="UTF-8">
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f6f9;margin:0;padding:20px}
+  .wrap{max-width:640px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden}
+  .header{background:#0b2447;color:#fff;padding:28px 32px}
+  .header h1{margin:0;font-size:1.3rem}
+  .header p{margin:6px 0 0;opacity:.75;font-size:.9rem}
+  .body{padding:28px 32px}
+  .klagetekst{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;font-family:monospace;font-size:.82rem;white-space:pre-wrap;line-height:1.6;color:#1a2130}
+  .steps{background:#eff6ff;border-radius:8px;padding:16px 20px;margin-top:20px}
+  .steps h3{margin:0 0 10px;font-size:.95rem;color:#1c6dc4}
+  .steps ol{margin:0;padding-left:20px;font-size:.88rem;color:#374151;line-height:1.8}
+  .footer{border-top:1px solid #e2e8f0;padding:18px 32px;font-size:.78rem;color:#9ca3af;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>🏡 Din klagetekst er klar</h1>
+    <p>${address}</p>
+  </div>
+  <div class="body">
+    <p>Tak for dit køb hos <strong>Vurderingstjekket</strong>. Herunder finder du din færdige klagetekst til Skatteankestyrelsen.</p>
+
+    <div class="klagetekst">${klageTekst.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>
+
+    <div class="steps">
+      <h3>📋 Sådan sender du din klage</h3>
+      <ol>
+        <li>Gå til <strong>skatteankestyrelsen.dk</strong> og log ind med MitID</li>
+        <li>Vælg "Indsend klage" → "Ejendomsvurdering"</li>
+        <li>Kopier teksten ovenfor ind i klageformularen</li>
+        <li>Vedhæft din vurderingsmeddelelse og evt. BBR-meddelelse</li>
+        <li>Indsend — du modtager kvittering pr. e-mail fra Skatteankestyrelsen</li>
+      </ol>
+    </div>
+
+    <p style="margin-top:20px;font-size:.85rem;color:#6b7280">⚠️ <em>Klageteksten er vejledende og udgør ikke juridisk rådgivning. Kontrollér selv frister og beløb inden indsendelse.</em></p>
+  </div>
+  <div class="footer">Vurderingstjekket · Spørgsmål? Svar på denne mail.</div>
+</div>
+</body>
+</html>`;
+
+  try {
+    await emailTransporter.sendMail({
+      from: `"Vurderingstjekket" <${EMAIL_USER}>`,
+      to,
+      subject: `Din klagetekst er klar — ${address}`,
+      text: `Tak for dit køb.\n\nHerunder er din klagetekst:\n\n${klageTekst}\n\n---\nVurderingstjekket`,
+      html: htmlBody,
+    });
+    console.log(`📧 Klagetekst sendt til ${to}`);
+    return true;
+  } catch (err) {
+    console.error("E-mail fejl:", err.message);
+    return false;
+  }
+}
 
 // ─── Kommunekode → Landsdel (EJEN77 OMRÅDE) ───────────────────
 const KOMMUNEKODE_TO_LANDSDEL = {
@@ -350,7 +435,8 @@ button{width:100%;padding:11px;background:#1c6dc4;color:#fff;border:none;border-
   let rows = HISTORY;
   if (search) rows = rows.filter(r =>
     (r.address||"").toLowerCase().includes(search) ||
-    (r.sessionId||"").toLowerCase().includes(search)
+    (r.sessionId||"").toLowerCase().includes(search) ||
+    (r.customerEmail||"").toLowerCase().includes(search)
   );
   if (typeFilter) rows = rows.filter(r => r.type === typeFilter);
 
@@ -368,14 +454,18 @@ button{width:100%;padding:11px;background:#1c6dc4;color:#fff;border:none;border-
     const ico = r.type === "payment" ? "💳" : r.type === "klage_done" ? "📄" : r.type === "klage_error" ? "❌" : "🔍";
     const label = r.type === "payment" ? "Betaling" : r.type === "klage_done" ? "Klagetekst" : r.type === "klage_error" ? "Fejl" : "Gratis tjek";
     const snippet = (r.klageTekst||"").slice(0,120).replace(/</g,"&lt;") || "";
+    const emailCol = r.customerEmail
+      ? `<a href="mailto:${r.customerEmail}" style="color:#1c6dc4;font-size:0.78rem">${r.customerEmail}</a>${r.emailSent===false?' ⚠️':r.emailSent?' ✅':''}`
+      : '<span style="color:#9ca3af;font-size:0.78rem">—</span>';
     return `<tr>
       <td style="white-space:nowrap;font-size:0.78rem;color:#6b7280">${r.ts.slice(0,16).replace("T"," ")}</td>
       <td>${ico} <strong>${label}</strong></td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.address||"").replace(/"/g,"'")}">
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.address||"").replace(/"/g,"'")}">
         ${(r.address||"-").replace(/</g,"&lt;")}</td>
       <td style="text-align:right">${r.ev ? (Number(r.ev)/1000000).toFixed(1)+"M" : "-"}</td>
       <td style="text-align:right">${r.m2 ? r.m2+" m²" : "-"}</td>
-      <td style="font-size:0.75rem;color:#6b7280;max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${snippet}">${snippet||""}</td>
+      <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${emailCol}</td>
+      <td style="font-size:0.75rem;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${snippet}">${snippet||""}</td>
     </tr>`;
   }).join("");
 
@@ -439,10 +529,10 @@ tr:hover td{background:#f8fafc}
 
 <table>
 <thead><tr>
-  <th>Tidspunkt</th><th>Type</th><th>Adresse</th><th>EV</th><th>Areal</th><th>Uddrag</th>
+  <th>Tidspunkt</th><th>Type</th><th>Adresse</th><th>EV</th><th>Areal</th><th>E-mail</th><th>Uddrag</th>
 </tr></thead>
 <tbody>
-${rowHtml || '<tr><td colspan="6" class="empty">Ingen poster fundet</td></tr>'}
+${rowHtml || '<tr><td colspan="7" class="empty">Ingen poster fundet</td></tr>'}
 </tbody>
 </table>
 ${pagerHtml ? `<div class="pager">${pagerHtml}</div>` : ""}
@@ -518,6 +608,8 @@ app.post("/api/stripe-webhook", async (req, res) => {
     if (!sess) return;
 
     sess.status = "generating";
+    // Capture customer email from Stripe for later delivery
+    sess.customerEmail = co.customer_details?.email || co.customer_email || null;
     // Log payment event
     logEvent("payment", {
       sessionId,
@@ -525,6 +617,7 @@ app.post("/api/stripe-webhook", async (req, res) => {
       ev: sess.ev, gv: sess.gv, m2: sess.m2,
       kommunekode: sess.kommunekode,
       stripePaymentId: co.payment_intent || co.id,
+      customerEmail: sess.customerEmail || null,
     });
     console.log(`✅ Payment OK for session ${sessionId} — starting klage generation`);
 
@@ -617,7 +710,7 @@ async function generateKlage(sessionId, sess) {
   sess.targetEV      = targetEV;
   sess.medianSqm     = medianSqm;
 
-  // Log successful klage generation
+  // Log successful klage generation (email is sent on-demand by customer)
   logEvent("klage_done", {
     sessionId,
     address: sess.label || sess.address || "",
@@ -625,6 +718,7 @@ async function generateKlage(sessionId, sess) {
     kommunekode: sess.kommunekode,
     estimatedMarket, targetEV, medianSqm,
     compsCount: topComps.length,
+    customerEmail: sess.customerEmail || null,
     klageTekst: (sess.klageTekst || "").slice(0, 300),
   });
 }
@@ -712,6 +806,28 @@ app.get("/api/klage/:sessionId", (req, res) => {
     medianSqm:       sess.medianSqm     || null,
     comps:           sess.comps         || null,
   });
+});
+
+// ─── Send klagetekst on-demand to customer-supplied e-mail ───
+// POST /api/send-klage-mail  body: { sessionId, email }
+app.post("/api/send-klage-mail", async (req, res) => {
+  const { sessionId, email } = req.body || {};
+  if (!sessionId) return res.status(400).json({ error: "Mangler sessionId" });
+  if (!email || !email.includes("@")) return res.status(400).json({ error: "Ugyldig e-mailadresse" });
+
+  const sess = SESSIONS.get(sessionId);
+  if (!sess) return res.status(404).json({ error: "Session ikke fundet — prøv at genindlæse siden" });
+  if (sess.status !== "done" || !sess.klageTekst) {
+    return res.status(400).json({ error: "Klageteksten er ikke klar endnu" });
+  }
+
+  const ok = await sendKlageMail(email, sess.label || sess.address || "", sess.klageTekst);
+  if (ok) {
+    logEvent("email_sent", { sessionId, email, address: sess.label || sess.address || "" });
+    res.json({ ok: true });
+  } else {
+    res.status(502).json({ error: "E-mail kunne ikke sendes — tjek server-loggen" });
+  }
 });
 
 // ─── Test: generer klagetekst uden betaling ───────────────────
