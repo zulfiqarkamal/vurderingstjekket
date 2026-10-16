@@ -1,0 +1,18 @@
+{
+  "name": "vurderingstjekket-v3",
+  "version": "3.0.0",
+  "description": "Tjek om du kan klage over din ejendomsvurdering",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "stripe": "^14.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
