@@ -599,6 +599,176 @@ app.get("/api/test-klage", async (req, res) => {
   }
 });
 
+// ─── Test UI ──────────────────────────────────────────────────
+app.get("/test", (_req, res) => {
+  res.send(`<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Test – Vurderingstjekket</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;background:#f4f6f9;color:#1a202c;min-height:100vh}
+  header{background:#1e3a5f;color:#fff;padding:20px 24px}
+  header h1{font-size:1.3rem;font-weight:700}
+  header p{font-size:.85rem;opacity:.75;margin-top:4px}
+  .badge{display:inline-block;background:#f59e0b;color:#000;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle}
+  main{max-width:700px;margin:32px auto;padding:0 16px;display:flex;flex-direction:column;gap:24px}
+  .card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:24px}
+  .card h2{font-size:1rem;font-weight:700;margin-bottom:16px;color:#1e3a5f}
+  label{display:block;font-size:.85rem;font-weight:600;margin-bottom:6px;color:#374151}
+  input[type=text],input[type=number]{width:100%;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:8px;font-size:.95rem;outline:none;transition:border .15s}
+  input:focus{border-color:#1e3a5f}
+  .suggestions{border:1.5px solid #d1d5db;border-top:none;border-radius:0 0 8px 8px;background:#fff;max-height:220px;overflow-y:auto;display:none;position:absolute;width:100%;z-index:10}
+  .suggestions .s-item{padding:10px 14px;cursor:pointer;font-size:.9rem;border-bottom:1px solid #f3f4f6}
+  .suggestions .s-item:hover{background:#f0f4ff}
+  .addr-wrap{position:relative}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .info-box{background:#f0f4ff;border-radius:8px;padding:12px 16px;font-size:.88rem;display:none}
+  .info-box span{font-weight:600}
+  btn,.btn{display:inline-block;padding:12px 28px;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;border:none;transition:background .15s}
+  .btn-primary{background:#1e3a5f;color:#fff;width:100%;margin-top:16px}
+  .btn-primary:hover{background:#162d4a}
+  .btn-primary:disabled{background:#9ca3af;cursor:not-allowed}
+  #status{display:none;margin-top:12px;padding:14px;border-radius:8px;font-size:.9rem;text-align:center}
+  #status.loading{background:#eff6ff;color:#1d4ed8}
+  #status.error{background:#fef2f2;color:#dc2626}
+  #result{display:none}
+  #result h2{font-size:1rem;font-weight:700;color:#1e3a5f;margin-bottom:12px}
+  #klage-text{white-space:pre-wrap;font-family:monospace;font-size:.82rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;max-height:500px;overflow-y:auto;line-height:1.6}
+  .copy-btn{margin-top:12px;padding:9px 20px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+  .copy-btn:hover{background:#047857}
+  .spinner{display:inline-block;width:18px;height:18px;border:3px solid #bfdbfe;border-top-color:#1d4ed8;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Vurderingstjekket <span class="badge">TEST</span></h1>
+  <p>Fuld gennemgang uden betaling — kun til intern test</p>
+</header>
+<main>
+
+<div class="card">
+  <h2>1. Søg din adresse</h2>
+  <label>Adresse</label>
+  <div class="addr-wrap">
+    <input type="text" id="addr-input" placeholder="f.eks. Ishøj Store Torv 14, 2635 Ishøj" autocomplete="off">
+    <div class="suggestions" id="suggestions"></div>
+  </div>
+  <div class="info-box" id="bbr-box">
+    BBR: <span id="bbr-type">—</span> · <span id="bbr-m2">—</span> m²
+  </div>
+</div>
+
+<div class="card">
+  <h2>2. Ejendomsværdi (fra skat.dk)</h2>
+  <label>Ejendomsværdi (kr)</label>
+  <input type="number" id="ev-input" placeholder="f.eks. 3500000" min="100000" step="50000">
+  <button class="btn btn-primary" id="gen-btn" disabled onclick="generer()">Generer klagetekst</button>
+  <div id="status"></div>
+</div>
+
+<div class="card" id="result">
+  <h2>Klagetekst</h2>
+  <div id="klage-text"></div>
+  <button class="copy-btn" onclick="kopier()">Kopiér tekst</button>
+</div>
+
+</main>
+<script>
+const addrInput   = document.getElementById('addr-input');
+const suggestBox  = document.getElementById('suggestions');
+const bbrBox      = document.getElementById('bbr-box');
+const bbrType     = document.getElementById('bbr-type');
+const bbrM2       = document.getElementById('bbr-m2');
+const evInput     = document.getElementById('ev-input');
+const genBtn      = document.getElementById('gen-btn');
+const statusEl    = document.getElementById('status');
+const resultEl    = document.getElementById('result');
+const klageEl     = document.getElementById('klage-text');
+
+let chosen = null;
+
+addrInput.addEventListener('input', async () => {
+  const q = addrInput.value.trim();
+  chosen = null; checkBtn();
+  if (q.length < 3) { suggestBox.style.display='none'; return; }
+  try {
+    const r = await fetch('/api/adresse?q='+encodeURIComponent(q));
+    const d = await r.json();
+    const items = d.suggestions || [];
+    if (!items.length) { suggestBox.style.display='none'; return; }
+    suggestBox.innerHTML = items.map((s,i) =>
+      '<div class="s-item" data-i="'+i+'" onclick="pick('+i+')">'+s.label+'</div>'
+    ).join('');
+    suggestBox._items = items;
+    suggestBox.style.display='block';
+  } catch(e) { suggestBox.style.display='none'; }
+});
+
+document.addEventListener('click', e => {
+  if (!addrInput.contains(e.target) && !suggestBox.contains(e.target))
+    suggestBox.style.display='none';
+});
+
+async function pick(i) {
+  const item = suggestBox._items[i];
+  addrInput.value = item.label;
+  suggestBox.style.display='none';
+  chosen = item;
+  // BBR
+  if (item.husnummerId) {
+    try {
+      const r = await fetch('/api/bbr?husnummerId='+item.husnummerId+'&kommunekode='+item.kommunekode);
+      const d = await r.json();
+      if (d.found) {
+        bbrType.textContent = d.boligtypeLabel;
+        bbrM2.textContent   = d.m2;
+        bbrBox.style.display='block';
+        chosen._m2 = d.m2;
+      }
+    } catch(e) {}
+  }
+  checkBtn();
+}
+
+evInput.addEventListener('input', checkBtn);
+function checkBtn() {
+  genBtn.disabled = !(chosen && evInput.value > 0);
+}
+
+async function generer() {
+  genBtn.disabled = true;
+  resultEl.style.display='none';
+  statusEl.className='loading'; statusEl.style.display='block';
+  statusEl.innerHTML='<span class="spinner"></span>Henter data og genererer klagetekst… (30-60 sek)';
+  try {
+    const url = '/api/test-klage?address='+encodeURIComponent(chosen.label)+'&ev='+evInput.value;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    statusEl.style.display='none';
+    klageEl.textContent = d.klageTekst || '(ingen tekst)';
+    resultEl.style.display='block';
+  } catch(e) {
+    statusEl.className='error'; statusEl.textContent='Fejl: '+e.message;
+  } finally {
+    genBtn.disabled=false;
+  }
+}
+
+function kopier() {
+  navigator.clipboard.writeText(klageEl.textContent).then(() => {
+    const b = document.querySelector('.copy-btn');
+    b.textContent='✓ Kopieret!'; setTimeout(()=>b.textContent='Kopiér tekst',2000);
+  });
+}
+</script>
+</body>
+</html>`);
+});
+
 // ─── Health check ─────────────────────────────────────────────
 app.get("/api/health", (_req, res) => {
   res.json({
