@@ -419,11 +419,16 @@ function renderDropdown(suggestions) {
   if (!suggestions.length) { hideDropdown(); return; }
 
   dd.innerHTML = suggestions.map((s, i) =>
-    `<div class="dropdown-item" onmousedown="selectSuggestion(currentSuggestions[${i}])">
+    `<div class="dropdown-item" data-idx="${i}">
        <div class="main-text">${escHtml(s.label)}</div>
        <div class="sub-text">${escHtml(s.postnr)} ${escHtml(s.by)}</div>
      </div>`
   ).join("");
+  dd.querySelectorAll(".dropdown-item").forEach(function(el){
+    el.addEventListener("mousedown", function(){
+      selectSuggestion(currentSuggestions[+this.dataset.idx]);
+    });
+  });
   dd.classList.remove("hidden");
 }
 
@@ -768,11 +773,11 @@ async function startTest() {
 }
 
 // ─── Copy klage ───────────────────────────────────────────────
-function copyKlage() {
+function copyKlage(e) {
   const ta = document.getElementById("klage-text");
   ta.select();
   navigator.clipboard?.writeText(ta.value).catch(() => {});
-  const btn = event.target;
+  const btn = (e && e.target) || document.querySelector(".copybtn");
   btn.textContent = "✅ Kopieret!";
   setTimeout(() => btn.textContent = "📋 Kopiér klagetekst", 2500);
 }
