@@ -154,6 +154,19 @@ textarea{
 
 .hidden{display:none !important;}
 footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
+
+/* Email send box */
+.email-box{
+  margin-top:18px;background:#f0f4ff;border:1px solid #b8d0f7;
+  border-radius:10px;padding:16px 18px;
+}
+.email-box h4{margin:0 0 10px;font-size:.92rem;color:var(--blue-700);}
+.email-row{display:flex;gap:8px;align-items:center;}
+.email-row input{flex:1;padding:10px 12px;border:1px solid var(--gray-300);border-radius:8px;font-size:.9rem;}
+.email-row button{white-space:nowrap;padding:10px 16px;background:var(--blue-500);color:#fff;border:none;border-radius:8px;font-size:.88rem;font-weight:600;cursor:pointer;}
+.email-row button:hover{background:var(--blue-700);}
+.email-row button:disabled{background:var(--gray-300);cursor:wait;}
+#email-msg{margin-top:8px;font-size:.83rem;display:none;}
 </style>
 </head>
 <body>
@@ -176,12 +189,6 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
     <input type="text" id="address-input" placeholder="f.eks. Ishøj Store Torv 14, 2635 Ishøj"
            autocomplete="off" oninput="onAdresseInput(event)" onkeydown="onAdresseKey(event)" />
     <div class="dropdown hidden" id="adresse-dropdown"></div>
-  </div>
-  <div style="text-align:right;margin-top:6px;">
-    <button type="button" id="manual-toggle-btn" onclick="showManualEntry()"
-      style="background:none;border:none;color:var(--blue-500);font-size:0.82rem;cursor:pointer;padding:0;text-decoration:underline;">
-      📝 Skriv adresse manuelt
-    </button>
   </div>
   <div id="manual-entry-box" class="hidden" style="margin-top:10px;border:1px dashed var(--gray-300);border-radius:8px;padding:14px;">
     <p style="margin:0 0 10px;font-size:0.85rem;color:var(--gray-600);">Udfyld manuelt — bruges hvis adressesøgning ikke finder din bolig.</p>
@@ -271,6 +278,15 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
   <textarea id="klage-text" readonly></textarea>
   <button class="copybtn" onclick="copyKlage()">📋 Kopiér klagetekst</button>
 
+  <div class="email-box">
+    <h4>📧 Få klageteksten tilsendt på mail</h4>
+    <div class="email-row">
+      <input type="email" id="send-email" placeholder="din@email.dk" autocomplete="email" />
+      <button id="send-email-btn" onclick="sendKlageByEmail()">Send til mig</button>
+    </div>
+    <div id="email-msg"></div>
+  </div>
+
   <div class="note" style="margin-top:14px;">
     <strong>Trin til indsendelse:</strong>
     <ol style="margin:6px 0 0;padding-left:20px;font-size:0.85rem;">
@@ -319,7 +335,6 @@ let state = {
 // ─── Manual address entry ─────────────────────────────────────
 function showManualEntry() {
   document.getElementById("manual-entry-box").classList.remove("hidden");
-  document.getElementById("manual-toggle-btn").style.display = "none";
 }
 
 function proceedManual() {
@@ -708,6 +723,7 @@ async function pollKlage(sessionId) {
         clearInterval(interval);
         document.getElementById("klage-status").classList.add("hidden");
         document.getElementById("klage-text").value = data.klageTekst;
+        state.sessionId = sessionId; // ensure state is set for email send
       } else if (data.status === "error") {
         clearInterval(interval);
         document.getElementById("klage-status").innerHTML =
@@ -778,6 +794,8 @@ function resetApp() {
   document.getElementById("card-klage").classList.add("hidden");
   document.getElementById("result-body").innerHTML = "";
   document.getElementById("klage-text").value = "";
+  document.getElementById("send-email").value = "";
+  document.getElementById("email-msg").style.display = "none";
 
   const m2manual = document.getElementById("m2-manual");
   if (m2manual) m2manual.closest("div").remove();
@@ -796,6 +814,52 @@ function escHtml(s) {
     .replace(/</g,"&lt;")
     .replace(/>/g,"&gt;")
     .replace(/"/g,"&quot;");
+}
+
+// ─── Send klage by e-mail (on-demand) ────────────────────────
+async function sendKlageByEmail() {
+  const email = (document.getElementById("send-email").value || "").trim();
+  const msgEl = document.getElementById("email-msg");
+  const btn   = document.getElementById("send-email-btn");
+
+  if (!email || !email.includes("@")) {
+    msgEl.style.display = "block";
+    msgEl.style.color   = "var(--red-600)";
+    msgEl.textContent   = "Angiv en gyldig e-mailadresse.";
+    return;
+  }
+  if (!state.sessionId) {
+    msgEl.style.display = "block";
+    msgEl.style.color   = "var(--red-600)";
+    msgEl.textContent   = "Ingen aktiv session — genindlæs siden og prøv igen.";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Sender…';
+  msgEl.style.display = "none";
+
+  try {
+    const r = await fetch("/api/send-klage-mail", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: state.sessionId, email }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Ukendt fejl");
+
+    msgEl.style.display = "block";
+    msgEl.style.color   = "var(--green-600)";
+    msgEl.textContent   = `✅ Klageteksten er sendt til ${email}. Tjek evt. dit spam-filter.`;
+    btn.disabled = false;
+    btn.textContent = "Send igen";
+  } catch(err) {
+    msgEl.style.display = "block";
+    msgEl.style.color   = "var(--red-600)";
+    msgEl.textContent   = "Fejl: " + err.message;
+    btn.disabled = false;
+    btn.textContent = "Send til mig";
+  }
 }
 
 // ─── Check for returning payment ──────────────────────────────
