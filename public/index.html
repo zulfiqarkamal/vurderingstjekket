@@ -493,6 +493,13 @@ async function lookupBBR(husnummerId, adresseId, kommunekode) {
       renderBBRChip(data);
       document.getElementById("card-ev").classList.remove("hidden");
     } else {
+      // Even without a BBR building match, the kommunekode/landsdel may
+      // still have been resolved from the address itself — keep it.
+      if (data.kommunekode) state.kommunekode = data.kommunekode;
+      if (data.landsdel) {
+        state.landsdel = data.landsdel;
+        state.landsdelnavn = data.landsdelnavn;
+      }
       showBBRManual(data.message || "BBR fandt ingen bygningsdata for adressen.");
     }
   } catch(err) {

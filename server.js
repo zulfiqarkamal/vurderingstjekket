@@ -301,7 +301,26 @@ app.get("/api/adresse", async (req, res) => {
   }
 });
 
-// GET /api/bbr?husnummerId=<uuid>&kommunekode=<code>  →  returns BBR data
+// Fallback: resolve kommunekode straight from Adressevælgeren's address-detail
+// endpoint. This works even when the BBR building lookup finds nothing (e.g.
+// commercial/apartment complexes with no registered boligareal), so the user
+// never has to type a kommunekode in by hand — it's always derived from the
+// address they picked.
+async function resolveKommunekodeFromAdresse(adresseId) {
+  if (!adresseId) return null;
+  try {
+    const url = `https://adressevaelger.dk/adresser/${adresseId}?token=${ADR_TOKEN}`;
+    const r = await fetch(url, { headers: { "Accept": "application/json" } });
+    if (!r.ok) return null;
+    const data = await r.json();
+    const kommune = data?.adresse?.husnummer?.navngivenvejkommunedel?.kommune;
+    return kommune ? String(kommune).padStart(4, "0") : null;
+  } catch {
+    return null;
+  }
+}
+
+// GET /api/bbr?husnummerId=<uuid>&adresseId=<uuid>&kommunekode=<code>  →  returns BBR data
 app.get("/api/bbr", async (req, res) => {
   const { husnummerId, adresseId, kommunekode } = req.query;
   if (!husnummerId) return res.status(400).json({ error: "Mangler husnummerId" });
@@ -317,7 +336,20 @@ app.get("/api/bbr", async (req, res) => {
     const bygninger = await r.json();
 
     if (!Array.isArray(bygninger) || bygninger.length === 0) {
-      return res.json({ found: false, message: "Ingen BBR-bygningsdata fundet." });
+      // No BBR building data (e.g. commercial complex) — still resolve the
+      // kommunekode/landsdel from the address itself so the user only has
+      // to enter m² manually, never the kommunekode.
+      const fallbackKommune = await resolveKommunekodeFromAdresse(adresseId) ||
+        (kommunekode ? String(kommunekode).padStart(4, "0") : null);
+      const fallbackLandsdel = fallbackKommune ? KOMMUNEKODE_TO_LANDSDEL[fallbackKommune] : null;
+
+      return res.json({
+        found: false,
+        message: "Ingen BBR-bygningsdata fundet.",
+        kommunekode: fallbackKommune || "",
+        landsdel: fallbackLandsdel || "",
+        landsdelnavn: fallbackLandsdel ? (LANDSDEL_NAVN[fallbackLandsdel] || fallbackLandsdel) : "",
+      });
     }
 
     // Pick the primary residential building: prefer one with an actual
@@ -328,7 +360,10 @@ app.get("/api/bbr", async (req, res) => {
       bygninger.find((b) => boligAreal(b) > 0) ||
       bygninger[0];
 
-    const bbrKommune = String(byg.kommunekode || kommunekode || "").padStart(4, "0");
+    let bbrKommune = String(byg.kommunekode || kommunekode || "").padStart(4, "0");
+    if (!KOMMUNEKODE_TO_LANDSDEL[bbrKommune]) {
+      bbrKommune = (await resolveKommunekodeFromAdresse(adresseId)) || bbrKommune;
+    }
     const landsdel = KOMMUNEKODE_TO_LANDSDEL[bbrKommune] || "09";
     const m2 = boligAreal(byg) || parseInt(byg.byg038SamletBygningsareal || 0) || 0;
     const anvKode = String(byg.byg021BygningensAnvendelse || "120");
