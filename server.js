@@ -755,15 +755,25 @@ async function generateKlage(sessionId, sess) {
     .sort((a, b) => new Date(b.soldDate) - new Date(a.soldDate))
     .slice(0, 8);
 
+  // Real grounds check against the actual local (postnummer) analysis —
+  // not the broad landsdel estimate from the free check. Only generate a
+  // formal "EV er for høj"-claim when the real, representative comps
+  // actually support it. Otherwise tell the customer honestly, with the
+  // same underlying data, instead of asserting a claim we can't stand behind.
+  const hasGrounds = targetEV != null && evNum > targetEV;
+
   sess.status        = "done";
-  sess.klageTekst    = buildKlageTekst({ sess, medianSqm, estimatedMarket, targetEV, comps: topComps });
+  sess.hasGrounds    = hasGrounds;
+  sess.klageTekst    = hasGrounds
+    ? buildKlageTekst({ sess, medianSqm, estimatedMarket, targetEV, comps: topComps })
+    : buildNoGroundsReport({ sess, medianSqm, estimatedMarket, targetEV, comps: topComps });
   sess.comps         = topComps;
   sess.estimatedMarket = estimatedMarket;
   sess.targetEV      = targetEV;
   sess.medianSqm     = medianSqm;
 
   // Log successful klage generation (email is sent on-demand by customer)
-  logEvent("klage_done", {
+  logEvent(hasGrounds ? "klage_done" : "klage_no_grounds", {
     sessionId,
     address: sess.label || sess.address || "",
     ev: sess.ev, gv: sess.gv, m2: sess.m2,
@@ -844,6 +854,56 @@ Kontrollér altid frister og beløb selv inden indsendelse.
 `;
 }
 
+// Honest "no grounds" report — used when the real postnummer-level
+// analysis does NOT support a claim that the EV is too high, even though
+// the free check's broader landsdel estimate suggested it was worth
+// checking. We show the customer the same underlying data so they can see
+// exactly why, rather than silently generating a complaint we can't back.
+function buildNoGroundsReport({ sess, medianSqm, estimatedMarket, targetEV, comps }) {
+  const evNum = Number(sess.ev);
+  const m2Num = Number(sess.m2);
+  const gap   = targetEV ? Math.round(((evNum - targetEV) / targetEV) * 100) : null;
+
+  const rows = comps.map(c =>
+    `  - ${c.address || "ukendt"}, ${c.size} m², solgt ${fmtDate(c.soldDate)}: ` +
+    `${fmtKr(c.price)} (${fmtKr(c.squareMeterPrice)}/m²)`
+  ).join("\n");
+
+  return `ANALYSERESULTAT — ${sess.address || sess.label || ""}
+
+EJENDOMSOPLYSNINGER
+  Adresse:         ${sess.address || sess.label || ""}
+  Boligareal:      ${m2Num} m²
+  Ejendomstype:    ${sess.boligtypeLabel || ""}
+  Ejendomsværdi:   ${fmtKr(evNum)}
+
+KONKLUSION: Ikke tilstrækkeligt belæg for en klage
+
+Vi har analyseret ${comps.length} sammenlignelige, tinglysningsregistrerede handler i dit
+postnummerområde fra perioden 2020–2022 — samme grundlag Vurderingsstyrelsen selv har
+anvendt. Baseret på disse konkrete lokale handler (ikke kun landsdelsgennemsnittet fra
+det gratis tjek) kan vi ikke finde grundlag for at hævde, at din ejendomsværdi er sat
+for højt.
+
+${medianSqm ? `Median salgspris pr. m² i dit postnummer: ${fmtKr(medianSqm)}/m²` : ""}
+${estimatedMarket ? `Skønnet markedsværdi for ejendommen (${m2Num} m²): ${fmtKr(estimatedMarket)}` : ""}
+${targetEV ? `80 % heraf (lovens grænse for EV): ${fmtKr(targetEV)}` : ""}
+${gap != null ? `\nDin ejendomsværdi ligger ca. ${Math.abs(gap)} % under denne grænse (${fmtKr(targetEV - evNum)} kr).` : ""}
+
+REFERENCEEJENDOMME (tinglysningsregistrerede handler 2020–2022):
+${rows}
+
+Du er naturligvis velkommen til at indsende en klage til Skatteankestyrelsen alligevel —
+det er altid din egen beslutning, og du kan bruge tallene ovenfor som dokumentation. Men
+vi kan ikke i god tro udarbejde en formel klagepåstand om, at ejendomsværdien er for høj,
+når de konkrete lokale handler ikke understøtter det.
+
+────────────────────────────────────────────────
+Analyse udarbejdet af Vurderingstjekket.dk
+Data er vejledende og ikke juridisk rådgivning.
+`;
+}
+
 // ─── Klage status ─────────────────────────────────────────────
 app.get("/api/klage/:sessionId", (req, res) => {
   const sess = SESSIONS.get(req.params.sessionId);
@@ -851,6 +911,7 @@ app.get("/api/klage/:sessionId", (req, res) => {
 
   res.json({
     status:          sess.status,
+    hasGrounds:      sess.hasGrounds    ?? null,
     klageTekst:      sess.klageTekst    || null,
     error:           sess.error         || null,
     estimatedMarket: sess.estimatedMarket || null,
@@ -925,6 +986,7 @@ app.get("/api/test-klage", async (req, res) => {
       sessionId,
       adresse:    sessData.label,
       status:     sessData.status,
+      hasGrounds: sessData.hasGrounds ?? null,
       klageTekst: sessData.klageTekst || null,
       error:      sessData.error      || null,
     });

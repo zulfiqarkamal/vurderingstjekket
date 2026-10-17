@@ -275,16 +275,25 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 
 <!-- ══ STEP 5: KLAGE ════════════════════════════════════════════ -->
 <div class="card hidden" id="card-klage">
-  <h2>5. Din klagetekst</h2>
-  <p class="sub">Kopiér teksten og indsæt den i <a href="https://skatteankestyrelsen.dk/send-en-klage/du-er-ved-at-oprette-en-klage-ejendom" target="_blank" rel="noopener">Skatteankestyrelsens klageformular</a>.</p>
+  <h2 id="klage-h2">5. Din klagetekst</h2>
+  <p class="sub" id="klage-sub">Kopiér teksten og indsæt den i <a href="https://skatteankestyrelsen.dk/send-en-klage/du-er-ved-at-oprette-en-klage-ejendom" target="_blank" rel="noopener">Skatteankestyrelsens klageformular</a>.</p>
   <div id="klage-status" class="hidden" style="margin-bottom:12px;color:var(--gray-600);font-size:0.9rem;">
-    <span class="spinner spinner-dark"></span> Henter data og genererer klagetekst…
+    <span class="spinner spinner-dark"></span> Henter data og genererer analyse…
   </div>
+
+  <div id="no-grounds-note" class="warn-note hidden" style="margin-bottom:14px;">
+    <strong>⚠️ Ingen tilstrækkeligt belæg for en klage.</strong><br>
+    Vi har analyseret de faktiske handler i dit postnummer (ikke kun landsdelsgennemsnittet),
+    og de understøtter ikke en påstand om at din ejendomsværdi er for høj. Du kan stadig
+    indsende en klage selv hvis du ønsker det — se dataene og begrundelsen nedenfor — men vi
+    genererer ikke en formel klagepåstand vi ikke kan stå inde for.
+  </div>
+
   <textarea id="klage-text" readonly></textarea>
-  <button class="copybtn">📋 Kopiér klagetekst</button>
+  <button class="copybtn">📋 Kopiér tekst</button>
 
   <div class="email-box">
-    <h4>📧 Få klageteksten tilsendt på mail</h4>
+    <h4 id="email-box-h4">📧 Få klageteksten tilsendt på mail</h4>
     <div class="email-row">
       <input type="email" id="send-email" placeholder="din@email.dk" autocomplete="email" />
       <button id="send-email-btn">Send til mig</button>
@@ -292,7 +301,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
     <div id="email-msg"></div>
   </div>
 
-  <div class="note" style="margin-top:14px;">
+  <div class="note" id="klage-steps-note" style="margin-top:14px;">
     <strong>Trin til indsendelse:</strong>
     <ol style="margin:6px 0 0;padding-left:20px;font-size:0.85rem;">
       <li>Gå til <a href="https://skatteankestyrelsen.dk/send-en-klage/du-er-ved-at-oprette-en-klage-ejendom" target="_blank" rel="noopener">skatteankestyrelsen.dk</a> og klik "Opret klage"</li>
@@ -737,6 +746,29 @@ async function startPayment() {
   }
 }
 
+// ─── Toggle UI between "klage" and "ingen belæg" result modes ─
+function applyKlageResultMode(hasGrounds) {
+  const noGroundsNote = document.getElementById("no-grounds-note");
+  const stepsNote     = document.getElementById("klage-steps-note");
+  const h2            = document.getElementById("klage-h2");
+  const sub           = document.getElementById("klage-sub");
+  const emailH4       = document.getElementById("email-box-h4");
+
+  if (hasGrounds === false) {
+    noGroundsNote.classList.remove("hidden");
+    stepsNote.classList.add("hidden");
+    h2.textContent = "5. Dit analyseresultat";
+    sub.textContent = "Her er den fulde analyse af de konkrete handler i dit postnummer.";
+    emailH4.textContent = "📧 Få analysen tilsendt på mail";
+  } else {
+    noGroundsNote.classList.add("hidden");
+    stepsNote.classList.remove("hidden");
+    h2.textContent = "5. Din klagetekst";
+    sub.innerHTML = 'Kopiér teksten og indsæt den i <a href="https://skatteankestyrelsen.dk/send-en-klage/du-er-ved-at-oprette-en-klage-ejendom" target="_blank" rel="noopener">Skatteankestyrelsens klageformular</a>.';
+    emailH4.textContent = "📧 Få klageteksten tilsendt på mail";
+  }
+}
+
 // ─── Post-payment: poll for klage ────────────────────────────
 async function pollKlage(sessionId) {
   document.getElementById("card-klage").classList.remove("hidden");
@@ -761,6 +793,7 @@ async function pollKlage(sessionId) {
         clearInterval(interval);
         document.getElementById("klage-status").classList.add("hidden");
         document.getElementById("klage-text").value = data.klageTekst;
+        applyKlageResultMode(data.hasGrounds);
         state.sessionId = sessionId; // ensure state is set for email send
       } else if (data.status === "error") {
         clearInterval(interval);
@@ -796,6 +829,7 @@ async function startTest() {
     if (data.error) throw new Error(data.error);
     document.getElementById("klage-status").classList.add("hidden");
     document.getElementById("klage-text").value = data.klageTekst || "(ingen tekst)";
+    applyKlageResultMode(data.hasGrounds);
   } catch(err) {
     document.getElementById("klage-status").innerHTML =
       `<span style="color:var(--red-600)">Fejl: ${escHtml(err.message)}</span>`;
