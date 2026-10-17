@@ -535,6 +535,17 @@ function injectManualM2Field() {
     <input type="number" id="m2-manual" placeholder="136" min="10" max="2000" />`;
   wrap.style.marginBottom = "8px";
   evCard.insertBefore(wrap, firstRow);
+
+  if (!state.kommunekode && !document.getElementById("kv-manual")) {
+    const kvWrap = document.createElement("div");
+    kvWrap.innerHTML = `
+      <label for="kv-manual">Kommunekode
+        <span class="hint">4 cifre — vi kunne ikke slå den automatisk op. Find den på <a href="https://ois.dk" target="_blank" rel="noopener">ois.dk</a> eller din vurderingsmeddelelse.</span>
+      </label>
+      <input type="text" id="kv-manual" placeholder="f.eks. 0183" maxlength="4" />`;
+    kvWrap.style.marginBottom = "8px";
+    evCard.insertBefore(kvWrap, firstRow);
+  }
 }
 
 // ─── Free eligibility check ───────────────────────────────────
@@ -545,6 +556,17 @@ async function runFreeCheck() {
   // Use manual m2 if no BBR
   const m2 = state.m2 || parseFloat((document.getElementById("m2-manual") || {}).value);
   if (!m2 || m2 < 10) { alert("Vi kunne ikke finde boligens m² fra BBR. Indtast arealet manuelt."); return; }
+
+  // Use manual kommunekode if BBR lookup never resolved one
+  if (!state.kommunekode) {
+    const kvInput = document.getElementById("kv-manual");
+    const kv = (kvInput ? kvInput.value : "").trim().padStart(4, "0");
+    if (!kvInput || kv.length !== 4 || isNaN(kv)) {
+      alert("Vi kunne ikke slå kommunekode automatisk op for adressen. Angiv kommunekode (4 cifre) i feltet ovenfor.");
+      return;
+    }
+    state.kommunekode = kv;
+  }
 
   state.m2  = m2;
   const gv  = parseFloat(document.getElementById("gv-input").value) || null;
@@ -805,6 +827,8 @@ function resetApp() {
 
   const m2manual = document.getElementById("m2-manual");
   if (m2manual) m2manual.closest("div").remove();
+  const kvManual = document.getElementById("kv-manual");
+  if (kvManual) kvManual.closest("div").remove();
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
