@@ -354,7 +354,11 @@ app.post("/api/free-check", async (req, res) => {
 
   if (!m2Num || !evNum) return res.status(400).json({ error: "Mangler m² og/eller ejendomsværdi" });
 
-  const landsdel = KOMMUNEKODE_TO_LANDSDEL[String(kommunekode).padStart(4,"0")] || "09";
+  const kommunekodeNorm = String(kommunekode || "").padStart(4, "0");
+  const landsdel = KOMMUNEKODE_TO_LANDSDEL[kommunekodeNorm];
+  if (!landsdel) {
+    return res.status(400).json({ error: "Mangler eller ukendt kommunekode — kan ikke bestemme landsdel. Angiv kommunekode manuelt." });
+  }
   const ejendomskate = isEnfamilie(anvKode) ? "0111" : "0111"; // future: "0121" for etage
 
   try {
