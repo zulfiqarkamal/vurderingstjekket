@@ -320,13 +320,19 @@ app.get("/api/bbr", async (req, res) => {
       return res.json({ found: false, message: "Ingen BBR-bygningsdata fundet." });
     }
 
-    // Pick the primary residential building (lowest kode or first)
-    const byg = bygninger[0];
+    // Pick the primary residential building: prefer one with an actual
+    // boligareal (the real house) over garages/carports/outbuildings,
+    // which share the same husnummer but report byg039 = 0 or absent.
+    const boligAreal = (b) => parseInt(b.byg039BygningensSamledeBoligAreal || 0) || 0;
+    const byg =
+      bygninger.find((b) => boligAreal(b) > 0) ||
+      bygninger[0];
+
     const bbrKommune = String(byg.kommunekode || kommunekode || "").padStart(4, "0");
     const landsdel = KOMMUNEKODE_TO_LANDSDEL[bbrKommune] || "09";
-    const m2 = parseInt(byg.bygningSamletBoligareal || byg.bygningSamletBygningsareal || 0);
-    const anvKode = String(byg.bygningsAnvendelse || "120");
-    const opfoeretAar = (byg.byggeriAfsluttet || byg.opfoerelsesdatoTekst || "").slice(0, 4);
+    const m2 = boligAreal(byg) || parseInt(byg.byg038SamletBygningsareal || 0) || 0;
+    const anvKode = String(byg.byg021BygningensAnvendelse || "120");
+    const opfoeretAar = String(byg.byg026Opførelsesår || "");
 
     res.json({
       found: true,
