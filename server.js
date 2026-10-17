@@ -74,7 +74,7 @@ const emailTransporter = EMAIL_USER && EMAIL_PASS
     })
   : null;
 
-async function sendKlageMail(to, address, klageTekst) {
+async function sendKlageMail(to, address, klageTekst, hasGrounds = true) {
   if (!emailTransporter) {
     console.warn("⚠️  E-mail ikke konfigureret (mangler EMAIL_USER / EMAIL_PASS)");
     return false;
@@ -83,6 +83,31 @@ async function sendKlageMail(to, address, klageTekst) {
     console.warn("⚠️  Ingen gyldig e-mail-adresse til kunde — spring over");
     return false;
   }
+
+  const title = hasGrounds ? "🏡 Din klagetekst er klar" : "📋 Dit analyseresultat er klar";
+  const intro = hasGrounds
+    ? `Tak for dit køb hos <strong>Vurderingstjekket</strong>. Herunder finder du din færdige klagetekst til Skatteankestyrelsen.`
+    : `Tak for dit køb hos <strong>Vurderingstjekket</strong>. Vi har analyseret de faktiske handler i dit postnummerområde, og de understøtter desværre ikke en klage over din ejendomsvurdering. Herunder kan du se den fulde analyse og dataene bag konklusionen.`;
+  const stepsBlock = hasGrounds ? `
+    <div class="steps">
+      <h3>📋 Sådan sender du din klage</h3>
+      <ol>
+        <li>Gå til <strong>skatteankestyrelsen.dk</strong> og log ind med MitID</li>
+        <li>Vælg "Indsend klage" → "Ejendomsvurdering"</li>
+        <li>Kopier teksten ovenfor ind i klageformularen</li>
+        <li>Vedhæft din vurderingsmeddelelse og evt. BBR-meddelelse</li>
+        <li>Indsend — du modtager kvittering pr. e-mail fra Skatteankestyrelsen</li>
+      </ol>
+    </div>` : `
+    <div class="steps">
+      <h3>ℹ️ Ønsker du alligevel at klage?</h3>
+      <p style="margin:0;font-size:.88rem;color:#374151;line-height:1.6">
+        Det er altid din egen beslutning. Du kan bruge dataene i analysen ovenfor som
+        dokumentation, hvis du selv vil indsende en klage på <strong>skatteankestyrelsen.dk</strong>.
+        Vi har ikke udarbejdet en formel klagepåstand, da de konkrete lokale handler ikke
+        understøtter den.
+      </p>
+    </div>`;
 
   const htmlBody = `<!DOCTYPE html>
 <html lang="da">
@@ -104,26 +129,17 @@ async function sendKlageMail(to, address, klageTekst) {
 <body>
 <div class="wrap">
   <div class="header">
-    <h1>🏡 Din klagetekst er klar</h1>
+    <h1>${title}</h1>
     <p>${address}</p>
   </div>
   <div class="body">
-    <p>Tak for dit køb hos <strong>Vurderingstjekket</strong>. Herunder finder du din færdige klagetekst til Skatteankestyrelsen.</p>
+    <p>${intro}</p>
 
     <div class="klagetekst">${klageTekst.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>
 
-    <div class="steps">
-      <h3>📋 Sådan sender du din klage</h3>
-      <ol>
-        <li>Gå til <strong>skatteankestyrelsen.dk</strong> og log ind med MitID</li>
-        <li>Vælg "Indsend klage" → "Ejendomsvurdering"</li>
-        <li>Kopier teksten ovenfor ind i klageformularen</li>
-        <li>Vedhæft din vurderingsmeddelelse og evt. BBR-meddelelse</li>
-        <li>Indsend — du modtager kvittering pr. e-mail fra Skatteankestyrelsen</li>
-      </ol>
-    </div>
+    ${stepsBlock}
 
-    <p style="margin-top:20px;font-size:.85rem;color:#6b7280">⚠️ <em>Klageteksten er vejledende og udgør ikke juridisk rådgivning. Kontrollér selv frister og beløb inden indsendelse.</em></p>
+    <p style="margin-top:20px;font-size:.85rem;color:#6b7280">⚠️ <em>${hasGrounds ? "Klageteksten" : "Analysen"} er vejledende og udgør ikke juridisk rådgivning. Kontrollér selv frister og beløb inden indsendelse.</em></p>
   </div>
   <div class="footer">Vurderingstjekket · Spørgsmål? Svar på denne mail.</div>
 </div>
@@ -134,11 +150,11 @@ async function sendKlageMail(to, address, klageTekst) {
     await emailTransporter.sendMail({
       from: `"Vurderingstjekket" <${EMAIL_USER}>`,
       to,
-      subject: `Din klagetekst er klar — ${address}`,
-      text: `Tak for dit køb.\n\nHerunder er din klagetekst:\n\n${klageTekst}\n\n---\nVurderingstjekket`,
+      subject: hasGrounds ? `Din klagetekst er klar — ${address}` : `Dit analyseresultat er klar — ${address}`,
+      text: `Tak for dit køb.\n\nHerunder er ${hasGrounds ? "din klagetekst" : "dit analyseresultat"}:\n\n${klageTekst}\n\n---\nVurderingstjekket`,
       html: htmlBody,
     });
-    console.log(`📧 Klagetekst sendt til ${to}`);
+    console.log(`📧 ${hasGrounds ? "Klagetekst" : "Analyseresultat"} sendt til ${to}`);
     return true;
   } catch (err) {
     console.error("E-mail fejl:", err.message);
@@ -497,14 +513,15 @@ button{width:100%;padding:11px;background:#1c6dc4;color:#fff;border:none;border-
   const slice = rows.slice((page - 1) * perPage, page * perPage);
 
   // Stats
-  const payments  = HISTORY.filter(r => r.type === "payment").length;
-  const klager    = HISTORY.filter(r => r.type === "klage_done").length;
-  const freeChecks= HISTORY.filter(r => r.type === "free_check").length;
-  const revenue   = payments * 350;
+  const payments    = HISTORY.filter(r => r.type === "payment").length;
+  const klager      = HISTORY.filter(r => r.type === "klage_done").length;
+  const ingenBelaeg = HISTORY.filter(r => r.type === "klage_no_grounds").length;
+  const freeChecks  = HISTORY.filter(r => r.type === "free_check").length;
+  const revenue     = payments * 350;
 
   const rowHtml = slice.map(r => {
-    const ico = r.type === "payment" ? "💳" : r.type === "klage_done" ? "📄" : r.type === "klage_error" ? "❌" : "🔍";
-    const label = r.type === "payment" ? "Betaling" : r.type === "klage_done" ? "Klagetekst" : r.type === "klage_error" ? "Fejl" : "Gratis tjek";
+    const ico = r.type === "payment" ? "💳" : r.type === "klage_done" ? "📄" : r.type === "klage_no_grounds" ? "📋" : r.type === "klage_error" ? "❌" : "🔍";
+    const label = r.type === "payment" ? "Betaling" : r.type === "klage_done" ? "Klagetekst" : r.type === "klage_no_grounds" ? "Ingen belæg" : r.type === "klage_error" ? "Fejl" : "Gratis tjek";
     const snippet = (r.klageTekst||"").slice(0,120).replace(/</g,"&lt;") || "";
     const emailCol = r.customerEmail
       ? `<a href="mailto:${r.customerEmail}" style="color:#1c6dc4;font-size:0.78rem">${r.customerEmail}</a>${r.emailSent===false?' ⚠️':r.emailSent?' ✅':''}`
@@ -560,6 +577,7 @@ tr:hover td{background:#f8fafc}
   <div class="stat"><div class="n">💳 ${payments}</div><div class="l">Betalinger</div></div>
   <div class="stat"><div class="n">💰 ${revenue.toLocaleString("da-DK")} kr</div><div class="l">Total omsætning</div></div>
   <div class="stat"><div class="n">📄 ${klager}</div><div class="l">Klagetekster</div></div>
+  <div class="stat"><div class="n">📋 ${ingenBelaeg}</div><div class="l">Ingen belæg</div></div>
   <div class="stat"><div class="n">🔍 ${freeChecks}</div><div class="l">Gratis tjek</div></div>
   <div class="stat"><div class="n">${total}</div><div class="l">Filtrerede poster</div></div>
 </div>
@@ -572,6 +590,7 @@ tr:hover td{background:#f8fafc}
       <option value="">Alle typer</option>
       <option value="payment"${typeFilter==="payment"?" selected":""}>💳 Betalinger</option>
       <option value="klage_done"${typeFilter==="klage_done"?" selected":""}>📄 Klagetekster</option>
+      <option value="klage_no_grounds"${typeFilter==="klage_no_grounds"?" selected":""}>📋 Ingen belæg</option>
       <option value="klage_error"${typeFilter==="klage_error"?" selected":""}>❌ Fejl</option>
       <option value="free_check"${typeFilter==="free_check"?" selected":""}>🔍 Gratis tjek</option>
     </select>
@@ -934,9 +953,9 @@ app.post("/api/send-klage-mail", async (req, res) => {
     return res.status(400).json({ error: "Klageteksten er ikke klar endnu" });
   }
 
-  const ok = await sendKlageMail(email, sess.label || sess.address || "", sess.klageTekst);
+  const ok = await sendKlageMail(email, sess.label || sess.address || "", sess.klageTekst, sess.hasGrounds !== false);
   if (ok) {
-    logEvent("email_sent", { sessionId, email, address: sess.label || sess.address || "" });
+    logEvent("email_sent", { sessionId, email, address: sess.label || sess.address || "", hasGrounds: sess.hasGrounds });
     res.json({ ok: true });
   } else {
     res.status(502).json({ error: "E-mail kunne ikke sendes — tjek server-loggen" });
