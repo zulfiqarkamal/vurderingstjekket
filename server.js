@@ -412,7 +412,7 @@ app.post("/api/free-check", async (req, res) => {
     let verdict, label, color;
     if      (gap_pct >= 15) { verdict="STÆRK";    label="Stærk indikation – god grund til klage";   color="red";   }
     else if (gap_pct >=  5) { verdict="MULIG";     label="Mulig klage – bør undersøges nærmere";     color="amber"; }
-    else if (gap_pct > -10) { verdict="USIKKER";   label="Usikkert – kan ikke udelukkes";            color="amber"; }
+    else if (gap_pct >  -5) { verdict="USIKKER";   label="Usikkert – kan ikke udelukkes";            color="amber"; }
     else                    { verdict="INGEN";     label="Næppe grund til klage baseret på disse tal"; color="green"; }
 
     const result = {
