@@ -455,7 +455,11 @@ app.post("/api/free-check", async (req, res) => {
 const SESSIONS = new Map(); // sessionId → { status, ... }
 
 // ─── History log (persistent JSON file) ───────────────────────
-const HISTORY_FILE = path.join(__dirname, "history.json");
+// Gemmes på Railway Volume (/data) hvis den findes, så data overlever redeploys.
+// Falder tilbage til lokal mappe (f.eks. ved kørsel uden volume) hvis /data ikke findes.
+const HISTORY_DIR = fs.existsSync("/data") ? "/data" : __dirname;
+const HISTORY_FILE = path.join(HISTORY_DIR, "history.json");
+console.log(`📁 History-fil: ${HISTORY_FILE}`);
 let HISTORY = [];
 try {
   if (fs.existsSync(HISTORY_FILE)) {
