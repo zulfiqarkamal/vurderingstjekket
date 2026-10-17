@@ -198,8 +198,8 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
         <input type="number" id="manual-m2" placeholder="130" min="10" max="2000" />
       </div>
       <div>
-        <label for="manual-kv">Kommunekode <span class="hint">4 cifre, fx 0657 for Ishøj</span></label>
-        <input type="text" id="manual-kv" placeholder="0657" maxlength="4" />
+        <label for="manual-kv">Kommunekode <span class="hint">4 cifre, fx 0169 for Ishøj</span></label>
+        <input type="text" id="manual-kv" placeholder="0169" maxlength="4" />
       </div>
     </div>
     <button class="btn btn-secondary" style="margin-top:10px;">Fortsæt →</button>
@@ -344,7 +344,7 @@ function proceedManual() {
 
   if (!addrText || addrText.length < 5) { alert("Skriv venligst din fulde adresse i adressefeltet ovenfor."); return; }
   if (!m2 || m2 < 10) { alert("Angiv boligareal i m²."); return; }
-  if (!kv || kv.length !== 4 || isNaN(kv)) { alert("Angiv kommunekode (4 cifre), fx 0657 for Ishøj."); return; }
+  if (!kv || kv.length !== 4 || isNaN(kv)) { alert("Angiv kommunekode (4 cifre), fx 0169 for Ishøj."); return; }
 
   state.label = addrText;
   state.postnr = "";
@@ -483,6 +483,7 @@ async function lookupBBR(husnummerId, adresseId, kommunekode) {
       state.isEjerlejlighed = data.isEjerlejlighed;
       state.landsdel       = data.landsdel;
       state.landsdelnavn   = data.landsdelnavn;
+      state.kommunekode    = data.kommunekode || state.kommunekode;
 
       renderBBRChip(data);
       document.getElementById("card-ev").classList.remove("hidden");
@@ -756,7 +757,7 @@ async function startTest() {
       address:     state.label      || "Testvej 1, 2635 Ishøj",
       ev:          state.ev         || 4000000,
       m2:          state.m2         || 130,
-      kommunekode: state.kommunekode || "0657",
+      kommunekode: state.kommunekode || "0169",
     });
     const r = await fetch("/api/test-klage?" + params);
     const data = await r.json();
