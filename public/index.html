@@ -829,6 +829,7 @@ async function startTest() {
     if (data.error) throw new Error(data.error);
     document.getElementById("klage-status").classList.add("hidden");
     document.getElementById("klage-text").value = data.klageTekst || "(ingen tekst)";
+    state.sessionId = data.sessionId; // needed so "Send til mig" (e-mail) works in testmode too
     applyKlageResultMode(data.hasGrounds);
   } catch(err) {
     document.getElementById("klage-status").innerHTML =
