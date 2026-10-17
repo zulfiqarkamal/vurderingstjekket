@@ -888,7 +888,7 @@ for højt.
 ${medianSqm ? `Median salgspris pr. m² i dit postnummer: ${fmtKr(medianSqm)}/m²` : ""}
 ${estimatedMarket ? `Skønnet markedsværdi for ejendommen (${m2Num} m²): ${fmtKr(estimatedMarket)}` : ""}
 ${targetEV ? `80 % heraf (lovens grænse for EV): ${fmtKr(targetEV)}` : ""}
-${gap != null ? `\nDin ejendomsværdi ligger ca. ${Math.abs(gap)} % under denne grænse (${fmtKr(targetEV - evNum)} kr).` : ""}
+${gap != null ? `\nDin ejendomsværdi ligger ca. ${Math.abs(gap)} % under denne grænse (${fmtKr(targetEV - evNum)}).` : ""}
 
 REFERENCEEJENDOMME (tinglysningsregistrerede handler 2020–2022):
 ${rows}
