@@ -636,30 +636,15 @@ function renderFreeResult(d, ev, m2) {
     showCTA    = true;
     ctaText    = "Undersøg om jeg alligevel har en sag – 350 kr →";
     paySubText = `350 kr · du ligger ${fmtKr(absDiff)} under grænsen ud fra landsdelsgennemsnittet · klagetekst klar på ca. 2 min.`;
-  } else if (d.color === "amber" && d.verdict === "USIKKER") {
-    // EV is just above the threshold (0–5%) — a case exists, but the margin is thin
-    tlColor    = "tl-amber";
-    tag        = "🟡 Mulig klagesag – lige over grænsen";
-    headline   = `Din ejendomsværdi ligger ${fmtKr(absDiff)} over klagegrænsen`;
-    subtext    = "Det er en indikation på en klagesag, men marginen er lille, og landsdelens gennemsnit kan skjule lokale forskelle. En individuel analyse kan bekræfte grundlaget og styrke klagen.";
-    showCTA    = true;
-    ctaText    = "Undersøg din sag nærmere – 350 kr →";
-    paySubText = `350 kr · din ejendomsværdi er ${fmtKr(absDiff)} over klagegrænsen · klagetekst klar på ca. 2 min.`;
-  } else if (d.color === "amber" && d.verdict === "MULIG") {
-    // EV is 5–15% above threshold
-    tlColor    = "tl-amber";
-    tag        = "🟠 Sandsynlig klagesag";
-    headline   = `Din ejendomsværdi overstiger klagegrænsen med ${fmtKr(krDiff)}`;
-    subtext    = "Klagegrænsen er 80% af den skønnede markedsværdi. Der er indikation på, at din vurdering kan være for høj — en individuel analyse kan bekræfte grundlaget og understøtte din klage med konkrete tal.";
-    showCTA    = true;
-    ctaText    = "Undersøg din sag nærmere – 350 kr →";
-    paySubText = `350 kr · din ejendomsværdi er ${fmtKr(krDiff)} over klagegrænsen · klagetekst klar på ca. 2 min.`;
   } else {
-    // RED: EV >15% above threshold
+    // RED: EV is at or above the klagegrænse — any amount, small or large.
+    // (Previously split into "lige over grænsen" / "MULIG" / "STÆRK" amber+red
+    // tiers; merged into one clear red "you have grounds" signal, since all
+    // three already mean the same thing for the user: EV > klagegrænse.)
     tlColor    = "tl-red";
-    tag        = "🔴 Stærk indikation på klagesag";
-    headline   = `Din ejendomsværdi ser ud til at være sat ${fmtKr(krDiff)} for højt`;
-    subtext    = "Der er stærk indikation på, at din ejendom er overvurderet i forhold til markedsdata for perioden 2020–2022 — det grundlag Vurderingsstyrelsen selv har anvendt. En klagetekst med professionel dokumentation kan sendes direkte til Skatteankestyrelsen.";
+    tag        = "🔴 Du har belæg for en klage";
+    headline   = `Din ejendomsværdi overstiger klagegrænsen med ${fmtKr(krDiff)}`;
+    subtext    = "Klagegrænsen er 80% af den skønnede markedsværdi ifølge ejendomsvurderingsloven. Din ejendomsværdi ligger over den grænse — det er grundlag for en klage. En individuel analyse med konkrete tal fra dit område kan bekræfte grundlaget og styrke klagen.";
     showCTA    = true;
     ctaText    = "Få din klagetekst nu – 350 kr →";
     paySubText = `350 kr · din ejendomsværdi er ${fmtKr(krDiff)} over klagegrænsen · klagetekst klar på ca. 2 min.`;
