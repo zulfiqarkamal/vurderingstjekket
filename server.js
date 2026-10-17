@@ -65,12 +65,22 @@ const stripe = STRIPE_SECRET
   : null;
 
 // ─── E-mail transport (Gmail SMTP) ────────────────────────────
+// Port 465 (implicit TLS) hung indefinitely on Railway's network (outbound
+// connections on that port appear to be silently dropped) — confirmed via
+// live testing: the /api/send-klage-mail request hung ~2.5 min before timing
+// out. Port 587 (STARTTLS) is the more commonly-allowed outbound SMTP port
+// on PaaS platforms. Explicit timeouts also make sure we fail fast (seconds,
+// not minutes) if the network blocks this too, instead of hanging the request.
 const emailTransporter = EMAIL_USER && EMAIL_PASS
   ? nodemailer.createTransport({
       host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false,
+      requireTLS: true,
       auth: { user: EMAIL_USER, pass: EMAIL_PASS },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
     })
   : null;
 
