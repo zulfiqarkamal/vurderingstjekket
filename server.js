@@ -19,7 +19,6 @@ import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs";
 import Stripe from "stripe";
-import nodemailer from "nodemailer";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -54,8 +53,8 @@ const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const BBR_USER              = process.env.BBR_USER || "IUXUCSLFZW";
 const BBR_PASS              = process.env.BBR_PASS || "Ghulab.4u";
 const ADR_TOKEN             = "adressevaelger123"; // official free-tier token
-const EMAIL_USER            = process.env.EMAIL_USER; // Gmail-adresse f.eks. din@gmail.com
-const EMAIL_PASS            = process.env.EMAIL_PASS; // Gmail App Password (16 tegn)
+const RESEND_API_KEY        = process.env.RESEND_API_KEY;
+const RESEND_FROM           = process.env.RESEND_FROM || "Vurderingstjekket <onboarding@resend.dev>";
 
 const stripe = STRIPE_SECRET
   ? new Stripe(STRIPE_SECRET, {
@@ -64,29 +63,20 @@ const stripe = STRIPE_SECRET
     })
   : null;
 
-// ─── E-mail transport (Gmail SMTP) ────────────────────────────
-// Port 465 (implicit TLS) hung indefinitely on Railway's network (outbound
-// connections on that port appear to be silently dropped) — confirmed via
-// live testing: the /api/send-klage-mail request hung ~2.5 min before timing
-// out. Port 587 (STARTTLS) is the more commonly-allowed outbound SMTP port
-// on PaaS platforms. Explicit timeouts also make sure we fail fast (seconds,
-// not minutes) if the network blocks this too, instead of hanging the request.
-const emailTransporter = EMAIL_USER && EMAIL_PASS
-  ? nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      requireTLS: true,
-      auth: { user: EMAIL_USER, pass: EMAIL_PASS },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000,
-    })
-  : null;
-
+// ─── E-mail (Resend HTTP API) ──────────────────────────────────
+// Gmail SMTP was tried first (port 465, then 587/STARTTLS) but both hung for
+// ~2.5 min then failed with "Connection timeout" — confirmed via live testing
+// that Railway's network silently drops outbound SMTP entirely, on any port.
+// Resend's API runs over plain HTTPS (port 443), same as the rest of the app,
+// so it isn't affected by that restriction.
+// NOTE: with the default onboarding@resend.dev sender, Resend only delivers
+// to the email address of the Resend account owner. To send to any customer
+// email, verify vurderingstjekket.dk as a sending domain in the Resend
+// dashboard (adds a few DNS records at Simply.com) and set RESEND_FROM to
+// e.g. "Vurderingstjekket <noreply@vurderingstjekket.dk>".
 async function sendKlageMail(to, address, klageTekst, hasGrounds = true) {
-  if (!emailTransporter) {
-    console.warn("⚠️  E-mail ikke konfigureret (mangler EMAIL_USER / EMAIL_PASS)");
+  if (!RESEND_API_KEY) {
+    console.warn("⚠️  E-mail ikke konfigureret (mangler RESEND_API_KEY)");
     return false;
   }
   if (!to || !to.includes("@")) {
@@ -157,13 +147,28 @@ async function sendKlageMail(to, address, klageTekst, hasGrounds = true) {
 </html>`;
 
   try {
-    await emailTransporter.sendMail({
-      from: `"Vurderingstjekket" <${EMAIL_USER}>`,
-      to,
-      subject: hasGrounds ? `Din klagetekst er klar — ${address}` : `Dit analyseresultat er klar — ${address}`,
-      text: `Tak for dit køb.\n\nHerunder er ${hasGrounds ? "din klagetekst" : "dit analyseresultat"}:\n\n${klageTekst}\n\n---\nVurderingstjekket`,
-      html: htmlBody,
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: RESEND_FROM,
+        to: [to],
+        subject: hasGrounds ? `Din klagetekst er klar — ${address}` : `Dit analyseresultat er klar — ${address}`,
+        text: `Tak for dit køb.\n\nHerunder er ${hasGrounds ? "din klagetekst" : "dit analyseresultat"}:\n\n${klageTekst}\n\n---\nVurderingstjekket`,
+        html: htmlBody,
+      }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
+    if (!r.ok) {
+      const body = await r.text().catch(() => "");
+      throw new Error(`Resend ${r.status}: ${body}`);
+    }
     console.log(`📧 ${hasGrounds ? "Klagetekst" : "Analyseresultat"} sendt til ${to}`);
     return true;
   } catch (err) {
