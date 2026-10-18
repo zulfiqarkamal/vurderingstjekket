@@ -222,20 +222,19 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 <!-- ══ STEP 2: EV INPUT + CHECK ════════════════════════════════ -->
 <div class="card hidden" id="card-ev">
   <h2>2. Hvad er din officielle ejendomsværdi?</h2>
-  <p class="sub">Finder du på din vurderingsmeddelelse fra Vurderingsstyrelsen eller på <a href="https://vurderingsportalen.dk" target="_blank" rel="noopener">vurderingsportalen.dk</a>.</p>
 
   <div class="row">
     <div>
       <label for="ev-input">Ejendomsværdi (kr)
-        <span class="hint">Indsæt beløbet fra din vurderingsmeddelelse eller <a href="https://vurderingsportalen.dk" target="_blank" rel="noopener" style="color:var(--blue-500);">vurderingsportalen.dk</a></span>
+        <span class="hint">Fra <a href="https://vurderingsportalen.dk" target="_blank" rel="noopener" style="color:var(--blue-500);">vurderingsportalen.dk</a> eller din vurderingsmeddelelse</span>
       </label>
       <input type="number" id="ev-input" placeholder="Indtast beløb i kr" min="100000" step="1000" />
     </div>
     <div>
       <label for="gv-input">Grundværdi (kr) <em style="font-weight:400;color:var(--gray-600);">valgfri</em>
-        <span class="hint">Kun nødvendig, hvis du også klager over grundværdien.</span>
+        <span class="hint">Kun relevant hvis du vil klage over grundværdien</span>
       </label>
-      <input type="number" id="gv-input" placeholder="Indtast beløb i kr (valgfri)" min="0" step="1000" />
+      <input type="number" id="gv-input" placeholder="Indtast beløb i kr" min="0" step="1000" />
     </div>
   </div>
 
