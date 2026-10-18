@@ -1033,30 +1033,6 @@ app.get("/api/test-klage", async (req, res) => {
   }
 });
 
-// ─── One-shot test: generate klage + send email (GET, temporary) ───
-// Usage: /api/test-send-mail?email=you@example.com
-app.get("/api/test-send-mail", async (req, res) => {
-  const email = (req.query.email || "").trim();
-  if (!email || !email.includes("@")) return res.status(400).json({ error: "Mangler email query param" });
-
-  const sessData = {
-    status: "generating",
-    address: "Testvej 1, 2100 København Ø", label: "Testvej 1, 2100 København Ø",
-    m2: 120, kommunekode: "0101", anvKode: "120",
-    boligtypeLabel: "Fritliggende enfamilieshus",
-    ev: 4500000, gv: null, createdAt: Date.now(),
-  };
-  const sessionId = crypto.randomUUID();
-  SESSIONS.set(sessionId, sessData);
-  try {
-    await generateKlage(sessionId, sessData);
-    const ok = await sendKlageMail(email, sessData.label, sessData.klageTekst, sessData.hasGrounds !== false);
-    res.json({ sessionId, emailSent: ok, klageTekstLength: (sessData.klageTekst || "").length, hasGrounds: sessData.hasGrounds });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // ─── Test UI ──────────────────────────────────────────────────
 app.get("/test", (_req, res) => {
   res.send(`<!DOCTYPE html>
