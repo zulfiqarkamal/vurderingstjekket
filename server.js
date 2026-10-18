@@ -418,9 +418,9 @@ app.get("/api/bbr", async (req, res) => {
 });
 
 // ─── Free eligibility check ───────────────────────────────────
-// POST /api/free-check  body: { m2, kommunekode, anvKode, ev }
+// POST /api/free-check  body: { m2, kommunekode, anvKode, ev, address }
 app.post("/api/free-check", async (req, res) => {
-  const { m2, kommunekode, anvKode, ev } = req.body || {};
+  const { m2, kommunekode, anvKode, ev, address } = req.body || {};
   const evNum = Number(ev);
   const m2Num = Number(m2);
 
@@ -455,8 +455,8 @@ app.post("/api/free-check", async (req, res) => {
       landsdel, landsdelnavn: LANDSDEL_NAVN[landsdel],
       ejenData,
     };
-    // Log the free check (address may not be available here, added from client later)
     logEvent("free_check", {
+      address: address || "",
       m2: m2Num, ev: evNum, kommunekode: String(kommunekode).padStart(4,"0"),
       verdict, gap_pct: result.gap_pct, targetEV,
     });
@@ -545,11 +545,30 @@ button{width:100%;padding:11px;background:#1c6dc4;color:#fff;border:none;border-
     const emailCol = r.customerEmail
       ? `<a href="mailto:${r.customerEmail}" style="color:#1c6dc4;font-size:0.78rem">${r.customerEmail}</a>${r.emailSent===false?' ⚠️':r.emailSent?' ✅':''}`
       : '<span style="color:#9ca3af;font-size:0.78rem">—</span>';
+
+    // Build result column based on event type
+    let resultatCol = '<span style="color:#9ca3af">—</span>';
+    if (r.type === "free_check" && r.verdict) {
+      const vColor = r.verdict === "STÆRK" ? "#dc2626" : r.verdict === "MULIG" || r.verdict === "USIKKER" ? "#d97706" : "#059669";
+      const vLabel = r.verdict === "STÆRK" ? "Stærk" : r.verdict === "MULIG" ? "Mulig" : r.verdict === "USIKKER" ? "Usikker" : "Ingen";
+      resultatCol = `<span style="color:${vColor};font-weight:600">${vLabel}</span>` +
+        (r.gap_pct != null ? ` <span style="font-size:0.75rem;color:#6b7280">(${r.gap_pct>0?"+":""}${r.gap_pct}%)</span>` : "");
+    } else if (r.type === "klage_done") {
+      resultatCol = '<span style="color:#059669;font-weight:600">Klage genereret</span>';
+    } else if (r.type === "klage_no_grounds") {
+      resultatCol = '<span style="color:#d97706;font-weight:600">Intet belæg</span>';
+    } else if (r.type === "klage_error") {
+      resultatCol = `<span style="color:#dc2626;font-weight:600">Fejl</span>`;
+    } else if (r.type === "payment") {
+      resultatCol = '<span style="color:#1c6dc4;font-weight:600">350 kr betalt</span>';
+    }
+
     return `<tr>
       <td style="white-space:nowrap;font-size:0.78rem;color:#6b7280">${r.ts.slice(0,16).replace("T"," ")}</td>
       <td>${ico} <strong>${label}</strong></td>
       <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.address||"").replace(/"/g,"'")}">
         ${(r.address||"-").replace(/</g,"&lt;")}</td>
+      <td>${resultatCol}</td>
       <td style="text-align:right">${r.ev ? (Number(r.ev)/1000000).toFixed(1)+"M" : "-"}</td>
       <td style="text-align:right">${r.m2 ? r.m2+" m²" : "-"}</td>
       <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${emailCol}</td>
@@ -619,10 +638,10 @@ tr:hover td{background:#f8fafc}
 
 <table>
 <thead><tr>
-  <th>Tidspunkt</th><th>Type</th><th>Adresse</th><th>EV</th><th>Areal</th><th>E-mail</th><th>Uddrag</th>
+  <th>Tidspunkt</th><th>Type</th><th>Adresse</th><th>Resultat</th><th>EV</th><th>Areal</th><th>E-mail</th><th>Uddrag</th>
 </tr></thead>
 <tbody>
-${rowHtml || '<tr><td colspan="7" class="empty">Ingen poster fundet</td></tr>'}
+${rowHtml || '<tr><td colspan="8" class="empty">Ingen poster fundet</td></tr>'}
 </tbody>
 </table>
 ${pagerHtml ? `<div class="pager">${pagerHtml}</div>` : ""}

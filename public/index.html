@@ -605,6 +605,7 @@ async function runFreeCheck() {
         kommunekode: state.kommunekode,
         anvKode:     state.anvKode,
         ev, gv,
+        address:     state.label || "",
       }),
     });
     const data = await r.json();
