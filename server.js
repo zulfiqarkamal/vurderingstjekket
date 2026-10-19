@@ -214,11 +214,23 @@ const KOMMUNEKODE_TO_LANDSDEL = {
   "0825":"11","0840":"11","0846":"11","0849":"11","0851":"11","0860":"11",
 };
 
-// Typical average m² for enfamiliehuse by Landsdel (used to derive kr/m² from EJEN77)
-const LANDSDEL_AVG_M2 = {
+// Typical average boligareal (m²) per Landsdel, split by property type, used to derive
+// kr/m² from EJEN77's average price per property. DST does not publish average area in
+// EJEN77 (BNØGLE 4 covers only landbrug/grunde), so these are fixed estimates.
+const LANDSDEL_AVG_M2_ENFAMILIE = {
   "01": 100, "02": 128, "03": 155, "04": 120, "05": 148,
   "06": 135, "07": 130, "08": 142, "09": 148, "10": 158, "11": 148,
 };
+// Ejerlejligheder are systematically smaller than houses
+const LANDSDEL_AVG_M2_EJERLEJLIGHED = {
+  "01": 78, "02": 80, "03": 90, "04": 80, "05": 85,
+  "06": 82, "07": 80, "08": 85, "09": 82, "10": 85, "11": 80,
+};
+
+// EJEN77 EJENDOMSKATE: 0111 = Enfamiliehuse, 2103 = Ejerlejligheder i alt
+// (0121 is "Ejendomme med 2 lejligheder", i.e. whole two-unit buildings, not apartments)
+const EJENDOMSKATE_ENFAMILIE = "0111";
+const EJENDOMSKATE_EJERLEJLIGHED = "2103";
 
 const LANDSDEL_NAVN = {
   "01":"Landsdel København by",   "02":"Landsdel Københavns omegn",
@@ -248,7 +260,7 @@ function isEjerlejlighed(kode) { const k=parseInt(kode); return k>=130&&k<=149; 
 // ─── EJEN77 cache ─────────────────────────────────────────────
 const EJEN77_CACHE = new Map();
 
-async function getEJEN77Avg2020_2022(landsdel, ejendomskate = "0111") {
+async function getEJEN77Avg2020_2022(landsdel, ejendomskate = EJENDOMSKATE_ENFAMILIE) {
   // Returns { avgPricek, quarters, krPerM2 } averaged over 2020K1–2022K4
   const key = `${landsdel}|${ejendomskate}`;
   const cached = EJEN77_CACHE.get(key);
@@ -281,7 +293,9 @@ async function getEJEN77Avg2020_2022(landsdel, ejendomskate = "0111") {
   if (numbers.length === 0) throw new Error("Ingen EJEN77-data for dette område");
 
   const avgPricek = numbers.reduce((a, b) => a + b, 0) / numbers.length;
-  const avgM2 = LANDSDEL_AVG_M2[landsdel] || 145;
+  const avgM2 = ejendomskate === EJENDOMSKATE_EJERLEJLIGHED
+    ? (LANDSDEL_AVG_M2_EJERLEJLIGHED[landsdel] || 82)
+    : (LANDSDEL_AVG_M2_ENFAMILIE[landsdel] || 145);
   const data = {
     avgPricek,                            // 1000 kr per typical property
     krPerM2: (avgPricek * 1000) / avgM2, // kr per m²
@@ -431,7 +445,9 @@ app.post("/api/free-check", async (req, res) => {
   if (!landsdel) {
     return res.status(400).json({ error: "Mangler eller ukendt kommunekode — kan ikke bestemme landsdel. Angiv kommunekode manuelt." });
   }
-  const ejendomskate = isEnfamilie(anvKode) ? "0111" : "0111"; // future: "0121" for etage
+  // Ejerlejligheder get apartment price data; everything else keeps the enfamiliehus baseline
+  const erLejlighed = isEjerlejlighed(anvKode);
+  const ejendomskate = erLejlighed ? EJENDOMSKATE_EJERLEJLIGHED : EJENDOMSKATE_ENFAMILIE;
 
   try {
     const ejenData = await getEJEN77Avg2020_2022(landsdel, ejendomskate);
@@ -453,12 +469,13 @@ app.post("/api/free-check", async (req, res) => {
       krPerM2: Math.round(ejenData.krPerM2),
       gap_pct: Math.round(gap_pct * 10) / 10,
       landsdel, landsdelnavn: LANDSDEL_NAVN[landsdel],
+      propertyType: erLejlighed ? "ejerlejlighed" : "enfamiliehus",
       ejenData,
     };
     logEvent("free_check", {
       address: address || "",
       m2: m2Num, ev: evNum, kommunekode: String(kommunekode).padStart(4,"0"),
-      verdict, gap_pct: result.gap_pct, targetEV,
+      verdict, gap_pct: result.gap_pct, targetEV, propertyType: result.propertyType,
     });
     res.json(result);
   } catch (err) {
