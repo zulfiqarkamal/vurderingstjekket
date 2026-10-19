@@ -635,7 +635,7 @@ function renderFreeResult(d, ev, m2) {
 
     <div class="note" style="margin-top:12px;">
       <strong>Metode:</strong> Estimatet er baseret på Danmarks Statistiks officielle EJEN77-tabel
-      (gennemsnitlig handelspris for enfamiliehuse i ${escHtml(d.landsdelnavn)}, 2020K1–2022K4) — det er en statistisk indikation på landsdelsniveau, ikke en præcis individuel vurdering.
+      (gennemsnitlig handelspris for ${d.propertyType === "ejerlejlighed" ? "ejerlejligheder" : "enfamiliehuse"} i ${escHtml(d.landsdelnavn)}, 2020K1–2022K4) — det er en statistisk indikation på landsdelsniveau, ikke en præcis individuel vurdering.
     </div>
 
     ${gvNote}`;
