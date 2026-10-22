@@ -137,6 +137,7 @@ textarea{
 .tl-circle.tl-green {background:#1a8a4a;box-shadow:0 0 12px rgba(26,138,74,0.45);}
 .tl-circle.tl-amber {background:#e8940c;box-shadow:0 0 12px rgba(232,148,12,0.45);}
 .tl-circle.tl-red   {background:#c0392b;box-shadow:0 0 12px rgba(192,57,43,0.45);}
+.tl-tag{font-size:0.85rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--gray-500);margin:0 0 4px;}
 .tl-headline{font-size:1.25rem;font-weight:700;margin:0 0 5px;line-height:1.3;}
 .tl-headline.tl-green{color:var(--green-600);}
 .tl-headline.tl-amber{color:#7a5107;}
@@ -257,18 +258,21 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 
 <!-- ══ STEP 4: PAYMENT ══════════════════════════════════════════ -->
 <div class="card hidden" id="card-pay">
-  <h2>4. Få klagetekst med professionel dokumentation</h2>
-  <p class="sub" id="pay-sub">350 kr · engangsbeløb · klagetekst klar inden for ca. 2 minutter.</p>
+  <h2>4. Få din individuelle vurderingsanalyse</h2>
+  <p class="sub" id="pay-sub">350 kr · individuel analyse med lokale handler · leveres på ca. 2 min.</p>
 
   <div class="note">
-    Klageteksten er baseret på en individuel analyse fra dit postnummerområde (fra 2020–2022) — samme periode Vurderingsstyrelsen selv har lagt til grund. Du kopierer teksten direkte ind i Skatteankestyrelsens klageformular.
+    Få en professionelt dokumenteret analyse af din ejendomsvurdering baseret på faktiske handler fra dit postnummerområde (2020–2022) — samme periode Vurderingsstyrelsen selv har lagt til grund. Inkluderer en færdig klagetekst, hvis analysen viser grundlag for en klage.
   </div>
 
+  <p style="margin:14px 0 6px;font-weight:600;font-size:1.05rem;">350 kr. Engangsbetaling.</p>
+
   <button class="btn btn-pay" id="pay-btn">
-    Betal 350 kr og få min klagetekst →
+    Få min analyse og klagetekst →
   </button>
+  <p style="margin:8px 0 0;font-size:0.85rem;color:var(--gray-600);">Leveres digitalt. Ingen abonnement.</p>
   <button class="btn btn-secondary hidden" id="test-btn" style="margin-top:8px;">
-    🧪 Test: Generer klagetekst gratis (testmode)
+    🧪 Test: Generer analyse gratis (testmode)
   </button>
 </div>
 
@@ -624,45 +628,45 @@ async function runFreeCheck() {
 }
 
 function renderFreeResult(d, ev, m2) {
-  const krDiff  = Math.round(ev - d.targetEV);
-  const absDiff = Math.abs(krDiff);
+  // d.gap_pct = (EV - estimate) / EV * 100 — korrekt beregning
+  // d.targetEV = 0.80 * EV — klagegrænsen: markedsestimatet skal ligge under dette
 
-  // Determine state: green / amber-under / amber-over / mulig / red
   let tlColor, tag, headline, subtext, showCTA, ctaText, paySubText;
 
   if (d.color === "green") {
     tlColor    = "tl-green";
     tag        = "✅ Ingen tydelig klagesag";
-    headline   = "Din ejendom ser korrekt vurderet ud";
-    subtext    = "Ud fra markedsdata for din del af landet ser ejendomsværdien ud til at ligge inden for det forventede niveau. Der er ikke tydelig indikation på en klagesag.";
+    headline   = "Din ejendomsvurdering ser fornuftig ud";
+    subtext    = "Ud fra markedsdata for din del af landet ligger ejendomsværdien inden for det forventede niveau. Der er ikke tydelig indikation på grundlag for en klage.";
     showCTA    = false;
-  } else if (d.color === "amber" && d.verdict === "USIKKER" && krDiff < 0) {
-    // EV is just below the threshold — no clear case yet, but close
+  } else if (d.verdict === "USIKKER") {
     tlColor    = "tl-amber";
-    tag        = "🟡 Uklart – ikke nok til en klagesag endnu";
-    headline   = `Din ejendomsværdi ligger ${fmtKr(absDiff)} under klagegrænsen`;
-    subtext    = "Ud fra landsdelens gennemsnit har du ikke grundlag for en klage lige nu. Men gennemsnittet kan skjule lokale forskelle — en individuel analyse fra dit område kan afgøre, om din ejendom reelt ligger over grænsen.";
+    tag        = "🟡 Usikkert – kræver nærmere analyse";
+    headline   = "Din ejendomsvurdering kan muligvis anfægtes";
+    subtext    = `Den indledende statistiske beregning viser en vis forskel (ca. ${d.gap_pct} % af ejendomsværdien), men landsdelsgennemsnittet kan skjule lokale forskelle. En individuel analyse med faktiske handler fra dit postnummer kan afklare, om der er reelt grundlag.`;
     showCTA    = true;
-    ctaText    = "Undersøg om jeg alligevel har en sag – 350 kr →";
-    paySubText = `350 kr · du ligger ${fmtKr(absDiff)} under grænsen ud fra landsdelsgennemsnittet · klagetekst klar på ca. 2 min.`;
+    ctaText    = "Få individuel analyse og klagetekst – 350 kr →";
+    paySubText = "350 kr · individuel analyse med lokale handler · leveres på ca. 2 min.";
   } else {
-    // RED: EV is at or above the klagegrænse — any amount, small or large.
-    // (Previously split into "lige over grænsen" / "MULIG" / "STÆRK" amber+red
-    // tiers; merged into one clear red "you have grounds" signal, since all
-    // three already mean the same thing for the user: EV > klagegrænse.)
-    tlColor    = "tl-red";
-    tag        = "🔴 Du har belæg for en klage";
-    headline   = `Din ejendomsværdi overstiger klagegrænsen med ${fmtKr(krDiff)}`;
-    subtext    = "Klagegrænsen er 80% af den skønnede markedsværdi ifølge ejendomsvurderingsloven. Din ejendomsværdi ligger over den grænse — det er grundlag for en klage. En individuel analyse med konkrete tal fra dit område kan bekræfte grundlaget og styrke klagen.";
+    // MULIG or STÆRK — statistisk indikation på klagesag
+    tlColor    = d.verdict === "STÆRK" ? "tl-red" : "tl-amber";
+    tag        = d.verdict === "STÆRK" ? "🔴 Stærk indikation på klagesag" : "🟠 Mulig klagesag";
+    headline   = "Der kan være grundlag for en klage over din ejendomsvurdering";
+    subtext    = `Den indledende beregning viser, at din ejendomsværdi (${fmtKr(ev)}) er ca. ${d.gap_pct} % højere end vores statistiske markedsestimat (${fmtKr(d.marketValue2022)}). En klage kan ændre vurderingen, hvis markedsværdien er mere end 20 % lavere end ejendomsværdien — det kræver en individuel analyse med faktiske handler fra dit postnummer.`;
     showCTA    = true;
-    ctaText    = "Få din klagetekst nu – 350 kr →";
-    paySubText = `350 kr · din ejendomsværdi er ${fmtKr(krDiff)} over klagegrænsen · klagetekst klar på ca. 2 min.`;
+    ctaText    = "Få individuel analyse og klagetekst – 350 kr →";
+    paySubText = "350 kr · individuel analyse med lokale handler · leveres på ca. 2 min.";
   }
 
   // GV note
   const gvVal = parseFloat(document.getElementById("gv-input").value) || 0;
   const gvNote = gvVal > 0 && showCTA
-    ? `<div class="note" style="margin-top:8px;">Du har også angivet en grundværdi på ${fmtKr(gvVal)}. Klageteksten kan inkludere et klagepunkt over grundværdien — det afklares ved køb.</div>`
+    ? `<div class="note" style="margin-top:8px;">Du har også angivet en grundværdi på ${fmtKr(gvVal)}. Analysen kan inkludere et klagepunkt over grundværdien — det afklares ved køb.</div>`
+    : "";
+
+  // Klagefrist note
+  const deadlineNote = showCTA
+    ? `<div class="note" style="margin-top:8px;">⏰ <strong>Klagefrist:</strong> Klage over 2022-vurderingen skal indsendes inden <strong>1. januar 2025</strong>. Kontrollér altid fristen på <a href="https://skatteankestyrelsen.dk" target="_blank" rel="noopener">skatteankestyrelsen.dk</a>.</div>`
     : "";
 
   const body = document.getElementById("result-body");
@@ -670,17 +674,16 @@ function renderFreeResult(d, ev, m2) {
     <div class="tl-wrap">
       <div class="tl-circle ${tlColor}"></div>
       <div>
+        <p class="tl-tag">${tag}</p>
         <p class="tl-headline ${tlColor}">${headline}</p>
         <p class="tl-subtext">${subtext}</p>
       </div>
     </div>
 
     <div class="data-grid">
-      <span class="k">Din ejendomsværdi (EV):</span>
+      <span class="k">Den offentlige ejendomsværdi (EV):</span>
       <span class="v">${fmtKr(ev)}</span>
-      <span class="k">Klagegrænse (80% af markedsværdi):</span>
-      <span class="v">${fmtKr(d.targetEV)}</span>
-      <span class="k">Skønnet markedsværdi:</span>
+      <span class="k">Statistisk markedsestimat (${escHtml(d.landsdelnavn)}):</span>
       <span class="v">${fmtKr(d.marketValue2022)}</span>
       <span class="k">Gennemsnit kr/m² (${escHtml(d.landsdelnavn)}):</span>
       <span class="v">${fmtKr(d.krPerM2)}/m²</span>
@@ -689,11 +692,14 @@ function renderFreeResult(d, ev, m2) {
     </div>
 
     <div class="note" style="margin-top:12px;">
-      <strong>Metode:</strong> Estimatet er baseret på Danmarks Statistiks officielle EJEN77-tabel
-      (gennemsnitlig handelspris for ${d.propertyType === "ejerlejlighed" ? "ejerlejligheder" : "enfamiliehuse"} i ${escHtml(d.landsdelnavn)}, 2020K1–2022K4) — det er en statistisk indikation på landsdelsniveau, ikke en præcis individuel vurdering.
+      <strong>ℹ️ Vejledende beregning:</strong> Estimatet er baseret på Danmarks Statistiks EJEN77-tabel
+      (gennemsnitlig handelspris for ${d.propertyType === "ejerlejlighed" ? "ejerlejligheder" : "enfamiliehuse"} i ${escHtml(d.landsdelnavn)}, 2020K1–2022K4).
+      Dette er en statistisk indikation på landsdelsniveau — ikke en individuel vurdering af din konkrete ejendom.
+      En klage kræver en dokumenteret markedsværdi mere end 20 % under din ejendomsværdi (jf. skatteforvaltningsloven § 35 h stk 2).
     </div>
 
-    ${gvNote}`;
+    ${gvNote}
+    ${deadlineNote}`;
 
   document.getElementById("card-result").classList.remove("hidden");
   document.getElementById("card-result").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -741,7 +747,7 @@ async function startPayment() {
     window.location.href = data.checkoutUrl;
   } catch(err) {
     btn.disabled = false;
-    btn.innerHTML = "Betal 350 kr og få min klagetekst →";
+    btn.innerHTML = "Få min analyse og klagetekst →";
     alert("Betalingsfejl: " + err.message);
   }
 }
