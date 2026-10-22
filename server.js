@@ -214,11 +214,23 @@ const KOMMUNEKODE_TO_LANDSDEL = {
   "0825":"11","0840":"11","0846":"11","0849":"11","0851":"11","0860":"11",
 };
 
-// Typical average m² for enfamiliehuse by Landsdel (used to derive kr/m² from EJEN77)
-const LANDSDEL_AVG_M2 = {
+// Typical average boligareal (m²) per Landsdel, split by property type, used to derive
+// kr/m² from EJEN77's average price per property. DST does not publish average area in
+// EJEN77 (BNØGLE 4 covers only landbrug/grunde), so these are fixed estimates.
+const LANDSDEL_AVG_M2_ENFAMILIE = {
   "01": 100, "02": 128, "03": 155, "04": 120, "05": 148,
   "06": 135, "07": 130, "08": 142, "09": 148, "10": 158, "11": 148,
 };
+// Ejerlejligheder are systematically smaller than houses
+const LANDSDEL_AVG_M2_EJERLEJLIGHED = {
+  "01": 78, "02": 80, "03": 90, "04": 80, "05": 85,
+  "06": 82, "07": 80, "08": 85, "09": 82, "10": 85, "11": 80,
+};
+
+// EJEN77 EJENDOMSKATE: 0111 = Enfamiliehuse, 2103 = Ejerlejligheder i alt
+// (0121 is "Ejendomme med 2 lejligheder", i.e. whole two-unit buildings, not apartments)
+const EJENDOMSKATE_ENFAMILIE = "0111";
+const EJENDOMSKATE_EJERLEJLIGHED = "2103";
 
 const LANDSDEL_NAVN = {
   "01":"Landsdel København by",   "02":"Landsdel Københavns omegn",
@@ -248,7 +260,7 @@ function isEjerlejlighed(kode) { const k=parseInt(kode); return k>=130&&k<=149; 
 // ─── EJEN77 cache ─────────────────────────────────────────────
 const EJEN77_CACHE = new Map();
 
-async function getEJEN77Avg2020_2022(landsdel, ejendomskate = "0111") {
+async function getEJEN77Avg2020_2022(landsdel, ejendomskate = EJENDOMSKATE_ENFAMILIE) {
   // Returns { avgPricek, quarters, krPerM2 } averaged over 2020K1–2022K4
   const key = `${landsdel}|${ejendomskate}`;
   const cached = EJEN77_CACHE.get(key);
@@ -281,7 +293,9 @@ async function getEJEN77Avg2020_2022(landsdel, ejendomskate = "0111") {
   if (numbers.length === 0) throw new Error("Ingen EJEN77-data for dette område");
 
   const avgPricek = numbers.reduce((a, b) => a + b, 0) / numbers.length;
-  const avgM2 = LANDSDEL_AVG_M2[landsdel] || 145;
+  const avgM2 = ejendomskate === EJENDOMSKATE_EJERLEJLIGHED
+    ? (LANDSDEL_AVG_M2_EJERLEJLIGHED[landsdel] || 82)
+    : (LANDSDEL_AVG_M2_ENFAMILIE[landsdel] || 145);
   const data = {
     avgPricek,                            // 1000 kr per typical property
     krPerM2: (avgPricek * 1000) / avgM2, // kr per m²
@@ -431,19 +445,24 @@ app.post("/api/free-check", async (req, res) => {
   if (!landsdel) {
     return res.status(400).json({ error: "Mangler eller ukendt kommunekode — kan ikke bestemme landsdel. Angiv kommunekode manuelt." });
   }
-  const ejendomskate = isEnfamilie(anvKode) ? "0111" : "0111"; // future: "0121" for etage
+  // Ejerlejligheder get apartment price data; everything else keeps the enfamiliehus baseline
+  const erLejlighed = isEjerlejlighed(anvKode);
+  const ejendomskate = erLejlighed ? EJENDOMSKATE_EJERLEJLIGHED : EJENDOMSKATE_ENFAMILIE;
 
   try {
     const ejenData = await getEJEN77Avg2020_2022(landsdel, ejendomskate);
 
     const marketValue2022 = ejenData.krPerM2 * m2Num;  // estimated 2020-2022 market value
-    const targetEV        = Math.round(marketValue2022 * 0.80); // 80% rule
-    const gap_pct         = ((evNum - targetEV) / targetEV) * 100;
+    // Korrekt klagegrænse: en klage kan kun ændre EV hvis ændringen overstiger 20 % af EV
+    // (skatteforvaltningsloven § 35 h stk 2). Det kræver at markedsestimatet er under 80 % af EV.
+    // gap_pct måler hvor meget EV overstiger estimatet som andel af EV (ikke af estimatet).
+    const targetEV        = Math.round(evNum * 0.80); // klagegrænse: markedsværdi skal ligge under dette
+    const gap_pct         = ((evNum - marketValue2022) / evNum) * 100;
 
     let verdict, label, color;
-    if      (gap_pct >= 15) { verdict="STÆRK";    label="Stærk indikation – god grund til klage";   color="red";   }
-    else if (gap_pct >=  5) { verdict="MULIG";     label="Mulig klage – bør undersøges nærmere";     color="amber"; }
-    else if (gap_pct >  -5) { verdict="USIKKER";   label="Usikkert – kan ikke udelukkes";            color="amber"; }
+    if      (gap_pct >= 25) { verdict="STÆRK";    label="Stærk indikation – god grund til klage";   color="red";   }
+    else if (gap_pct >= 15) { verdict="MULIG";     label="Mulig klage – bør undersøges nærmere";     color="amber"; }
+    else if (gap_pct >   5) { verdict="USIKKER";   label="Usikkert – kan ikke udelukkes";            color="amber"; }
     else                    { verdict="INGEN";     label="Næppe grund til klage baseret på disse tal"; color="green"; }
 
     const result = {
@@ -453,12 +472,13 @@ app.post("/api/free-check", async (req, res) => {
       krPerM2: Math.round(ejenData.krPerM2),
       gap_pct: Math.round(gap_pct * 10) / 10,
       landsdel, landsdelnavn: LANDSDEL_NAVN[landsdel],
+      propertyType: erLejlighed ? "ejerlejlighed" : "enfamiliehus",
       ejenData,
     };
     logEvent("free_check", {
       address: address || "",
       m2: m2Num, ev: evNum, kommunekode: String(kommunekode).padStart(4,"0"),
-      verdict, gap_pct: result.gap_pct, targetEV,
+      verdict, gap_pct: result.gap_pct, targetEV, propertyType: result.propertyType,
     });
     res.json(result);
   } catch (err) {
@@ -660,6 +680,15 @@ app.post("/api/create-payment", async (req, res) => {
     ...req.body,
   });
 
+  logEvent("checkout_started", {
+    sessionId,
+    address: req.body.label || req.body.address || "",
+    ev: req.body.ev,
+    m2: req.body.m2,
+    kommunekode: String(req.body.kommunekode || "").padStart(4, "0"),
+    freeVerdict: req.body.freeResult?.verdict || null,
+  });
+
   try {
     const origin = req.headers.origin || `http://localhost:${process.env.PORT || 3000}`;
     const checkoutSession = await stripe.checkout.sessions.create({
@@ -668,8 +697,8 @@ app.post("/api/create-payment", async (req, res) => {
         price_data: {
           currency: "dkk",
           product_data: {
-            name: "Vurderingstjekket – Klagetekst",
-            description: `Klage til Skatteankestyrelsen · ${req.body.label || req.body.address || "din ejendom"}`,
+            name: "Vurderingstjekket – Individuel vurderingsanalyse",
+            description: `Analyse og klagetekst · ${req.body.label || req.body.address || "din ejendom"}`,
           },
           unit_amount: 35000, // 350 DKK in øre
         },
@@ -806,7 +835,9 @@ async function generateKlage(sessionId, sess) {
   const sqmPrices = band.map(c => c.squareMeterPrice).filter(Boolean);
   const medianSqm = sqmPrices.length > 0 ? median(sqmPrices) : null;
   const estimatedMarket = medianSqm ? Math.round(medianSqm * m2Num) : null;
-  const targetEV        = estimatedMarket ? Math.round(estimatedMarket * 0.80) : null;
+  // Klagegrænse: markedsestimatet skal ligge under 80 % af EV for at klage kan ændre vurderingen
+  // (ejendomsværdien skal falde med mere end 20 %, jf. skatteforvaltningsloven § 35 h stk 2)
+  const targetEV        = Math.round(evNum * 0.80);
 
   const topComps = band
     .sort((a, b) => new Date(b.soldDate) - new Date(a.soldDate))
@@ -817,7 +848,7 @@ async function generateKlage(sessionId, sess) {
   // formal "EV er for høj"-claim when the real, representative comps
   // actually support it. Otherwise tell the customer honestly, with the
   // same underlying data, instead of asserting a claim we can't stand behind.
-  const hasGrounds = targetEV != null && evNum > targetEV;
+  const hasGrounds = estimatedMarket != null && estimatedMarket < targetEV;
 
   sess.status        = "done";
   sess.hasGrounds    = hasGrounds;
@@ -848,7 +879,8 @@ function fmtDate(d) { try { return new Date(d).toLocaleDateString("da-DK"); } ca
 function buildKlageTekst({ sess, medianSqm, estimatedMarket, targetEV, comps }) {
   const evNum = Number(sess.ev);
   const m2Num = Number(sess.m2);
-  const gap   = targetEV ? Math.round(((evNum - targetEV) / targetEV) * 100) : null;
+  // gap_pct: hvor mange procent EV overstiger markedsestimatet (målt som andel af EV)
+  const gap   = estimatedMarket ? Math.round(((evNum - estimatedMarket) / evNum) * 100) : null;
   const gvStr = sess.gv ? `\n  Grundværdi: ${fmtKr(Number(sess.gv))}` : "";
 
   const rows = comps.map(c =>
@@ -869,8 +901,11 @@ EJENDOMSOPLYSNINGER
 BEGRUNDELSE
 
 Det gøres gældende, at den fastsatte ejendomsværdi på ${fmtKr(evNum)} er for høj i
-forhold til ejendomsvurderingslovens § 15, stk. 2. Loven bestemmer, at ejendomsværdien
-skal fastsættes til 80 % af ejendommens markedsværdi på vurderingstidspunktet.
+forhold til ejendomsvurderingslovens § 15, stk. 1. Loven bestemmer, at ejendomsværdien
+skal ansættes til ejendommens forventede kontantværdi i fri handel (markedsværdien).
+En klage kan ændre ejendomsværdien, da vores analyse viser, at ejendomsværdien afviger
+med mere end 20 % fra den dokumenterede markedsværdi (jf. skatteforvaltningsloven § 35 h,
+stk. 2, der kræver en ændring på over 20 % for at klagemyndigheden kan ændre vurderingen).
 
 MARKEDSANALYSE — SAMMENLIGNELIGE HANDLER 2020–2022
 
@@ -880,16 +915,15 @@ har anvendt som grundlag for 2022-vurderingen.
 
 ${medianSqm ? `Median salgspris pr. m²: ${fmtKr(medianSqm)}/m²` : "Se vedlagte bilag."}
 ${estimatedMarket ? `Skønnet markedsværdi for ejendommen (${m2Num} m²): ${fmtKr(estimatedMarket)}` : ""}
-${targetEV ? `80 % heraf (lovens krav til EV): ${fmtKr(targetEV)}` : ""}
-${gap != null ? `\nForskellen svarer til ca. ${gap} % (${fmtKr(evNum - targetEV)}).` : ""}
+${gap != null ? `Ejendomsværdien overstiger markedsestimatet med ca. ${gap} % (${fmtKr(evNum - (estimatedMarket || 0))}).` : ""}
 
 REFERENCEEJENDOMME (tinglysningsregistrerede handler 2020–2022):
 ${rows}
 
 PÅSTAND
 
-Ejendomsværdien bedes nedsat til maksimalt ${fmtKr(targetEV || Math.round(evNum * 0.90))}
-svarende til 80 % af den dokumenterede markedsværdi.${
+Ejendomsværdien bedes nedsat til ${fmtKr(estimatedMarket || Math.round(evNum * 0.80))}
+svarende til ejendommens dokumenterede markedsværdi (jf. ejendomsvurderingsloven § 15, stk. 1).${
   sess.gv ? "\n\nGrundværdien klages der ikke over i denne omgang." : ""}
 
 BILAG
@@ -919,7 +953,8 @@ Kontrollér altid frister og beløb selv inden indsendelse.
 function buildNoGroundsReport({ sess, medianSqm, estimatedMarket, targetEV, comps }) {
   const evNum = Number(sess.ev);
   const m2Num = Number(sess.m2);
-  const gap   = targetEV ? Math.round(((evNum - targetEV) / targetEV) * 100) : null;
+  // gap_pct: EV vs markedsestimat som andel af EV (negativ = EV under estimat)
+  const gap   = estimatedMarket ? Math.round(((evNum - estimatedMarket) / evNum) * 100) : null;
 
   const rows = comps.map(c =>
     `  - ${c.address || "ukendt"}, ${c.size} m², solgt ${fmtDate(c.soldDate)}: ` +
@@ -942,10 +977,13 @@ anvendt. Baseret på disse konkrete lokale handler (ikke kun landsdelsgennemsnit
 det gratis tjek) kan vi ikke finde grundlag for at hævde, at din ejendomsværdi er sat
 for højt.
 
+En klage kan kun ændre ejendomsværdien, hvis ændringen overstiger 20 % af den fastsatte
+ejendomsværdi (jf. skatteforvaltningsloven § 35 h stk 2). Det kræver at markedsværdien
+er under 80 % af EV — og det er ikke tilfældet her.
+
 ${medianSqm ? `Median salgspris pr. m² i dit postnummer: ${fmtKr(medianSqm)}/m²` : ""}
 ${estimatedMarket ? `Skønnet markedsværdi for ejendommen (${m2Num} m²): ${fmtKr(estimatedMarket)}` : ""}
-${targetEV ? `80 % heraf (lovens grænse for EV): ${fmtKr(targetEV)}` : ""}
-${gap != null ? `\nDin ejendomsværdi ligger ca. ${Math.abs(gap)} % under denne grænse (${fmtKr(targetEV - evNum)}).` : ""}
+${gap != null ? `Forskel (EV minus markedsestimat): ca. ${gap} % af EV — kræver over 20 % for at klage kan ændre vurderingen.` : ""}
 
 REFERENCEEJENDOMME (tinglysningsregistrerede handler 2020–2022):
 ${rows}
