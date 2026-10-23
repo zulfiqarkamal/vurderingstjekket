@@ -613,10 +613,12 @@ app.post("/api/free-check", async (req, res) => {
       source   = "lokal";
       estimate = local.estimatedMarket;
       const localGap = ((evNum - estimate) / evNum) * 100;
-      // Få eller meget forskellige handler gør estimatet usikkert. Så kræver rød en større afvigelse,
-      // så et spinkelt datagrundlag ikke fremstår lige så sikkert som et solidt
-      const usikker = local.compsCount < 8 || (local.spredning != null && local.spredning > 0.4);
-      const graenseSag = usikker ? 25 : 20;
+      // Et enkelt hus kan afvige meget fra de lokale handler (stand, renovering, beliggenhed).
+      // Test på 2.434 rigtige handler (okt. 2026): med en fast grænse på 20 % fik 11–32 % af korrekt
+      // vurderede boliger rød. Derfor følger grænsen spredningen i handlerne, og ved få eller meget
+      // spredte handler bliver resultatet højst orange. Det gav ca. 3 % falske røde i alle områder.
+      const usikker = local.compsCount < 8 || local.spredning == null || local.spredning > 0.45;
+      const graenseSag = usikker ? Infinity : 20 + 30 * local.spredning;
       if      (localGap >= graenseSag) { verdict="SAG";   label="Stor afvigelse";    color="red";   }
       else if (localGap >= 10) { verdict="TÆT";   label="Mulig afvigelse";   color="amber"; }
       else                     { verdict="INGEN"; label="Mindre afvigelse";  color="green"; }
