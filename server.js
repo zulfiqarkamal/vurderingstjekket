@@ -365,6 +365,26 @@ async function resolveKommunekodeFromAdresse(adresseId) {
   }
 }
 
+// Boligens eget areal fra BBR-enheden (lejligheden), ikke hele bygningen.
+// Returnerer null hvis adressen ikke kan slås op som én enhed.
+async function lookupEnhedAreal(adresseId, auth) {
+  if (!adresseId) return null;
+  try {
+    const url =
+      `https://services.datafordeler.dk/BBR/BBRPublic/1/rest/enhed` +
+      `?AdresseIdentificerer=${adresseId}&${auth}&format=JSON`;
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const enheder = await r.json();
+    if (!Array.isArray(enheder) || enheder.length !== 1) return null;
+    const e = enheder[0];
+    const areal = parseInt(e.enh027ArealTilBeboelse || 0) || parseInt(e.enh026EnhedensSamledeAreal || 0) || 0;
+    return areal > 0 ? areal : null;
+  } catch {
+    return null;
+  }
+}
+
 // GET /api/bbr?husnummerId=<uuid>&adresseId=<uuid>&kommunekode=<code>  →  returns BBR data
 app.get("/api/bbr", async (req, res) => {
   const { husnummerId, adresseId, kommunekode } = req.query;
@@ -410,7 +430,13 @@ app.get("/api/bbr", async (req, res) => {
       bbrKommune = (await resolveKommunekodeFromAdresse(adresseId)) || bbrKommune;
     }
     const landsdel = KOMMUNEKODE_TO_LANDSDEL[bbrKommune] || "09";
-    const m2 = boligAreal(byg) || parseInt(byg.byg038SamletBygningsareal || 0) || 0;
+    // For lejligheder er bygningens boligareal hele opgangens areal (fx 754 m²).
+    // Brug derfor enhedens eget areal, når adressen kan slås op som enhed.
+    const enhedM2 = await lookupEnhedAreal(adresseId, auth);
+    const bygningM2 = boligAreal(byg) || parseInt(byg.byg038SamletBygningsareal || 0) || 0;
+    const m2 = enhedM2 || bygningM2;
+    // Arealet er usikkert, hvis vi kun har bygningens areal, og bygningen kan rumme flere boliger
+    const areaUncertain = !enhedM2 && (isEjerlejlighed(byg.byg021BygningensAnvendelse) || bygningM2 > 300);
     const anvKode = String(byg.byg021BygningensAnvendelse || "120");
     const opfoeretAar = String(byg.byg026Opførelsesår || "");
 
@@ -425,11 +451,35 @@ app.get("/api/bbr", async (req, res) => {
       landsdel,
       landsdelnavn: LANDSDEL_NAVN[landsdel] || landsdel,
       opfoeretAar,
+      areaSource: enhedM2 ? "enhed" : "bygning",
+      areaUncertain,
     });
   } catch (err) {
     res.status(502).json({ error: "BBR-opslag fejlede: " + err.message });
   }
 });
+
+// Returnerer en liste af advarsler (tekst til brugeren) når tallene ser forkerte ud
+function checkInputPlausibility({ evNum, m2Num, marketValue2022, erLejlighed }) {
+  const warnings = [];
+  const evPerM2 = evNum / m2Num;
+  if (m2Num < 20) {
+    warnings.push(`Boligarealet er kun ${m2Num} m². Er det rigtigt?`);
+  } else if (m2Num > (erLejlighed ? 250 : 500)) {
+    warnings.push(`Boligarealet er ${m2Num} m². Det er usædvanligt stort for ${erLejlighed ? "en lejlighed" : "en bolig"} og kan være hele bygningens areal.`);
+  }
+  if (evPerM2 < 2000) {
+    warnings.push(`Ejendomsværdien svarer til kun ${Math.round(evPerM2).toLocaleString("da-DK")} kr/m². Mangler der et ciffer?`);
+  } else if (evPerM2 > 150000) {
+    warnings.push(`Ejendomsværdien svarer til ${Math.round(evPerM2).toLocaleString("da-DK")} kr/m². Er der et ciffer for meget?`);
+  }
+  // Langt fra estimatet i begge retninger tyder på tastefejl i EV eller areal
+  const ratio = evNum / marketValue2022;
+  if (warnings.length === 0 && (ratio > 2.5 || ratio < 0.4)) {
+    warnings.push(`Ejendomsværdien er ${ratio > 1 ? "mere end dobbelt så høj som" : "under halvdelen af"} det typiske niveau for en bolig på ${m2Num} m² i dit område. Tjek beløb og areal.`);
+  }
+  return warnings;
+}
 
 // ─── Free eligibility check ───────────────────────────────────
 // POST /api/free-check  body: { m2, kommunekode, anvKode, ev, address }
@@ -458,6 +508,14 @@ app.post("/api/free-check", async (req, res) => {
     // gap_pct måler hvor meget EV overstiger estimatet som andel af EV (ikke af estimatet).
     const targetEV        = Math.round(evNum * 0.80); // klagegrænse: markedsværdi skal ligge under dette
     const gap_pct         = ((evNum - marketValue2022) / evNum) * 100;
+
+    // Tastefejl (1,5 mio. skrevet som 15 mio.) og forkert areal giver ellers et tilfældigt
+    // resultat. Bed brugeren bekræfte tallene, før vi viser noget.
+    const warnings = checkInputPlausibility({ evNum, m2Num, marketValue2022, erLejlighed });
+    if (warnings.length > 0 && req.body.confirmed !== true) {
+      logEvent("input_warning", { address: address || "", m2: m2Num, ev: evNum, warnings });
+      return res.status(422).json({ needsConfirm: true, warnings });
+    }
 
     let verdict, label, color;
     if      (gap_pct >= 25) { verdict="STÆRK";    label="Stærk indikation – god grund til klage";   color="red";   }

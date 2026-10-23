@@ -240,7 +240,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
   </div>
 
   <div class="warn-note">
-    <strong>Husk klagefrist.</strong> Typisk 3 måneder fra modtagelse af vurderingsmeddelelse.
+    <strong>Husk klagefrist.</strong> Du har 90 dage fra du modtog din vurdering.
     Tjek din præcise frist på <a href="https://vurderingsportalen.dk" target="_blank" rel="noopener">vurderingsportalen.dk</a> inden du handler.
   </div>
 
@@ -504,6 +504,14 @@ async function lookupBBR(husnummerId, adresseId, kommunekode) {
 
       renderBBRChip(data);
       document.getElementById("card-ev").classList.remove("hidden");
+      // Et manuelt areal fra en tidligere adresse må ikke overstyre den nye BBR-værdi
+      const oldM2 = document.getElementById("m2-manual");
+      if (oldM2) oldM2.closest("div").remove();
+      if (data.areaUncertain) {
+        // BBR gav kun bygningens samlede areal: bed brugeren tjekke boligens eget areal
+        injectManualM2Field("BBR viser hele bygningens areal. Ret til din boligs eget areal, hvis det er forkert.");
+        document.getElementById("m2-manual").value = data.m2;
+      }
     } else {
       // Even without a BBR building match, the kommunekode/landsdel may
       // still have been resolved from the address itself — keep it.
@@ -547,14 +555,14 @@ function showBBRManual(msg) {
   injectManualM2Field();
 }
 
-function injectManualM2Field() {
+function injectManualM2Field(hint) {
   if (document.getElementById("m2-manual")) return; // already injected
   const evCard = document.getElementById("card-ev");
   const firstRow = evCard.querySelector(".row");
   const wrap = document.createElement("div");
   wrap.innerHTML = `
     <label for="m2-manual">Boligareal (m²)
-      <span class="hint">Fra din BBR-meddelelse eller vurderingsmeddelelse.</span>
+      <span class="hint">${hint || "Fra din BBR-meddelelse eller vurderingsmeddelelse."}</span>
     </label>
     <input type="number" id="m2-manual" placeholder="136" min="10" max="2000" />`;
   wrap.style.marginBottom = "8px";
@@ -573,12 +581,12 @@ function injectManualM2Field() {
 }
 
 // ─── Free eligibility check ───────────────────────────────────
-async function runFreeCheck() {
+async function runFreeCheck(confirmed) {
   const ev = parseFloat(document.getElementById("ev-input").value);
   if (!ev || ev < 100000) { alert("Angiv en gyldig ejendomsværdi (mindst 100.000 kr)."); return; }
 
   // Use manual m2 if no BBR
-  const m2 = state.m2 || parseFloat((document.getElementById("m2-manual") || {}).value);
+  const m2 = parseFloat((document.getElementById("m2-manual") || {}).value) || state.m2;
   if (!m2 || m2 < 10) { alert("Vi kunne ikke finde boligens m² fra BBR. Indtast arealet manuelt."); return; }
 
   // Use manual kommunekode if BBR lookup never resolved one
@@ -609,9 +617,16 @@ async function runFreeCheck() {
         anvKode:     state.anvKode,
         ev, gv,
         address:     state.label || "",
+        confirmed:   confirmed === true,
       }),
     });
     const data = await r.json();
+    if (r.status === 422 && data.needsConfirm) {
+      // Tallene ser forkerte ud: lad brugeren rette dem eller bekræfte
+      const ok = confirm(data.warnings.join("\n\n") + "\n\nTryk OK hvis tallene er rigtige, eller Annuller for at rette dem.");
+      if (ok) return await runFreeCheck(true);
+      return;
+    }
     if (!r.ok) throw new Error(data.error || "Ukendt fejl");
 
     state.freeResult = data;
@@ -666,7 +681,7 @@ function renderFreeResult(d, ev, m2) {
 
   // Klagefrist note
   const deadlineNote = showCTA
-    ? `<div class="note" style="margin-top:8px;">⏰ <strong>Klagefrist:</strong> Klage over 2022-vurderingen skal indsendes inden <strong>1. januar 2025</strong>. Kontrollér altid fristen på <a href="https://skatteankestyrelsen.dk" target="_blank" rel="noopener">skatteankestyrelsen.dk</a>.</div>`
+    ? `<div class="note" style="margin-top:8px;">⏰ <strong>Klagefrist:</strong> Du har <strong>90 dage</strong> fra du modtog din vurdering. Kontrollér din præcise frist på <a href="https://skatteankestyrelsen.dk" target="_blank" rel="noopener">skatteankestyrelsen.dk</a>.</div>`
     : "";
 
   const body = document.getElementById("result-body");
