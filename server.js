@@ -741,8 +741,9 @@ button{width:100%;padding:11px;background:#1c6dc4;color:#fff;border:none;border-
   const funnelRows = FARVER.map(([v, navn]) => {
     const tjek = tael("free_check", "verdict", v), klik = tael("checkout_started", "freeVerdict", v), betalt = tael("payment", "freeVerdict", v);
     if (!tjek && !klik && !betalt) return "";
-    const pct = tjek ? ` (${Math.round(betalt / tjek * 1000) / 10} %)` : "";
-    return `<tr><td>${navn}</td><td>${tjek}</td><td>${klik}</td><td>${betalt}${pct}</td></tr>`;
+    const andel = (a, b) => b ? ` (${Math.round(a / b * 1000) / 10} %)` : "";
+    const oms = HISTORY.filter(r => r.type === "payment" && r.freeVerdict === v).reduce((s, r) => s + (r.amount || 350), 0);
+    return `<tr><td>${navn}</td><td>${tjek}${andel(tjek, freeChecks)}</td><td>${klik}${andel(klik, tjek)}</td><td>${betalt}${andel(betalt, tjek)}</td><td>${tjek ? Math.round(oms / tjek * 100).toLocaleString("da-DK") + " kr" : "–"}</td></tr>`;
   }).join("");
   const signups     = HISTORY.filter(r => r.type === "notify_signup").length;
 
@@ -834,7 +835,7 @@ tr:hover td{background:#f8fafc}
   <div class="stat"><div class="n">📬 ${signups}</div><div class="l">Tilmeldinger</div></div>
   <div class="stat"><div class="n">${total}</div><div class="l">Filtrerede poster</div></div>
 </div>
-${funnelRows ? `<table style="margin:0 0 16px;max-width:560px"><thead><tr><th>Resultat</th><th>Gratis tjek</th><th>Klik på køb</th><th>Betalt</th></tr></thead><tbody>${funnelRows}</tbody></table>` : ""}
+${funnelRows ? `<table style="margin:0 0 16px;max-width:560px"><thead><tr><th>Resultat</th><th>Gratis tjek (andel)</th><th>Klik på køb (af tjek)</th><th>Betalt (af tjek)</th><th>Omsætning pr. 100 tjek</th></tr></thead><tbody>${funnelRows}<tr style="font-weight:600"><td>I alt</td><td>${freeChecks}</td><td>${HISTORY.filter(r => r.type === "checkout_started").length}</td><td>${payments}</td><td>${freeChecks ? Math.round(revenue / freeChecks * 100).toLocaleString("da-DK") + " kr" : "–"}</td></tr></tbody></table>` : ""}
 
 <div class="bar">
   <form method="get" action="/admin">
@@ -1269,8 +1270,8 @@ Salgspriserne er ført frem til prisniveauet pr. 1. januar 2022 med Danmarks Sta
 prisindeks for ejendomssalg (EJ56) for landsdelen.` : ""}
 
 ${medianSqm ? `Median salgspris pr. m²: ${fmtKr(medianSqm)}/m²` : "Se vedlagte bilag."}
-${estimatedMarket ? `Skønnet markedsværdi for ejendommen (${m2Num} m²): ${fmtKr(estimatedMarket)}` : ""}
-${gap != null ? `Markedsestimatet ligger ${fmtKr(evNum - (estimatedMarket || 0))} under den ansatte ejendomsværdi, svarende til ca. ${gap} % af ejendomsværdien.` : ""}
+${estimatedMarket ? `Skønnet markedsværdi for ejendommen (${m2Num} m²): ca. ${fmtKr(Math.round(estimatedMarket / 10000) * 10000)}` : ""}
+${gap != null ? `Markedsestimatet ligger ca. ${fmtKr(Math.round((evNum - (estimatedMarket || 0)) / 10000) * 10000)} under den ansatte ejendomsværdi, svarende til ca. ${gap} % af ejendomsværdien.` : ""}
 
 REFERENCEEJENDOMME (tinglysningsregistrerede handler 2020–2021):
 ${rows}
@@ -1285,9 +1286,9 @@ vedlægges klagen.
 PÅSTAND
 
 ${forhold.length === 0
-  ? `Ejendomsværdien bedes nedsat til ${fmtKr(estimatedMarket || Math.round(evNum * 0.80))}
+  ? `Ejendomsværdien bedes nedsat til ${fmtKr(Math.round((estimatedMarket || evNum * 0.80) / 10000) * 10000)}
 svarende til ejendommens dokumenterede markedsværdi (jf. ejendomsvurderingsloven § 15, stk. 1).`
-  : `Ejendomsværdien bedes nedsat til højst ${fmtKr(estimatedMarket)}, svarende til markedsværdien
+  : `Ejendomsværdien bedes nedsat til højst ${fmtKr(Math.round(estimatedMarket / 10000) * 10000)}, svarende til markedsværdien
 efter de sammenlignelige handler, og yderligere under hensyn til de særlige forhold ved
 ejendommen (jf. ejendomsvurderingsloven § 15, stk. 1).`}${
   sess.gv ? "\n\nGrundværdien klages der ikke over i denne omgang." : ""}
@@ -1347,7 +1348,7 @@ ejendomsværdi (jf. skatteforvaltningsloven § 35 h stk 2). Det kræver at marke
 er under 80 % af EV — og det er ikke tilfældet her.
 
 ${medianSqm ? `Median salgspris pr. m² i dit postnummer: ${fmtKr(medianSqm)}/m²` : ""}
-${estimatedMarket ? `Skønnet markedsværdi for ejendommen (${m2Num} m²): ${fmtKr(estimatedMarket)}` : ""}
+${estimatedMarket ? `Skønnet markedsværdi for ejendommen (${m2Num} m²): ca. ${fmtKr(Math.round(estimatedMarket / 10000) * 10000)}` : ""}
 ${gap != null ? `Forskel (EV minus markedsestimat): ca. ${gap} % af EV — kræver over 20 % for at klage kan ændre vurderingen.` : ""}
 
 REFERENCEEJENDOMME (tinglysningsregistrerede handler 2020–2021):
