@@ -347,7 +347,9 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 
 <script>
 // ─── Test mode (URL: /?test=1) ───────────────────────────────
-const TEST_MODE = new URLSearchParams(location.search).has("test");
+// Testmode: ?test=ADMIN_KEY (serveren afviser testklager uden nøglen)
+const TEST_KEY = new URLSearchParams(location.search).get("test");
+const TEST_MODE = !!TEST_KEY;
 
 // ─── State ───────────────────────────────────────────────────
 let state = {
@@ -912,6 +914,7 @@ async function startTest() {
 
   try {
     const params = new URLSearchParams({
+      key:         TEST_KEY,
       address:     state.label      || "Testvej 1, 2635 Ishøj",
       ev:          state.ev         || 4000000,
       m2:          state.m2         || 130,

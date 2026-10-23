@@ -1246,8 +1246,9 @@ app.post("/api/send-klage-mail", async (req, res) => {
 });
 
 // ─── Test: generer klagetekst uden betaling ───────────────────
-// Brug: /api/test-klage?address=Din+Adresse&ev=3500000
+// Brug: /api/test-klage?key=ADMIN_KEY&address=Din+Adresse&ev=3500000
 app.get("/api/test-klage", async (req, res) => {
+  if (req.query.key !== ADMIN_KEY) return res.status(403).json({ error: "Ingen adgang" });
   const addressQuery = (req.query.address || "").trim();
   const evOverride   = req.query.ev ? parseInt(req.query.ev) : null;
 
@@ -1300,7 +1301,8 @@ app.get("/api/test-klage", async (req, res) => {
 });
 
 // ─── Test UI ──────────────────────────────────────────────────
-app.get("/test", (_req, res) => {
+app.get("/test", (req, res) => {
+  if (req.query.key !== ADMIN_KEY) return res.status(403).send("Ingen adgang");
   res.send(`<!DOCTYPE html>
 <html lang="da">
 <head>
@@ -1467,7 +1469,7 @@ async function generer() {
     const addrStr = chosen ? chosen.label : addrInput.value.trim();
     const m2Val = document.getElementById('m2-input').value || '130';
     const kvVal = document.getElementById('kv-input').value || '0657';
-    const url = '/api/test-klage?address='+encodeURIComponent(addrStr)+'&ev='+evInput.value+'&m2='+m2Val+'&kommunekode='+kvVal;
+    const url = '/api/test-klage?key='+encodeURIComponent(new URLSearchParams(location.search).get('key')||'')+'&address='+encodeURIComponent(addrStr)+'&ev='+evInput.value+'&m2='+m2Val+'&kommunekode='+kvVal;
     const r = await fetch(url);
     const d = await r.json();
     if (d.error) throw new Error(d.error);
