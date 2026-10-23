@@ -55,6 +55,8 @@ const BBR_PASS              = process.env.BBR_PASS || "Ghulab.4u";
 const ADR_TOKEN             = "adressevaelger123"; // official free-tier token
 const RESEND_API_KEY        = process.env.RESEND_API_KEY;
 const RESEND_FROM           = process.env.RESEND_FROM || "Vurderingstjekket <onboarding@resend.dev>";
+// Pris for klagepakken. Der betales kun, når de lokale handler viser en sag.
+const PRICE_DKK             = parseInt(process.env.PRICE_DKK || "495");
 
 const stripe = STRIPE_SECRET
   ? new Stripe(STRIPE_SECRET, {
@@ -517,18 +519,57 @@ app.post("/api/free-check", async (req, res) => {
       return res.status(422).json({ needsConfirm: true, warnings });
     }
 
-    let verdict, label, color;
-    if      (gap_pct >= 25) { verdict="STÆRK";    label="Stærk indikation – god grund til klage";   color="red";   }
-    else if (gap_pct >= 15) { verdict="MULIG";     label="Mulig klage – bør undersøges nærmere";     color="amber"; }
-    else if (gap_pct >   5) { verdict="USIKKER";   label="Usikkert – kan ikke udelukkes";            color="amber"; }
-    else                    { verdict="INGEN";     label="Næppe grund til klage baseret på disse tal"; color="green"; }
+    // Først de rigtige tinglyste handler i postnummeret. Det er dem, der afgør om der er en sag,
+    // så kunden får svaret gratis og kun betaler for klagen, når der er noget at klage over.
+    const postnr = postnrFrom(req.body);
+    let local = null;
+    if (APIFY_TOKEN && postnr) {
+      try {
+        const comps = await getSoldComps(postnr, apifyTypeCode(anvKode || "120"));
+        const a = analyseComps(comps, m2Num, evNum);
+        if (a.estimatedMarket && a.compsCount >= 3) local = a;
+      } catch (e) {
+        console.warn("Lokale handler fejlede, bruger landsdelsgennemsnit:", e.message);
+      }
+    }
+
+    let verdict, label, color, source, estimate, canBuy;
+    if (local) {
+      source   = "lokal";
+      estimate = local.estimatedMarket;
+      const localGap = ((evNum - estimate) / evNum) * 100;
+      if      (localGap >= 20) { verdict="SAG";   label="De lokale handler viser en sag";        color="red";   }
+      else if (localGap >= 10) { verdict="TÆT";   label="Tæt på, men under klagegrænsen";         color="amber"; }
+      else                     { verdict="INGEN"; label="Ingen sag ud fra de lokale handler";     color="green"; }
+      canBuy = verdict === "SAG";
+    } else {
+      // Ingen lokale handler: landsdelsgennemsnittet er for groft til at sige ja,
+      // så kun de tydeligste tilfælde får tilbudt den betalte analyse.
+      source   = "landsdel";
+      estimate = Math.round(marketValue2022);
+      if      (gap_pct >= 25) { verdict="STÆRK";    label="Stærk indikation – god grund til klage";   color="red";   }
+      else if (gap_pct >= 15) { verdict="MULIG";     label="Mulig klage – bør undersøges nærmere";     color="amber"; }
+      else if (gap_pct >   5) { verdict="USIKKER";   label="Usikkert – kan ikke udelukkes";            color="amber"; }
+      else                    { verdict="INGEN";     label="Næppe grund til klage baseret på disse tal"; color="green"; }
+      canBuy = verdict === "STÆRK";
+    }
+    const finalGap = ((evNum - estimate) / evNum) * 100;
+    const savingsPerYear = estimate < evNum
+      ? Math.round(ejendomsvaerdiskat(evNum) - ejendomsvaerdiskat(estimate))
+      : 0;
 
     const result = {
-      verdict, label, color,
+      verdict, label, color, source, canBuy,
       evNum, targetEV,
+      estimate,
       marketValue2022: Math.round(marketValue2022),
       krPerM2: Math.round(ejenData.krPerM2),
-      gap_pct: Math.round(gap_pct * 10) / 10,
+      gap_pct: Math.round(finalGap * 10) / 10,
+      savingsPerYear,
+      price: PRICE_DKK,
+      postnr,
+      compsCount: local ? local.compsCount : 0,
+      medianSqm:  local ? Math.round(local.medianSqm) : null,
       landsdel, landsdelnavn: LANDSDEL_NAVN[landsdel],
       propertyType: erLejlighed ? "ejerlejlighed" : "enfamiliehus",
       ejenData,
@@ -537,6 +578,7 @@ app.post("/api/free-check", async (req, res) => {
       address: address || "",
       m2: m2Num, ev: evNum, kommunekode: String(kommunekode).padStart(4,"0"),
       verdict, gap_pct: result.gap_pct, targetEV, propertyType: result.propertyType,
+      source, compsCount: result.compsCount, savingsPerYear,
     });
     res.json(result);
   } catch (err) {
@@ -614,21 +656,28 @@ button{width:100%;padding:11px;background:#1c6dc4;color:#fff;border:none;border-
   const klager      = HISTORY.filter(r => r.type === "klage_done").length;
   const ingenBelaeg = HISTORY.filter(r => r.type === "klage_no_grounds").length;
   const freeChecks  = HISTORY.filter(r => r.type === "free_check").length;
-  const revenue     = payments * 350;
+  const revenue     = HISTORY.filter(r => r.type === "payment").reduce((sum, r) => sum + (r.amount || 350), 0);
+  const signups     = HISTORY.filter(r => r.type === "notify_signup").length;
 
   const rowHtml = slice.map(r => {
-    const ico = r.type === "payment" ? "💳" : r.type === "klage_done" ? "📄" : r.type === "klage_no_grounds" ? "📋" : r.type === "klage_error" ? "❌" : "🔍";
-    const label = r.type === "payment" ? "Betaling" : r.type === "klage_done" ? "Klagetekst" : r.type === "klage_no_grounds" ? "Ingen belæg" : r.type === "klage_error" ? "Fejl" : "Gratis tjek";
+    const TYPES = {
+      payment: ["💳", "Betaling"], klage_done: ["📄", "Klagetekst"], klage_no_grounds: ["📋", "Ingen belæg"],
+      klage_error: ["❌", "Fejl"], free_check: ["🔍", "Gratis tjek"], checkout_started: ["🛒", "Til betaling"],
+      input_warning: ["⚠️", "Tjek af tal"], notify_signup: ["📬", "Tilmelding"], email_sent: ["📧", "Mail sendt"],
+    };
+    const [ico, label] = TYPES[r.type] || ["•", r.type];
     const snippet = (r.klageTekst||"").slice(0,120).replace(/</g,"&lt;") || "";
+    // E-mail kan nu komme fra den offentlige tilmeldingsformular, så den escapes altid
+    const safeEmail = String(r.customerEmail || "").replace(/[<>"'&]/g, "");
     const emailCol = r.customerEmail
-      ? `<a href="mailto:${r.customerEmail}" style="color:#1c6dc4;font-size:0.78rem">${r.customerEmail}</a>${r.emailSent===false?' ⚠️':r.emailSent?' ✅':''}`
+      ? `<a href="mailto:${safeEmail}" style="color:#1c6dc4;font-size:0.78rem">${safeEmail}</a>${r.emailSent===false?' ⚠️':r.emailSent?' ✅':''}`
       : '<span style="color:#9ca3af;font-size:0.78rem">—</span>';
 
     // Build result column based on event type
     let resultatCol = '<span style="color:#9ca3af">—</span>';
     if (r.type === "free_check" && r.verdict) {
-      const vColor = r.verdict === "STÆRK" ? "#dc2626" : r.verdict === "MULIG" || r.verdict === "USIKKER" ? "#d97706" : "#059669";
-      const vLabel = r.verdict === "STÆRK" ? "Stærk" : r.verdict === "MULIG" ? "Mulig" : r.verdict === "USIKKER" ? "Usikker" : "Ingen";
+      const vColor = r.verdict === "STÆRK" || r.verdict === "SAG" ? "#dc2626" : r.verdict === "MULIG" || r.verdict === "USIKKER" || r.verdict === "TÆT" ? "#d97706" : "#059669";
+      const vLabel = { STÆRK: "Stærk", MULIG: "Mulig", USIKKER: "Usikker", SAG: "Sag", TÆT: "Tæt på" }[r.verdict] || "Ingen";
       resultatCol = `<span style="color:${vColor};font-weight:600">${vLabel}</span>` +
         (r.gap_pct != null ? ` <span style="font-size:0.75rem;color:#6b7280">(${r.gap_pct>0?"+":""}${r.gap_pct}%)</span>` : "");
     } else if (r.type === "klage_done") {
@@ -695,6 +744,7 @@ tr:hover td{background:#f8fafc}
   <div class="stat"><div class="n">📄 ${klager}</div><div class="l">Klagetekster</div></div>
   <div class="stat"><div class="n">📋 ${ingenBelaeg}</div><div class="l">Ingen belæg</div></div>
   <div class="stat"><div class="n">🔍 ${freeChecks}</div><div class="l">Gratis tjek</div></div>
+  <div class="stat"><div class="n">📬 ${signups}</div><div class="l">Tilmeldinger</div></div>
   <div class="stat"><div class="n">${total}</div><div class="l">Filtrerede poster</div></div>
 </div>
 
@@ -709,6 +759,7 @@ tr:hover td{background:#f8fafc}
       <option value="klage_no_grounds"${typeFilter==="klage_no_grounds"?" selected":""}>📋 Ingen belæg</option>
       <option value="klage_error"${typeFilter==="klage_error"?" selected":""}>❌ Fejl</option>
       <option value="free_check"${typeFilter==="free_check"?" selected":""}>🔍 Gratis tjek</option>
+      <option value="notify_signup"${typeFilter==="notify_signup"?" selected":""}>📬 Tilmeldinger</option>
     </select>
     <button type="submit">Søg</button>
   </form>
@@ -750,15 +801,16 @@ app.post("/api/create-payment", async (req, res) => {
   try {
     const origin = req.headers.origin || `http://localhost:${process.env.PORT || 3000}`;
     const checkoutSession = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
+      // Ingen fast liste: Stripe viser de betalingsmetoder, der er slået til i dashboardet
+      // (kort, og MobilePay når det aktiveres der).
       line_items: [{
         price_data: {
           currency: "dkk",
           product_data: {
-            name: "Vurderingstjekket – Individuel vurderingsanalyse",
-            description: `Analyse og klagetekst · ${req.body.label || req.body.address || "din ejendom"}`,
+            name: "Vurderingstjekket – Klagepakke",
+            description: `Dokumentation og færdig klage · ${req.body.label || req.body.address || "din ejendom"}`,
           },
-          unit_amount: 35000, // 350 DKK in øre
+          unit_amount: PRICE_DKK * 100, // øre
         },
         quantity: 1,
       }],
@@ -813,6 +865,7 @@ app.post("/api/stripe-webhook", async (req, res) => {
       ev: sess.ev, gv: sess.gv, m2: sess.m2,
       kommunekode: sess.kommunekode,
       stripePaymentId: co.payment_intent || co.id,
+      amount: co.amount_total != null ? co.amount_total / 100 : PRICE_DKK,
       customerEmail: sess.customerEmail || null,
     });
     console.log(`✅ Payment OK for session ${sessionId} — starting klage generation`);
@@ -843,47 +896,67 @@ function median(arr) {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
-async function generateKlage(sessionId, sess) {
-  if (!APIFY_TOKEN) {
-    sess.status = "error";
-    sess.error = "APIFY_TOKEN mangler på serveren.";
-    return;
-  }
+function postnrFrom(obj) {
+  if (/^\d{4}$/.test(String(obj.postnr || ""))) return String(obj.postnr);
+  const m = (obj.address || obj.label || "").match(/\b(\d{4})\b/);
+  return m ? m[1] : null;
+}
 
-  const m2Num  = Number(sess.m2);
-  const evNum  = Number(sess.ev);
-  const typeCode = apifyTypeCode(sess.anvKode || "120");
-  // Extract postal code from the address label
-  const zipMatch = (sess.address || sess.label || "").match(/\b(\d{4})\b/);
-  const zipCode  = zipMatch ? zipMatch[1] : "0000";
+// Tinglyste handler 2020–2022 pr. postnummer og boligtype. Handlerne ændrer sig ikke,
+// så de gemmes på disk og hentes kun én gang pr. postnummer (sparer Apify-kørsler og tid).
+const COMPS_CACHE_FILE = path.join(HISTORY_DIR, "comps-cache.json");
+const COMPS_TTL_MS     = 90 * 24 * 3600 * 1000;
+let COMPS_CACHE = {};
+try {
+  if (fs.existsSync(COMPS_CACHE_FILE)) COMPS_CACHE = JSON.parse(fs.readFileSync(COMPS_CACHE_FILE, "utf8"));
+} catch (e) { console.warn("Kunne ikke læse comps-cache.json:", e.message); }
+const COMPS_INFLIGHT = new Map();
 
-  const actorInput = {
-    listingType:  "sold",
-    zipCodes:     zipCode,
-    propertyTypes:[typeCode],
-    soldYearMin:   2020,
-    soldYearMax:   2022,
-    maxItems:      40,
-  };
+async function getSoldComps(zipCode, typeCode) {
+  if (!APIFY_TOKEN) throw new Error("APIFY_TOKEN mangler på serveren.");
+  if (!zipCode) throw new Error("Mangler postnummer");
+  const key = `${zipCode}|${typeCode}`;
+  const cached = COMPS_CACHE[key];
+  if (cached && Date.now() - cached.ts < COMPS_TTL_MS) return cached.comps;
+  // To samtidige opslag i samme postnummer deler én Apify-kørsel
+  if (COMPS_INFLIGHT.has(key)) return COMPS_INFLIGHT.get(key);
 
-  const apifyUrl =
-    `https://api.apify.com/v2/acts/${BOLIGA_ACTOR}/run-sync-get-dataset-items` +
-    `?token=${APIFY_TOKEN}`;
+  const job = (async () => {
+    const actorInput = {
+      listingType:  "sold",
+      zipCodes:     zipCode,
+      propertyTypes:[typeCode],
+      soldYearMin:   2020,
+      soldYearMax:   2022,
+      maxItems:      40,
+    };
+    const apifyUrl =
+      `https://api.apify.com/v2/acts/${BOLIGA_ACTOR}/run-sync-get-dataset-items` +
+      `?token=${APIFY_TOKEN}`;
+    const r = await fetch(apifyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(actorInput),
+      signal: AbortSignal.timeout(150000),
+    });
+    if (!r.ok) {
+      const txt = await r.text();
+      throw new Error(`Apify fejl ${r.status}: ${txt.slice(0, 200)}`);
+    }
+    const comps = await r.json();
+    if (!Array.isArray(comps)) throw new Error("Uventet Apify-svar");
+    // Et tomt svar kan være en midlertidig fejl hos Boliga, så det gemmes ikke
+    if (comps.length === 0) return comps;
+    COMPS_CACHE[key] = { ts: Date.now(), comps };
+    try { fs.writeFileSync(COMPS_CACHE_FILE, JSON.stringify(COMPS_CACHE)); }
+    catch (e) { console.warn("Kunne ikke skrive comps-cache.json:", e.message); }
+    return comps;
+  })();
+  COMPS_INFLIGHT.set(key, job);
+  try { return await job; } finally { COMPS_INFLIGHT.delete(key); }
+}
 
-  const r = await fetch(apifyUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(actorInput),
-  });
-
-  if (!r.ok) {
-    const txt = await r.text();
-    throw new Error(`Apify fejl ${r.status}: ${txt.slice(0, 200)}`);
-  }
-
-  const allComps = await r.json();
-  if (!Array.isArray(allComps)) throw new Error("Uventet Apify-svar");
-
+function analyseComps(allComps, m2Num, evNum) {
   // Size band: ±25% around subject, widen if fewer than 4
   let band = allComps.filter(c => c.squareMeterPrice && c.size >= m2Num * 0.75 && c.size <= m2Num * 1.25);
   if (band.length < 4) band = allComps.filter(c => c.squareMeterPrice && c.size >= m2Num * 0.60 && c.size <= m2Num * 1.40);
@@ -897,16 +970,37 @@ async function generateKlage(sessionId, sess) {
   // (ejendomsværdien skal falde med mere end 20 %, jf. skatteforvaltningsloven § 35 h stk 2)
   const targetEV        = Math.round(evNum * 0.80);
 
-  const topComps = band
+  const topComps = [...band]
     .sort((a, b) => new Date(b.soldDate) - new Date(a.soldDate))
     .slice(0, 8);
 
-  // Real grounds check against the actual local (postnummer) analysis —
-  // not the broad landsdel estimate from the free check. Only generate a
-  // formal "EV er for høj"-claim when the real, representative comps
-  // actually support it. Otherwise tell the customer honestly, with the
-  // same underlying data, instead of asserting a claim we can't stand behind.
+  // Real grounds check against the actual local (postnummer) analysis.
+  // Only generate a formal "EV er for høj"-claim when the real, representative
+  // comps actually support it.
   const hasGrounds = estimatedMarket != null && estimatedMarket < targetEV;
+  return { medianSqm, estimatedMarket, targetEV, topComps, hasGrounds, compsCount: sqmPrices.length };
+}
+
+// Omtrentlig årlig ejendomsværdiskat: 5,1 ‰ af beskatningsgrundlaget (80 % af EV)
+// op til 9,2 mio. kr og 14 ‰ af resten. Grundskyld og rabatordninger er ikke medregnet.
+function ejendomsvaerdiskat(ev) {
+  const grundlag = ev * 0.80;
+  return 0.0051 * Math.min(grundlag, 9200000) + 0.014 * Math.max(0, grundlag - 9200000);
+}
+
+async function generateKlage(sessionId, sess) {
+  if (!APIFY_TOKEN) {
+    sess.status = "error";
+    sess.error = "APIFY_TOKEN mangler på serveren.";
+    return;
+  }
+
+  const m2Num  = Number(sess.m2);
+  const evNum  = Number(sess.ev);
+  const zipCode = postnrFrom(sess);
+  // Normalt allerede hentet og gemt under det gratis tjek, så det går hurtigt
+  const allComps = await getSoldComps(zipCode, apifyTypeCode(sess.anvKode || "120"));
+  const { medianSqm, estimatedMarket, targetEV, topComps, hasGrounds } = analyseComps(allComps, m2Num, evNum);
 
   sess.status        = "done";
   sess.hasGrounds    = hasGrounds;
@@ -1056,6 +1150,15 @@ Analyse udarbejdet af Vurderingstjekket.dk
 Data er vejledende og ikke juridisk rådgivning.
 `;
 }
+
+// ─── Tilmelding: besked ved næste vurdering ───────────────────
+// POST /api/notify-signup  body: { email, address, verdict }
+app.post("/api/notify-signup", (req, res) => {
+  const { email, address, verdict } = req.body || {};
+  if (!email || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(String(email).trim())) return res.status(400).json({ error: "Ugyldig e-mailadresse" });
+  logEvent("notify_signup", { customerEmail: String(email).trim(), address: address || "", verdict: verdict || null });
+  res.json({ ok: true });
+});
 
 // ─── Klage status ─────────────────────────────────────────────
 app.get("/api/klage/:sessionId", (req, res) => {
