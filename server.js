@@ -1029,12 +1029,14 @@ async function getSoldComps(zipCode, typeCode) {
     // Aktørens soldYearMin/soldYearMax bliver ignoreret (den returnerer de nyeste salg),
     // så perioden sættes direkte i Boligas egen søge-URL. Kun handler før vurderings-
     // tidspunktet 1.1.2022 bruges som sammenligningsgrundlag.
-    const boligaUrl = "https://api.boliga.dk/api/v2/sold/search/results?searchTab=1" +
+    // Aktøren følger ikke selv flere sider af en start-URL (hver side giver 10 handler),
+    // så siderne 1–8 gives med hver for sig
+    const boligaUrl = page => "https://api.boliga.dk/api/v2/sold/search/results?searchTab=1" +
       `&propertyType=${encodeURIComponent(typeCode)}&salesDateMin=2020&salesDateMax=2021` +
-      `&zipcodeFrom=${encodeURIComponent(zipCode)}&zipcodeTo=${encodeURIComponent(zipCode)}&sort=date-d&page=1`;
+      `&zipcodeFrom=${encodeURIComponent(zipCode)}&zipcodeTo=${encodeURIComponent(zipCode)}&sort=date-d&page=${page}`;
     const actorInput = {
       listingType: "sold",
-      startUrls:   [{ url: boligaUrl }],
+      startUrls:   [1, 2, 3, 4, 5, 6, 7, 8].map(page => ({ url: boligaUrl(page) })),
       maxItems:    80,
     };
     const apifyUrl =
@@ -1050,8 +1052,11 @@ async function getSoldComps(zipCode, typeCode) {
       const txt = await r.text();
       throw new Error(`Apify fejl ${r.status}: ${txt.slice(0, 200)}`);
     }
-    const comps = await r.json();
-    if (!Array.isArray(comps)) throw new Error("Uventet Apify-svar");
+    const raw = await r.json();
+    if (!Array.isArray(raw)) throw new Error("Uventet Apify-svar");
+    // Samme handel kan komme med på to sider, hvis Boliga får nye data imens
+    const seen = new Set();
+    const comps = raw.filter(c => { const k = c.id || c.guid || `${c.address}|${c.soldDate}`; if (seen.has(k)) return false; seen.add(k); return true; });
     // Et tomt svar kan være en midlertidig fejl hos Boliga, så det gemmes ikke
     if (comps.length === 0) return comps;
     COMPS_CACHE[key] = { ts: Date.now(), comps };
