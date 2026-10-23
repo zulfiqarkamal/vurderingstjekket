@@ -56,7 +56,7 @@ const ADR_TOKEN             = "adressevaelger123"; // official free-tier token
 const RESEND_API_KEY        = process.env.RESEND_API_KEY;
 const RESEND_FROM           = process.env.RESEND_FROM || "Vurderingstjekket <onboarding@resend.dev>";
 // Pris for klagepakken. Der betales kun, når de lokale handler viser en sag.
-const PRICE_DKK             = parseInt(process.env.PRICE_DKK || "495");
+const PRICE_DKK             = parseInt(process.env.PRICE_DKK || "350");
 
 const stripe = STRIPE_SECRET
   ? new Stripe(STRIPE_SECRET, {
