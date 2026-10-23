@@ -35,14 +35,17 @@ app.use((req, res, next) => {
 // Stripe webhook needs raw body for signature verification
 app.use("/api/stripe-webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+// HTML må ikke caches, ellers ser folk en gammel version af siden efter en opdatering
+app.use(express.static(path.join(__dirname, "public"), {
+  setHeaders: (res, filePath) => { if (filePath.endsWith(".html")) res.setHeader("Cache-Control", "no-cache"); },
+}));
 
 // Fallback: serve index.html from public/ or root
 app.get("/", (_req, res) => {
   const pub  = path.join(__dirname, "public", "index.html");
   const root = path.join(__dirname, "index.html");
   const target = fs.existsSync(pub) ? pub : fs.existsSync(root) ? root : null;
-  if (target) res.sendFile(target);
+  if (target) res.set("Cache-Control", "no-cache").sendFile(target);
   else res.status(404).send("Mangler index.html — upload public/index.html til GitHub");
 });
 
