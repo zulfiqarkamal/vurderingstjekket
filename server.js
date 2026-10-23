@@ -309,6 +309,74 @@ async function getEJEN77Avg2020_2022(landsdel, ejendomskate = EJENDOMSKATE_ENFAM
   return data;
 }
 
+// Prisindeks (EJ56) pr. kvartal, så handler fra 2020–2021 kan føres frem til
+// vurderingstidspunktet 1.1.2022. Returnerer { "2020K1": 81.6, ..., target } eller null.
+const EJ56_CACHE = new Map();
+async function getPrisindeks(landsdel, ejendomskate) {
+  if (!landsdel) return null;
+  const key = `${landsdel}|${ejendomskate}`;
+  const cached = EJ56_CACHE.get(key);
+  if (cached && Date.now() - cached.ts < 24 * 3600 * 1000) return cached.data;
+  try {
+    const kvartaler = ["2020K1","2020K2","2020K3","2020K4","2021K1","2021K2","2021K3","2021K4","2022K1"];
+    const url = `https://api.statbank.dk/v1/data/EJ56/JSONSTAT?OMRÅDE=${landsdel}` +
+      `&EJENDOMSKATE=${ejendomskate}&TAL=100&Tid=${kvartaler.join(",")}&lang=da`;
+    const r = await fetch(url, { headers: { "Accept": "application/json" } });
+    if (!r.ok) throw new Error(`EJ56 HTTP ${r.status}`);
+    const raw = await r.json();
+    const vals = raw.dataset?.value ?? raw.value ?? [];
+    const idx = raw.dataset?.dimension?.Tid?.category?.index || {};
+    const data = {};
+    for (const k of kvartaler) {
+      const v = Array.isArray(vals) ? vals[idx[k]] : vals[String(idx[k])];
+      if (v > 0) data[k] = v;
+    }
+    // Niveauet 1.1.2022 ligger mellem 4. kvartal 2021 og 1. kvartal 2022
+    if (!data["2021K4"] || !data["2022K1"]) throw new Error("Mangler kvartaler omkring 1.1.2022");
+    data.target = (data["2021K4"] + data["2022K1"]) / 2;
+    EJ56_CACHE.set(key, { data, ts: Date.now() });
+    return data;
+  } catch (e) {
+    console.warn("Prisindeks fejlede, handler bruges uden tidskorrektion:", e.message);
+    return null;
+  }
+}
+
+// Boligens koordinater (UTM zone 32, meter) fra Adressevælgeren
+const KOORD_CACHE = new Map();
+async function getAdresseKoordinater(adresseId) {
+  if (!adresseId) return null;
+  if (KOORD_CACHE.has(adresseId)) return KOORD_CACHE.get(adresseId);
+  try {
+    const r = await fetch(`https://adressevaelger.dk/adresser/${encodeURIComponent(adresseId)}?token=${ADR_TOKEN}`,
+      { headers: { "Accept": "application/json" } });
+    if (!r.ok) return null;
+    const k = (await r.json())?.adresse?.husnummer?.adgangspunkt?.koordinater;
+    const res = k && k.x && k.y ? { x: Number(k.x), y: Number(k.y) } : null;
+    KOORD_CACHE.set(adresseId, res);
+    return res;
+  } catch {
+    return null;
+  }
+}
+
+// WGS84 (Boligas lat/lon) til UTM zone 32 (EPSG:25832), så afstanden kan regnes i meter
+function wgs84TilUtm32(lat, lon) {
+  const a = 6378137, f = 1 / 298.257223563, k0 = 0.9996, lon0 = 9 * Math.PI / 180;
+  const e2 = f * (2 - f), ep2 = e2 / (1 - e2);
+  const phi = lat * Math.PI / 180, lam = lon * Math.PI / 180;
+  const N = a / Math.sqrt(1 - e2 * Math.sin(phi) ** 2);
+  const T = Math.tan(phi) ** 2, C = ep2 * Math.cos(phi) ** 2, A = Math.cos(phi) * (lam - lon0);
+  const M = a * ((1 - e2 / 4 - 3 * e2 ** 2 / 64 - 5 * e2 ** 3 / 256) * phi
+    - (3 * e2 / 8 + 3 * e2 ** 2 / 32 + 45 * e2 ** 3 / 1024) * Math.sin(2 * phi)
+    + (15 * e2 ** 2 / 256 + 45 * e2 ** 3 / 1024) * Math.sin(4 * phi)
+    - (35 * e2 ** 3 / 3072) * Math.sin(6 * phi));
+  const x = 500000 + k0 * N * (A + (1 - T + C) * A ** 3 / 6 + (5 - 18 * T + T ** 2 + 72 * C - 58 * ep2) * A ** 5 / 120);
+  const y = k0 * (M + N * Math.tan(phi) * (A ** 2 / 2 + (5 - T + 9 * C + 4 * C ** 2) * A ** 4 / 24
+    + (61 - 58 * T + T ** 2 + 600 * C - 330 * ep2) * A ** 6 / 720));
+  return { x, y };
+}
+
 // ─── Adressevælger + BBR ──────────────────────────────────────
 
 // GET /api/adresse?q=<text>  →  returns list of address suggestions
@@ -486,7 +554,7 @@ function checkInputPlausibility({ evNum, m2Num, marketValue2022, erLejlighed }) 
 // ─── Free eligibility check ───────────────────────────────────
 // POST /api/free-check  body: { m2, kommunekode, anvKode, ev, address }
 app.post("/api/free-check", async (req, res) => {
-  const { m2, kommunekode, anvKode, ev, address, opfoeretAar } = req.body || {};
+  const { m2, kommunekode, anvKode, ev, address, opfoeretAar, grundareal, adresseId } = req.body || {};
   const evNum = Number(ev);
   const m2Num = Number(m2);
 
@@ -525,8 +593,12 @@ app.post("/api/free-check", async (req, res) => {
     let local = null;
     if (APIFY_TOKEN && postnr) {
       try {
-        const comps = await getSoldComps(postnr, apifyTypeCode(anvKode || "120"));
-        const a = analyseComps(comps, m2Num, evNum, address, opfoeretAar);
+        const [comps, indeks, koord] = await Promise.all([
+          getSoldComps(postnr, apifyTypeCode(anvKode || "120")),
+          getPrisindeks(landsdel, ejendomskate),
+          getAdresseKoordinater(adresseId),
+        ]);
+        const a = analyseComps(comps, m2Num, evNum, { address, year: opfoeretAar, lot: grundareal, koord, indeks });
         if (a.estimatedMarket && a.compsCount >= 3) local = a;
       } catch (e) {
         console.warn("Lokale handler fejlede, bruger landsdelsgennemsnit:", e.message);
@@ -538,10 +610,15 @@ app.post("/api/free-check", async (req, res) => {
       source   = "lokal";
       estimate = local.estimatedMarket;
       const localGap = ((evNum - estimate) / evNum) * 100;
-      if      (localGap >= 20) { verdict="SAG";   label="Stor afvigelse";    color="red";   }
+      // Få eller meget forskellige handler gør estimatet usikkert. Så kræver rød en større afvigelse,
+      // så et spinkelt datagrundlag ikke fremstår lige så sikkert som et solidt
+      const usikker = local.compsCount < 8 || (local.spredning != null && local.spredning > 0.4);
+      const graenseSag = usikker ? 25 : 20;
+      if      (localGap >= graenseSag) { verdict="SAG";   label="Stor afvigelse";    color="red";   }
       else if (localGap >= 10) { verdict="TÆT";   label="Mulig afvigelse";   color="amber"; }
       else                     { verdict="INGEN"; label="Mindre afvigelse";  color="green"; }
       canBuy = verdict === "SAG";
+      local.usikker = usikker;
     } else {
       // Ingen lokale handler: landsdelsgennemsnittet er for groft til at sige ja,
       // så kun de tydeligste tilfælde får tilbudt den betalte analyse.
@@ -577,6 +654,8 @@ app.post("/api/free-check", async (req, res) => {
       m2: m2Num, ev: evNum, kommunekode: String(kommunekode).padStart(4,"0"),
       verdict, gap_pct: result.gap_pct, targetEV, propertyType: result.propertyType,
       source, compsCount: local ? local.compsCount : 0, savingsPerYear,
+      usikker: local ? local.usikker : null, spredning: local && local.spredning != null ? Math.round(local.spredning * 100) / 100 : null,
+      tidskorrigeret: local ? local.tidskorrigeret : null,
     });
     res.json(result);
   } catch (err) {
@@ -900,6 +979,20 @@ function apifyTypeCode(anvKode) {
   return "1";
 }
 
+// Median, hvor hver pris tæller med sin vægt (fx nære handler mere end fjerne)
+function vaegtetMedian(vals, vaegte) {
+  const par = vals.map((v, i) => [v, vaegte[i] ?? 1]).sort((a, b) => a[0] - b[0]);
+  const halv = par.reduce((s, p) => s + p[1], 0) / 2;
+  let acc = 0;
+  for (let i = 0; i < par.length; i++) {
+    acc += par[i][1];
+    // Ligger halvdelen præcis mellem to priser (fx lige mange uden vægt), tages gennemsnittet
+    if (Math.abs(acc - halv) < 1e-9 && i + 1 < par.length) return (par[i][0] + par[i + 1][0]) / 2;
+    if (acc > halv) return par[i][0];
+  }
+  return par[par.length - 1][0];
+}
+
 function median(arr) {
   const s = [...arr].sort((a, b) => a - b);
   const m = Math.floor(s.length / 2);
@@ -978,24 +1071,56 @@ function erMarkedshandel(c) {
   return !/famil|auktion|tvang/i.test(String(c.salesType || ""));
 }
 
-function analyseComps(allComps, m2Num, evNum, subjectAddress, subjectYear) {
-  // Kun almindelige handler før vurderingstidspunktet 1.1.2022 (gamle cache-poster kan indeholde 2022)
+// Kvartal for en salgsdato, fx "2021-05-10" → "2021K2"
+function kvartal(dato) {
+  const m = String(dato || "").match(/^(\d{4})-(\d{2})/);
+  return m ? `${m[1]}K${Math.ceil(Number(m[2]) / 3)}` : null;
+}
+
+// subject: { address, year, lot, koord, indeks } – alt er valgfrit
+function analyseComps(allComps, m2Num, evNum, subject = {}) {
+  const { address: subjectAddress, year: subjectYear, lot: subjectLot, koord, indeks } = subject;
+  // Kun almindelige handler før vurderingstidspunktet 1.1.2022 (gamle cache-poster kan indeholde 2022).
+  // Hver pris føres frem til niveauet 1.1.2022 med Danmarks Statistiks prisindeks for landsdelen.
   const pool = allComps.filter(c => c.squareMeterPrice && erMarkedshandel(c) &&
-    (!c.soldDate || String(c.soldDate) < "2022-01-01"));
+    (!c.soldDate || String(c.soldDate) < "2022-01-01"))
+    .map(c => {
+      const i = indeks && indeks[kvartal(c.soldDate)];
+      const faktor = i ? indeks.target / i : 1;
+      return { ...c, faktor, adjSqm: Math.round(c.squareMeterPrice * faktor) };
+    });
   // Size band: ±25% around subject, widen if fewer than 4
   let band = pool.filter(c => c.size >= m2Num * 0.75 && c.size <= m2Num * 1.25);
   if (band.length < 4) band = pool.filter(c => c.size >= m2Num * 0.60 && c.size <= m2Num * 1.40);
   if (band.length < 3) band = pool;
-  if (band.length === 0) band = allComps.filter(c => c.squareMeterPrice);
+  if (band.length === 0) band = allComps.filter(c => c.squareMeterPrice).map(c => ({ ...c, faktor: 1, adjSqm: c.squareMeterPrice }));
   // Byggeår: brug huse fra omtrent samme periode, når der er nok af dem
   const yr = parseInt(subjectYear);
   if (yr > 1700) {
     const sameEra = band.filter(c => c.buildYear && Math.abs(c.buildYear - yr) <= 25);
     if (sameEra.length >= 5) band = sameEra;
   }
-  // Nyeste handler ligger tættest på vurderingstidspunktet. Brug 2021, når der er nok
-  const recent = band.filter(c => String(c.soldDate || "") >= "2021-01-01");
-  if (recent.length >= 5) band = recent;
+  // Grundareal: huse med en grund af nogenlunde samme størrelse, når kunden har oplyst den
+  const lot = parseInt(subjectLot);
+  if (lot > 0) {
+    const sameLot = band.filter(c => c.lotSize && c.lotSize >= lot * 0.65 && c.lotSize <= lot * 1.35);
+    if (sameLot.length >= 5) band = sameLot;
+  }
+  // Afstand: ingen hård grænse. De nærmeste handler vægtes højest, og området udvides
+  // automatisk, til der er mindst 8 handler (eller alle, hvis der er færre)
+  if (koord) {
+    band = band.map(c => {
+      if (!c.latitude || !c.longitude) return { ...c, afstand: null };
+      const u = wgs84TilUtm32(c.latitude, c.longitude);
+      return { ...c, afstand: Math.hypot(u.x - koord.x, u.y - koord.y) };
+    });
+    const kendt = band.filter(c => c.afstand != null).sort((a, b) => a.afstand - b.afstand);
+    if (kendt.length >= 5) {
+      let radius = 500;
+      while (kendt.filter(c => c.afstand <= radius).length < Math.min(8, kendt.length)) radius *= 1.5;
+      band = kendt.filter(c => c.afstand <= radius);
+    }
+  }
   // De mest sammenlignelige handler er dem på samme vej. Brug dem, når der er nok af dem,
   // uanset om de trækker estimatet op eller ned.
   const street = streetName(subjectAddress);
@@ -1003,8 +1128,10 @@ function analyseComps(allComps, m2Num, evNum, subjectAddress, subjectYear) {
   const usedSameStreet = sameStreet.length >= 3;
   if (usedSameStreet) band = sameStreet;
 
-  const sqmPrices = band.map(c => c.squareMeterPrice).filter(Boolean);
-  const medianSqm = sqmPrices.length > 0 ? median(sqmPrices) : null;
+  const sqmPrices = band.map(c => c.adjSqm || c.squareMeterPrice).filter(Boolean);
+  // Vægt: 1 tæt på, faldende med afstanden (halv vægt ved 1 km)
+  const vaegte = band.map(c => c.afstand != null ? 1 / (1 + (c.afstand / 1000) ** 2) : 1);
+  const medianSqm = sqmPrices.length > 0 ? vaegtetMedian(sqmPrices, vaegte) : null;
   const estimatedMarket = medianSqm ? Math.round(medianSqm * m2Num) : null;
   // Klagegrænse: markedsestimatet skal ligge under 80 % af EV for at klage kan ændre vurderingen
   // (ejendomsværdien skal falde med mere end 20 %, jf. skatteforvaltningsloven § 35 h stk 2)
@@ -1018,7 +1145,12 @@ function analyseComps(allComps, m2Num, evNum, subjectAddress, subjectYear) {
   // Only generate a formal "EV er for høj"-claim when the real, representative
   // comps actually support it.
   const hasGrounds = estimatedMarket != null && estimatedMarket < targetEV;
-  return { medianSqm, estimatedMarket, targetEV, topComps, hasGrounds, compsCount: sqmPrices.length, usedSameStreet };
+  const tidskorrigeret = band.some(c => c.faktor && c.faktor !== 1);
+  // Spredning: afstand mellem 25 %- og 75 %-fraktilen i forhold til medianen
+  const sorted = [...sqmPrices].sort((a, b) => a - b);
+  const q = p => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
+  const spredning = medianSqm && sorted.length >= 4 ? (q(0.75) - q(0.25)) / medianSqm : null;
+  return { medianSqm, estimatedMarket, targetEV, topComps, hasGrounds, compsCount: sqmPrices.length, usedSameStreet, tidskorrigeret, spredning };
 }
 
 // Omtrentlig årlig ejendomsværdiskat: 5,1 ‰ af beskatningsgrundlaget (80 % af EV)
@@ -1049,8 +1181,15 @@ async function generateKlage(sessionId, sess) {
   const evNum  = Number(sess.ev);
   const zipCode = postnrFrom(sess);
   // Normalt allerede hentet og gemt under det gratis tjek, så det går hurtigt
-  const allComps = await getSoldComps(zipCode, apifyTypeCode(sess.anvKode || "120"));
-  const analyse = analyseComps(allComps, m2Num, evNum, sess.address || sess.label, sess.opfoeretAar);
+  const landsdel = KOMMUNEKODE_TO_LANDSDEL[String(sess.kommunekode || "").padStart(4, "0")] || sess.landsdel;
+  const [allComps, indeks, koord] = await Promise.all([
+    getSoldComps(zipCode, apifyTypeCode(sess.anvKode || "120")),
+    getPrisindeks(landsdel, isEjerlejlighed(sess.anvKode) ? EJENDOMSKATE_EJERLEJLIGHED : EJENDOMSKATE_ENFAMILIE),
+    getAdresseKoordinater(sess.adresseId),
+  ]);
+  const analyse = analyseComps(allComps, m2Num, evNum, {
+    address: sess.address || sess.label, year: sess.opfoeretAar, lot: sess.grundareal, koord, indeks,
+  });
   const { medianSqm, estimatedMarket, targetEV, topComps } = analyse;
   // Lige under grænsen (10–20 %) med forhold ved boligen: klagen bygger på handlerne plus forholdene
   const forhold = (Array.isArray(sess.forhold) ? sess.forhold : []).filter(k => FORHOLD[k]);
@@ -1061,8 +1200,8 @@ async function generateKlage(sessionId, sess) {
   sess.status        = "done";
   sess.hasGrounds    = hasGrounds;
   sess.klageTekst    = hasGrounds
-    ? buildKlageTekst({ sess, medianSqm, estimatedMarket, targetEV, comps: topComps, forhold: medForhold ? forhold : [] })
-    : buildNoGroundsReport({ sess, medianSqm, estimatedMarket, targetEV, comps: topComps });
+    ? buildKlageTekst({ sess, medianSqm, estimatedMarket, targetEV, comps: topComps, forhold: medForhold ? forhold : [], tidskorrigeret: analyse.tidskorrigeret })
+    : buildNoGroundsReport({ sess, medianSqm, estimatedMarket, targetEV, comps: topComps, tidskorrigeret: analyse.tidskorrigeret });
   sess.comps         = topComps;
   sess.estimatedMarket = estimatedMarket;
   sess.targetEV      = targetEV;
@@ -1085,7 +1224,7 @@ async function generateKlage(sessionId, sess) {
 function fmtKr(n) { return Math.round(n).toLocaleString("da-DK") + " kr"; }
 function fmtDate(d) { try { return new Date(d).toLocaleDateString("da-DK"); } catch(e) { return d || ""; } }
 
-function buildKlageTekst({ sess, medianSqm, estimatedMarket, targetEV, comps, forhold = [] }) {
+function buildKlageTekst({ sess, medianSqm, estimatedMarket, targetEV, comps, forhold = [], tidskorrigeret = false }) {
   const evNum = Number(sess.ev);
   const m2Num = Number(sess.m2);
   // gap_pct: hvor mange procent EV overstiger markedsestimatet (målt som andel af EV)
@@ -1125,7 +1264,9 @@ MARKEDSANALYSE — SAMMENLIGNELIGE HANDLER 2020–2021
 
 Analysen er baseret på ${comps.length} sammenlignelige, tinglysningsregistrerede handler
 i postnummerområdet fra perioden 2020–2021, dvs. før vurderingstidspunktet 1. januar 2022.
-Familiehandler og andre handler, der ikke er almindelige markedshandler, indgår ikke.
+Familiehandler og andre handler, der ikke er almindelige markedshandler, indgår ikke.${tidskorrigeret ? `
+Salgspriserne er ført frem til prisniveauet pr. 1. januar 2022 med Danmarks Statistiks
+prisindeks for ejendomssalg (EJ56) for landsdelen.` : ""}
 
 ${medianSqm ? `Median salgspris pr. m²: ${fmtKr(medianSqm)}/m²` : "Se vedlagte bilag."}
 ${estimatedMarket ? `Skønnet markedsværdi for ejendommen (${m2Num} m²): ${fmtKr(estimatedMarket)}` : ""}
@@ -1175,7 +1316,7 @@ Kontrollér altid frister og beløb selv inden indsendelse.
 // the free check's broader landsdel estimate suggested it was worth
 // checking. We show the customer the same underlying data so they can see
 // exactly why, rather than silently generating a complaint we can't back.
-function buildNoGroundsReport({ sess, medianSqm, estimatedMarket, targetEV, comps }) {
+function buildNoGroundsReport({ sess, medianSqm, estimatedMarket, targetEV, comps, tidskorrigeret = false }) {
   const evNum = Number(sess.ev);
   const m2Num = Number(sess.m2);
   // gap_pct: EV vs markedsestimat som andel af EV (negativ = EV under estimat)
