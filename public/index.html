@@ -179,8 +179,8 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 
 <header>
   <h1>Vurderingstjekket</h1>
-  <p>Betaler du for meget i ejendomsskat? Tjek gratis om din ejendomsværdi er sat for højt — og få klagetekst klar til Skatteankestyrelsen.</p>
-  <span class="badge">Gratis tjek · 350 kr for klagetekst med professionel dokumentation</span>
+  <p>Er din ejendomsvurdering for høj? Vi sammenligner gratis med de rigtige handler i dit postnummer og fortæller dig, om du har en sag.</p>
+  <span class="badge">Gratis svar · Du betaler kun, hvis du har en sag</span>
 </header>
 
 <main>
@@ -240,7 +240,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
   </div>
 
   <div class="warn-note">
-    <strong>Husk klagefrist.</strong> Typisk 3 måneder fra modtagelse af vurderingsmeddelelse.
+    <strong>Husk klagefrist.</strong> Du har 90 dage fra du modtog din vurdering.
     Tjek din præcise frist på <a href="https://vurderingsportalen.dk" target="_blank" rel="noopener">vurderingsportalen.dk</a> inden du handler.
   </div>
 
@@ -258,22 +258,44 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 
 <!-- ══ STEP 4: PAYMENT ══════════════════════════════════════════ -->
 <div class="card hidden" id="card-pay">
-  <h2>4. Få din individuelle vurderingsanalyse</h2>
-  <p class="sub" id="pay-sub">350 kr · individuel analyse med lokale handler · leveres på ca. 2 min.</p>
+  <h2>4. Få din klagepakke</h2>
+  <p class="sub" id="pay-sub">En færdig klage med dokumentationen fra de lokale handler. Du indsætter den direkte hos Skatteankestyrelsen.</p>
 
-  <div class="note">
-    Få en professionelt dokumenteret analyse af din ejendomsvurdering baseret på faktiske handler fra dit postnummerområde (2020–2022) — samme periode Vurderingsstyrelsen selv har lagt til grund. Inkluderer en færdig klagetekst, hvis analysen viser grundlag for en klage.
-  </div>
-
-  <p style="margin:14px 0 6px;font-weight:600;font-size:1.05rem;">350 kr. Engangsbetaling.</p>
+  <p style="margin:14px 0 6px;font-weight:600;font-size:1.05rem;" id="pay-price">350 kr. Engangsbetaling.</p>
 
   <button class="btn btn-pay" id="pay-btn">
-    Få min analyse og klagetekst →
+    Få min klagepakke →
   </button>
-  <p style="margin:8px 0 0;font-size:0.85rem;color:var(--gray-600);">Leveres digitalt. Ingen abonnement.</p>
+  <p style="margin:8px 0 0;font-size:0.85rem;color:var(--gray-600);">Leveres digitalt på få minutter. Ingen abonnement.</p>
   <button class="btn btn-secondary hidden" id="test-btn" style="margin-top:8px;">
     🧪 Test: Generer analyse gratis (testmode)
   </button>
+</div>
+
+<!-- ══ FORHOLD VED BOLIGEN (lige under grænsen) ═══════════════ -->
+<div class="card hidden" id="card-forhold">
+  <h2>Har din bolig nogle af disse forhold?</h2>
+  <p class="sub">Du ligger lige under klagegrænsen. Forhold, som vurderingen ikke kender, kan trække værdien så meget ned, at du alligevel har en sag. Sæt kryds ved det, der passer.</p>
+  <div id="forhold-list" style="display:flex;flex-direction:column;gap:10px;margin:12px 0;font-size:0.95rem;">
+    <label style="font-weight:400;"><input type="checkbox" value="renovering"> Boligen trænger til renovering (fx gammelt køkken, bad, tag eller vinduer)</label>
+    <label style="font-weight:400;"><input type="checkbox" value="skader"> Fugt, skimmel, sætningsskader eller andre skader</label>
+    <label style="font-weight:400;"><input type="checkbox" value="stoej"> Støj fra stærkt trafikeret vej, jernbane eller lignende</label>
+    <label style="font-weight:400;"><input type="checkbox" value="beliggenhed"> Ugunstig beliggenhed (fx indkig, nabo til erhverv, højspænding eller en vanskelig grund)</label>
+    <label style="font-weight:400;"><input type="checkbox" value="areal"> Kælder eller tagetage er talt med som fuld bolig, selvom den ikke er det</label>
+  </div>
+  <button class="btn btn-primary" id="forhold-btn">Se om jeg har en sag →</button>
+</div>
+
+<!-- ══ TILMELDING (ingen sag) ══════════════════════════════════ -->
+<div class="card hidden" id="card-notify">
+  <h2>Få besked ved næste vurdering</h2>
+  <p class="sub">Vi sender dig en mail, når der kommer en ny vurdering, så du kan tjekke den igen gratis.</p>
+  <div class="email-row">
+    <input type="email" id="notify-email" placeholder="din@email.dk" autocomplete="email" />
+    <button id="notify-btn">Giv mig besked</button>
+  </div>
+  <div id="notify-msg" style="margin-top:8px;font-size:0.9rem;"></div>
+  <p style="margin:8px 0 0;font-size:0.8rem;color:var(--gray-600);">Vi bruger kun din mail til denne besked. Du kan afmelde dig når som helst.</p>
 </div>
 
 <!-- ══ STEP 5: KLAGE ════════════════════════════════════════════ -->
@@ -504,6 +526,14 @@ async function lookupBBR(husnummerId, adresseId, kommunekode) {
 
       renderBBRChip(data);
       document.getElementById("card-ev").classList.remove("hidden");
+      // Et manuelt areal fra en tidligere adresse må ikke overstyre den nye BBR-værdi
+      const oldM2 = document.getElementById("m2-manual");
+      if (oldM2) oldM2.closest("div").remove();
+      if (data.areaUncertain) {
+        // BBR gav kun bygningens samlede areal: bed brugeren tjekke boligens eget areal
+        injectManualM2Field("BBR viser hele bygningens areal. Ret til din boligs eget areal, hvis det er forkert.");
+        document.getElementById("m2-manual").value = data.m2;
+      }
     } else {
       // Even without a BBR building match, the kommunekode/landsdel may
       // still have been resolved from the address itself — keep it.
@@ -547,14 +577,14 @@ function showBBRManual(msg) {
   injectManualM2Field();
 }
 
-function injectManualM2Field() {
+function injectManualM2Field(hint) {
   if (document.getElementById("m2-manual")) return; // already injected
   const evCard = document.getElementById("card-ev");
   const firstRow = evCard.querySelector(".row");
   const wrap = document.createElement("div");
   wrap.innerHTML = `
     <label for="m2-manual">Boligareal (m²)
-      <span class="hint">Fra din BBR-meddelelse eller vurderingsmeddelelse.</span>
+      <span class="hint">${hint || "Fra din BBR-meddelelse eller vurderingsmeddelelse."}</span>
     </label>
     <input type="number" id="m2-manual" placeholder="136" min="10" max="2000" />`;
   wrap.style.marginBottom = "8px";
@@ -573,12 +603,12 @@ function injectManualM2Field() {
 }
 
 // ─── Free eligibility check ───────────────────────────────────
-async function runFreeCheck() {
+async function runFreeCheck(confirmed) {
   const ev = parseFloat(document.getElementById("ev-input").value);
   if (!ev || ev < 100000) { alert("Angiv en gyldig ejendomsværdi (mindst 100.000 kr)."); return; }
 
   // Use manual m2 if no BBR
-  const m2 = state.m2 || parseFloat((document.getElementById("m2-manual") || {}).value);
+  const m2 = parseFloat((document.getElementById("m2-manual") || {}).value) || state.m2;
   if (!m2 || m2 < 10) { alert("Vi kunne ikke finde boligens m² fra BBR. Indtast arealet manuelt."); return; }
 
   // Use manual kommunekode if BBR lookup never resolved one
@@ -597,7 +627,7 @@ async function runFreeCheck() {
 
   const btn = document.getElementById("check-btn");
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Analyserer…';
+  btn.innerHTML = '<span class="spinner"></span>Henter handler fra dit postnummer…';
 
   try {
     const r = await fetch("/api/free-check", {
@@ -609,9 +639,17 @@ async function runFreeCheck() {
         anvKode:     state.anvKode,
         ev, gv,
         address:     state.label || "",
+        postnr:      state.postnr || "",
+        confirmed:   confirmed === true,
       }),
     });
     const data = await r.json();
+    if (r.status === 422 && data.needsConfirm) {
+      // Tallene ser forkerte ud: lad brugeren rette dem eller bekræfte
+      const ok = confirm(data.warnings.join("\n\n") + "\n\nTryk OK hvis tallene er rigtige, eller Annuller for at rette dem.");
+      if (ok) return await runFreeCheck(true);
+      return;
+    }
     if (!r.ok) throw new Error(data.error || "Ukendt fejl");
 
     state.freeResult = data;
@@ -628,46 +666,53 @@ async function runFreeCheck() {
 }
 
 function renderFreeResult(d, ev, m2) {
-  // d.gap_pct = (EV - estimate) / EV * 100 — korrekt beregning
-  // d.targetEV = 0.80 * EV — klagegrænsen: markedsestimatet skal ligge under dette
+  // d.source = "lokal": vurderet mod tinglyste handler i postnummeret (afgør om der er en sag)
+  // d.source = "landsdel": fallback til DST-gennemsnit, når lokale handler ikke kunne hentes
+  const lokal = d.source === "lokal";
+  let tlColor, tag, headline, subtext;
+  // Et nyt resultat nulstiller spørgsmålene fra et tidligere tjek
+  state.forhold = [];
+  document.querySelectorAll("#forhold-list input").forEach(i => { i.checked = false; });
+  document.getElementById("card-forhold").classList.add("hidden");
 
-  let tlColor, tag, headline, subtext, showCTA, ctaText, paySubText;
-
-  if (d.color === "green") {
-    tlColor    = "tl-green";
-    tag        = "✅ Ingen tydelig klagesag";
-    headline   = "Din ejendomsvurdering ser fornuftig ud";
-    subtext    = "Ud fra markedsdata for din del af landet ligger ejendomsværdien inden for det forventede niveau. Der er ikke tydelig indikation på grundlag for en klage.";
-    showCTA    = false;
-  } else if (d.verdict === "USIKKER") {
-    tlColor    = "tl-amber";
-    tag        = "🟡 Usikkert – kræver nærmere analyse";
-    headline   = "Din ejendomsvurdering kan muligvis anfægtes";
-    subtext    = `Den indledende statistiske beregning viser en vis forskel (ca. ${d.gap_pct} % af ejendomsværdien), men landsdelsgennemsnittet kan skjule lokale forskelle. En individuel analyse med faktiske handler fra dit postnummer kan afklare, om der er reelt grundlag.`;
-    showCTA    = true;
-    ctaText    = "Få individuel analyse og klagetekst – 350 kr →";
-    paySubText = "350 kr · individuel analyse med lokale handler · leveres på ca. 2 min.";
+  if (lokal && d.verdict === "SAG") {
+    tlColor  = "tl-red";
+    tag      = "🔴 Du har sandsynligvis en sag";
+    headline = `Din vurdering ligger ${Math.round(d.gap_pct)} % over de lokale handler`;
+    subtext  = `Vi har sammenlignet med ${d.compsCount} tinglyste handler i ${escHtml(d.postnr)} fra 2020–2022. En klage kan ændre vurderingen, når den rammer mere end 20 % for højt, og det gør din efter de lokale handler.`;
+  } else if (lokal && d.verdict === "TÆT") {
+    tlColor  = "tl-amber";
+    tag      = "🟠 Tæt på, men under grænsen";
+    headline = `Din vurdering ligger ${Math.round(d.gap_pct)} % over de lokale handler`;
+    subtext  = `Vi har sammenlignet med ${d.compsCount} tinglyste handler i ${escHtml(d.postnr)}. En klage kan ændre vurderingen, når den rammer mere end 20 % for højt. Du ligger lige under, men har din bolig forhold, som trækker værdien ned, kan du stadig have en sag. Svar på spørgsmålene nedenfor.`;
+  } else if (lokal) {
+    tlColor  = "tl-green";
+    tag      = "✅ Ingen sag";
+    headline = "Din vurdering passer med de lokale handler";
+    subtext  = `Vi har sammenlignet med ${d.compsCount} tinglyste handler i ${escHtml(d.postnr)}. Der er ikke grundlag for at klage, og du sparer klagegebyret.`;
+  } else if (d.canBuy) {
+    tlColor  = "tl-red";
+    tag      = "🟠 Bør undersøges nærmere";
+    headline = "Din vurdering ser høj ud";
+    subtext  = `Ud fra gennemsnittet for ${escHtml(d.landsdelnavn)} ligger din vurdering ca. ${Math.round(d.gap_pct)} % over markedsniveauet. Vi kunne ikke hente de lokale handler lige nu, så klagepakken tjekker dem, før klagen skrives.`;
   } else {
-    // MULIG or STÆRK — statistisk indikation på klagesag
-    tlColor    = d.verdict === "STÆRK" ? "tl-red" : "tl-amber";
-    tag        = d.verdict === "STÆRK" ? "🔴 Stærk indikation på klagesag" : "🟠 Mulig klagesag";
-    headline   = "Der kan være grundlag for en klage over din ejendomsvurdering";
-    subtext    = `Den indledende beregning viser, at din ejendomsværdi (${fmtKr(ev)}) er ca. ${d.gap_pct} % højere end vores statistiske markedsestimat (${fmtKr(d.marketValue2022)}). En klage kan ændre vurderingen, hvis markedsværdien er mere end 20 % lavere end ejendomsværdien — det kræver en individuel analyse med faktiske handler fra dit postnummer.`;
-    showCTA    = true;
-    ctaText    = "Få individuel analyse og klagetekst – 350 kr →";
-    paySubText = "350 kr · individuel analyse med lokale handler · leveres på ca. 2 min.";
+    tlColor  = d.color === "green" ? "tl-green" : "tl-amber";
+    tag      = d.color === "green" ? "✅ Ingen tydelig sag" : "🟡 Ingen tydelig sag";
+    headline = "Vi kan ikke se en sag ud fra gennemsnittet";
+    subtext  = `Ud fra gennemsnittet for ${escHtml(d.landsdelnavn)} er der ikke en tydelig sag. Vi kunne ikke hente de lokale handler lige nu, så prøv gerne igen senere.`;
   }
 
-  // GV note
-  const gvVal = parseFloat(document.getElementById("gv-input").value) || 0;
-  const gvNote = gvVal > 0 && showCTA
-    ? `<div class="note" style="margin-top:8px;">Du har også angivet en grundværdi på ${fmtKr(gvVal)}. Analysen kan inkludere et klagepunkt over grundværdien — det afklares ved køb.</div>`
+  const savings = d.canBuy && d.savingsPerYear > 0
+    ? `<div class="note" style="margin-top:12px;font-size:1rem;">💰 Hvis vurderingen nedsættes til ${fmtKr(d.estimate)}, sparer du ca. <strong>${fmtKr(d.savingsPerYear)} om året</strong> i ejendomsværdiskat, eller ca. <strong>${fmtKr(d.savingsPerYear * 10)} over 10 år</strong>.</div>`
     : "";
 
-  // Klagefrist note
-  const deadlineNote = showCTA
-    ? `<div class="note" style="margin-top:8px;">⏰ <strong>Klagefrist:</strong> Klage over 2022-vurderingen skal indsendes inden <strong>1. januar 2025</strong>. Kontrollér altid fristen på <a href="https://skatteankestyrelsen.dk" target="_blank" rel="noopener">skatteankestyrelsen.dk</a>.</div>`
+  const deadlineNote = d.canBuy
+    ? `<div class="note" style="margin-top:8px;">⏰ <strong>Klagefrist:</strong> Du har <strong>90 dage</strong> fra du modtog din vurdering. Kontrollér din præcise frist på <a href="https://skatteankestyrelsen.dk" target="_blank" rel="noopener">skatteankestyrelsen.dk</a>.</div>`
     : "";
+
+  const method = lokal
+    ? `Vi har fundet ${d.compsCount} tinglyste handler med en lignende boligtype og størrelse i ${escHtml(d.postnr)} fra 2020–2022. Det er den periode, Vurderingsstyrelsen selv bruger. Medianprisen er ${fmtKr(d.medianSqm)}/m², ganget med din boligs ${m2} m².`
+    : `Estimatet bygger på Danmarks Statistiks gennemsnitspris for ${d.propertyType === "ejerlejlighed" ? "ejerlejligheder" : "enfamiliehuse"} i ${escHtml(d.landsdelnavn)} fra 2020–2022 (${fmtKr(d.krPerM2)}/m²). Det er et groft gennemsnit, ikke en vurdering af netop din bolig.`;
 
   const body = document.getElementById("result-body");
   body.innerHTML = `
@@ -681,38 +726,78 @@ function renderFreeResult(d, ev, m2) {
     </div>
 
     <div class="data-grid">
-      <span class="k">Den offentlige ejendomsværdi (EV):</span>
+      <span class="k">Din ejendomsværdi:</span>
       <span class="v">${fmtKr(ev)}</span>
-      <span class="k">Statistisk markedsestimat (${escHtml(d.landsdelnavn)}):</span>
-      <span class="v">${fmtKr(d.marketValue2022)}</span>
-      <span class="k">Gennemsnit kr/m² (${escHtml(d.landsdelnavn)}):</span>
-      <span class="v">${fmtKr(d.krPerM2)}/m²</span>
-      <span class="k">Boligareal (BBR):</span>
+      <span class="k">${lokal ? "Ud fra de lokale handler:" : "Ud fra landsdelens gennemsnit:"}</span>
+      <span class="v">${fmtKr(d.estimate)}</span>
+      <span class="k">Boligareal:</span>
       <span class="v">${m2} m²</span>
     </div>
 
-    <div class="note" style="margin-top:12px;">
-      <strong>ℹ️ Vejledende beregning:</strong> Estimatet er baseret på Danmarks Statistiks EJEN77-tabel
-      (gennemsnitlig handelspris for ${d.propertyType === "ejerlejlighed" ? "ejerlejligheder" : "enfamiliehuse"} i ${escHtml(d.landsdelnavn)}, 2020K1–2022K4).
-      Dette er en statistisk indikation på landsdelsniveau — ikke en individuel vurdering af din konkrete ejendom.
-      En klage kræver en dokumenteret markedsværdi mere end 20 % under din ejendomsværdi (jf. skatteforvaltningsloven § 35 h stk 2).
-    </div>
+    ${savings}
+    ${deadlineNote}
 
-    ${gvNote}
-    ${deadlineNote}`;
+    <details style="margin-top:12px;font-size:0.85rem;color:var(--gray-600);">
+      <summary style="cursor:pointer;">Sådan har vi regnet</summary>
+      <p style="margin:8px 0 0;">${method} En klage kan kun ændre vurderingen, hvis ændringen er over 20 % (skatteforvaltningsloven § 35 h, stk. 2). Besparelsen er beregnet med 5,1 ‰ ejendomsværdiskat af 80 % af værdien, uden grundskyld og rabatter. Ikke juridisk rådgivning.</p>
+    </details>`;
 
   document.getElementById("card-result").classList.remove("hidden");
   document.getElementById("card-result").scrollIntoView({ behavior: "smooth", block: "start" });
 
-  if (showCTA) {
-    // Update CTA button text in section 4
-    document.getElementById("pay-btn").textContent = ctaText;
-    document.getElementById("pay-sub").textContent = paySubText || "";
+  if (d.canBuy) {
+    document.getElementById("pay-sub").textContent =
+      "En færdig klage med dokumentationen fra de lokale handler. Du indsætter den direkte hos Skatteankestyrelsen.";
+    document.getElementById("pay-price").textContent = `${d.price} kr. Engangsbetaling.`;
+    document.getElementById("pay-btn").textContent = `Få min klagepakke – ${d.price} kr →`;
     document.getElementById("card-pay").classList.remove("hidden");
-    // Show test button in test mode
-    if (TEST_MODE) {
-      document.getElementById("test-btn").classList.remove("hidden");
-    }
+    document.getElementById("card-notify").classList.add("hidden");
+    if (TEST_MODE) document.getElementById("test-btn").classList.remove("hidden");
+  } else if (lokal && d.verdict === "TÆT") {
+    // Lige under grænsen: spørg til forhold ved boligen, før vi siger ja eller nej
+    document.getElementById("card-pay").classList.add("hidden");
+    document.getElementById("card-notify").classList.add("hidden");
+    document.getElementById("card-forhold").classList.remove("hidden");
+  } else {
+    document.getElementById("card-pay").classList.add("hidden");
+    document.getElementById("card-notify").classList.remove("hidden");
+  }
+}
+
+function checkForhold() {
+  const d = state.freeResult;
+  state.forhold = [...document.querySelectorAll("#forhold-list input:checked")].map(i => i.value);
+  document.getElementById("card-forhold").classList.add("hidden");
+  if (state.forhold.length > 0) {
+    document.getElementById("pay-sub").textContent =
+      "Din sag bygger på de lokale handler plus forholdene ved din bolig. Den er svagere end en klar sag, men kan være værd at prøve. Du får en færdig klage, hvor forholdene er med.";
+    document.getElementById("pay-price").textContent = `${d.price} kr. Engangsbetaling.`;
+    document.getElementById("pay-btn").textContent = `Få min klagepakke – ${d.price} kr →`;
+    document.getElementById("card-pay").classList.remove("hidden");
+    if (TEST_MODE) document.getElementById("test-btn").classList.remove("hidden");
+    document.getElementById("card-pay").scrollIntoView({ behavior: "smooth", block: "start" });
+  } else {
+    document.getElementById("card-notify").classList.remove("hidden");
+    document.getElementById("card-notify").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+async function signupNotify() {
+  const email = document.getElementById("notify-email").value.trim();
+  const msg = document.getElementById("notify-msg");
+  try {
+    const r = await fetch("/api/notify-signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, address: state.label || "", verdict: state.freeResult?.verdict || null }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Ukendt fejl");
+    msg.textContent = "✅ Tak! Vi giver dig besked.";
+    msg.style.color = "var(--green-600)";
+  } catch (err) {
+    msg.textContent = "⚠️ " + err.message;
+    msg.style.color = "var(--red-600)";
   }
 }
 
@@ -728,6 +813,7 @@ async function startPayment() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         address:       state.label,
+        postnr:        state.postnr,
         label:         `${state.label} · ${state.postnr} ${state.by}`,
         m2:            state.m2,
         kommunekode:   state.kommunekode,
@@ -737,6 +823,7 @@ async function startPayment() {
         gv:            state.gv,
         landsdel:      state.landsdel,
         freeResult:    state.freeResult,
+        forhold:       state.forhold || [],
       }),
     });
     const data = await r.json();
@@ -747,7 +834,7 @@ async function startPayment() {
     window.location.href = data.checkoutUrl;
   } catch(err) {
     btn.disabled = false;
-    btn.innerHTML = "Få min analyse og klagetekst →";
+    btn.innerHTML = "Få min klagepakke →";
     alert("Betalingsfejl: " + err.message);
   }
 }
@@ -830,6 +917,8 @@ async function startTest() {
       m2:          state.m2         || 130,
       kommunekode: state.kommunekode || "0183",
     });
+    if (state.postnr) params.set("postnr", state.postnr);
+    if (state.forhold && state.forhold.length) params.set("forhold", state.forhold.join(","));
     const r = await fetch("/api/test-klage?" + params);
     const data = await r.json();
     if (data.error) throw new Error(data.error);
@@ -870,6 +959,9 @@ function resetApp() {
   document.getElementById("card-ev").classList.add("hidden");
   document.getElementById("card-result").classList.add("hidden");
   document.getElementById("card-pay").classList.add("hidden");
+  document.getElementById("card-notify").classList.add("hidden");
+  document.getElementById("card-forhold").classList.add("hidden");
+  document.querySelectorAll("#forhold-list input").forEach(i => { i.checked = false; });
   document.getElementById("card-klage").classList.add("hidden");
   document.getElementById("result-body").innerHTML = "";
   document.getElementById("klage-text").value = "";
@@ -972,6 +1064,8 @@ async function sendKlageByEmail() {
   }
   function wire(id, fn){ var el=document.getElementById(id); if(el) el.addEventListener("click",fn); }
   wire("check-btn", runFreeCheck);
+  wire("notify-btn", signupNotify);
+  wire("forhold-btn", checkForhold);
   wire("pay-btn", startPayment);
   wire("test-btn", startTest);
   wire("send-email-btn", sendKlageByEmail);
