@@ -272,6 +272,20 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
   </button>
 </div>
 
+<!-- ══ FORHOLD VED BOLIGEN (lige under grænsen) ═══════════════ -->
+<div class="card hidden" id="card-forhold">
+  <h2>Har din bolig nogle af disse forhold?</h2>
+  <p class="sub">Du ligger lige under klagegrænsen. Forhold, som vurderingen ikke kender, kan trække værdien så meget ned, at du alligevel har en sag. Sæt kryds ved det, der passer.</p>
+  <div id="forhold-list" style="display:flex;flex-direction:column;gap:10px;margin:12px 0;font-size:0.95rem;">
+    <label style="font-weight:400;"><input type="checkbox" value="renovering"> Boligen trænger til renovering (fx gammelt køkken, bad, tag eller vinduer)</label>
+    <label style="font-weight:400;"><input type="checkbox" value="skader"> Fugt, skimmel, sætningsskader eller andre skader</label>
+    <label style="font-weight:400;"><input type="checkbox" value="stoej"> Støj fra stærkt trafikeret vej, jernbane eller lignende</label>
+    <label style="font-weight:400;"><input type="checkbox" value="beliggenhed"> Ugunstig beliggenhed (fx indkig, nabo til erhverv, højspænding eller en vanskelig grund)</label>
+    <label style="font-weight:400;"><input type="checkbox" value="areal"> Kælder eller tagetage er talt med som fuld bolig, selvom den ikke er det</label>
+  </div>
+  <button class="btn btn-primary" id="forhold-btn">Se om jeg har en sag →</button>
+</div>
+
 <!-- ══ TILMELDING (ingen sag) ══════════════════════════════════ -->
 <div class="card hidden" id="card-notify">
   <h2>Få besked ved næste vurdering</h2>
@@ -656,6 +670,10 @@ function renderFreeResult(d, ev, m2) {
   // d.source = "landsdel": fallback til DST-gennemsnit, når lokale handler ikke kunne hentes
   const lokal = d.source === "lokal";
   let tlColor, tag, headline, subtext;
+  // Et nyt resultat nulstiller spørgsmålene fra et tidligere tjek
+  state.forhold = [];
+  document.querySelectorAll("#forhold-list input").forEach(i => { i.checked = false; });
+  document.getElementById("card-forhold").classList.add("hidden");
 
   if (lokal && d.verdict === "SAG") {
     tlColor  = "tl-red";
@@ -666,7 +684,7 @@ function renderFreeResult(d, ev, m2) {
     tlColor  = "tl-amber";
     tag      = "🟠 Tæt på, men under grænsen";
     headline = `Din vurdering ligger ${Math.round(d.gap_pct)} % over de lokale handler`;
-    subtext  = `Vi har sammenlignet med ${d.compsCount} tinglyste handler i ${escHtml(d.postnr)}. En klage kan kun ændre vurderingen, hvis den rammer mere end 20 % for højt. Din ligger under den grænse, så vi vil ikke anbefale dig at betale klagegebyret.`;
+    subtext  = `Vi har sammenlignet med ${d.compsCount} tinglyste handler i ${escHtml(d.postnr)}. En klage kan ændre vurderingen, når den rammer mere end 20 % for højt. Du ligger lige under, men har din bolig forhold, som trækker værdien ned, kan du stadig have en sag. Svar på spørgsmålene nedenfor.`;
   } else if (lokal) {
     tlColor  = "tl-green";
     tag      = "✅ Ingen sag";
@@ -728,14 +746,39 @@ function renderFreeResult(d, ev, m2) {
   document.getElementById("card-result").scrollIntoView({ behavior: "smooth", block: "start" });
 
   if (d.canBuy) {
+    document.getElementById("pay-sub").textContent =
+      "En færdig klage med dokumentationen fra de lokale handler. Du indsætter den direkte hos Skatteankestyrelsen.";
     document.getElementById("pay-price").textContent = `${d.price} kr. Engangsbetaling.`;
     document.getElementById("pay-btn").textContent = `Få min klagepakke – ${d.price} kr →`;
     document.getElementById("card-pay").classList.remove("hidden");
     document.getElementById("card-notify").classList.add("hidden");
     if (TEST_MODE) document.getElementById("test-btn").classList.remove("hidden");
+  } else if (lokal && d.verdict === "TÆT") {
+    // Lige under grænsen: spørg til forhold ved boligen, før vi siger ja eller nej
+    document.getElementById("card-pay").classList.add("hidden");
+    document.getElementById("card-notify").classList.add("hidden");
+    document.getElementById("card-forhold").classList.remove("hidden");
   } else {
     document.getElementById("card-pay").classList.add("hidden");
     document.getElementById("card-notify").classList.remove("hidden");
+  }
+}
+
+function checkForhold() {
+  const d = state.freeResult;
+  state.forhold = [...document.querySelectorAll("#forhold-list input:checked")].map(i => i.value);
+  document.getElementById("card-forhold").classList.add("hidden");
+  if (state.forhold.length > 0) {
+    document.getElementById("pay-sub").textContent =
+      "Din sag bygger på de lokale handler plus forholdene ved din bolig. Den er svagere end en klar sag, men kan være værd at prøve. Du får en færdig klage, hvor forholdene er med.";
+    document.getElementById("pay-price").textContent = `${d.price} kr. Engangsbetaling.`;
+    document.getElementById("pay-btn").textContent = `Få min klagepakke – ${d.price} kr →`;
+    document.getElementById("card-pay").classList.remove("hidden");
+    if (TEST_MODE) document.getElementById("test-btn").classList.remove("hidden");
+    document.getElementById("card-pay").scrollIntoView({ behavior: "smooth", block: "start" });
+  } else {
+    document.getElementById("card-notify").classList.remove("hidden");
+    document.getElementById("card-notify").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
 
@@ -780,6 +823,7 @@ async function startPayment() {
         gv:            state.gv,
         landsdel:      state.landsdel,
         freeResult:    state.freeResult,
+        forhold:       state.forhold || [],
       }),
     });
     const data = await r.json();
@@ -873,6 +917,8 @@ async function startTest() {
       m2:          state.m2         || 130,
       kommunekode: state.kommunekode || "0183",
     });
+    if (state.postnr) params.set("postnr", state.postnr);
+    if (state.forhold && state.forhold.length) params.set("forhold", state.forhold.join(","));
     const r = await fetch("/api/test-klage?" + params);
     const data = await r.json();
     if (data.error) throw new Error(data.error);
@@ -914,6 +960,8 @@ function resetApp() {
   document.getElementById("card-result").classList.add("hidden");
   document.getElementById("card-pay").classList.add("hidden");
   document.getElementById("card-notify").classList.add("hidden");
+  document.getElementById("card-forhold").classList.add("hidden");
+  document.querySelectorAll("#forhold-list input").forEach(i => { i.checked = false; });
   document.getElementById("card-klage").classList.add("hidden");
   document.getElementById("result-body").innerHTML = "";
   document.getElementById("klage-text").value = "";
@@ -1017,6 +1065,7 @@ async function sendKlageByEmail() {
   function wire(id, fn){ var el=document.getElementById(id); if(el) el.addEventListener("click",fn); }
   wire("check-btn", runFreeCheck);
   wire("notify-btn", signupNotify);
+  wire("forhold-btn", checkForhold);
   wire("pay-btn", startPayment);
   wire("test-btn", startTest);
   wire("send-email-btn", sendKlageByEmail);

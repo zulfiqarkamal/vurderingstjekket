@@ -526,7 +526,7 @@ app.post("/api/free-check", async (req, res) => {
     if (APIFY_TOKEN && postnr) {
       try {
         const comps = await getSoldComps(postnr, apifyTypeCode(anvKode || "120"));
-        const a = analyseComps(comps, m2Num, evNum);
+        const a = analyseComps(comps, m2Num, evNum, address);
         if (a.estimatedMarket && a.compsCount >= 3) local = a;
       } catch (e) {
         console.warn("Lokale handler fejlede, bruger landsdelsgennemsnit:", e.message);
@@ -569,6 +569,7 @@ app.post("/api/free-check", async (req, res) => {
       price: PRICE_DKK,
       postnr,
       compsCount: local ? local.compsCount : 0,
+      sameStreet: local ? local.usedSameStreet : false,
       medianSqm:  local ? Math.round(local.medianSqm) : null,
       landsdel, landsdelnavn: LANDSDEL_NAVN[landsdel],
       propertyType: erLejlighed ? "ejerlejlighed" : "enfamiliehus",
@@ -956,12 +957,24 @@ async function getSoldComps(zipCode, typeCode) {
   try { return await job; } finally { COMPS_INFLIGHT.delete(key); }
 }
 
-function analyseComps(allComps, m2Num, evNum) {
+// Vejnavnet foran husnummeret, fx "Højager" i "Højager 20, 2670 Greve"
+function streetName(address) {
+  const m = String(address || "").match(/^\s*([^\d,]+?)\s+\d/);
+  return m ? m[1].trim().toLowerCase() : null;
+}
+
+function analyseComps(allComps, m2Num, evNum, subjectAddress) {
   // Size band: ±25% around subject, widen if fewer than 4
   let band = allComps.filter(c => c.squareMeterPrice && c.size >= m2Num * 0.75 && c.size <= m2Num * 1.25);
   if (band.length < 4) band = allComps.filter(c => c.squareMeterPrice && c.size >= m2Num * 0.60 && c.size <= m2Num * 1.40);
   if (band.length < 3) band = allComps.filter(c => c.squareMeterPrice);
   if (band.length === 0) band = allComps;
+  // De mest sammenlignelige handler er dem på samme vej. Brug dem, når der er nok af dem,
+  // uanset om de trækker estimatet op eller ned.
+  const street = streetName(subjectAddress);
+  const sameStreet = street ? band.filter(c => streetName(c.address) === street) : [];
+  const usedSameStreet = sameStreet.length >= 3;
+  if (usedSameStreet) band = sameStreet;
 
   const sqmPrices = band.map(c => c.squareMeterPrice).filter(Boolean);
   const medianSqm = sqmPrices.length > 0 ? median(sqmPrices) : null;
@@ -978,7 +991,7 @@ function analyseComps(allComps, m2Num, evNum) {
   // Only generate a formal "EV er for høj"-claim when the real, representative
   // comps actually support it.
   const hasGrounds = estimatedMarket != null && estimatedMarket < targetEV;
-  return { medianSqm, estimatedMarket, targetEV, topComps, hasGrounds, compsCount: sqmPrices.length };
+  return { medianSqm, estimatedMarket, targetEV, topComps, hasGrounds, compsCount: sqmPrices.length, usedSameStreet };
 }
 
 // Omtrentlig årlig ejendomsværdiskat: 5,1 ‰ af beskatningsgrundlaget (80 % af EV)
@@ -987,6 +1000,16 @@ function ejendomsvaerdiskat(ev) {
   const grundlag = ev * 0.80;
   return 0.0051 * Math.min(grundlag, 9200000) + 0.014 * Math.max(0, grundlag - 9200000);
 }
+
+// Forhold ved boligen, som kunden kan krydse af, når vurderingen ligger lige under klagegrænsen.
+// Kun disse faste tekster kommer med i klagen (ingen fritekst fra brugeren).
+const FORHOLD = {
+  renovering:  "Ejendommen trænger til renovering (fx køkken, bad, tag eller vinduer er af ældre dato).",
+  skader:      "Der er fugt, skimmel, sætningsskader eller andre bygningsskader.",
+  stoej:       "Ejendommen er belastet af støj fra stærkt trafikeret vej, jernbane eller lignende.",
+  beliggenhed: "Ejendommen har en ugunstig beliggenhed (fx indkig, nabo til erhverv eller højspændingsmaster, eller en vanskelig grund).",
+  areal:       "Boligarealet er reelt mindre eller dårligere end registreret (fx kælder eller tagetage medregnet som fuld bolig).",
+};
 
 async function generateKlage(sessionId, sess) {
   if (!APIFY_TOKEN) {
@@ -1000,12 +1023,18 @@ async function generateKlage(sessionId, sess) {
   const zipCode = postnrFrom(sess);
   // Normalt allerede hentet og gemt under det gratis tjek, så det går hurtigt
   const allComps = await getSoldComps(zipCode, apifyTypeCode(sess.anvKode || "120"));
-  const { medianSqm, estimatedMarket, targetEV, topComps, hasGrounds } = analyseComps(allComps, m2Num, evNum);
+  const analyse = analyseComps(allComps, m2Num, evNum, sess.address || sess.label);
+  const { medianSqm, estimatedMarket, targetEV, topComps } = analyse;
+  // Lige under grænsen (10–20 %) med forhold ved boligen: klagen bygger på handlerne plus forholdene
+  const forhold = (Array.isArray(sess.forhold) ? sess.forhold : []).filter(k => FORHOLD[k]);
+  const gapPct  = estimatedMarket ? (evNum - estimatedMarket) / evNum * 100 : 0;
+  const medForhold = !analyse.hasGrounds && forhold.length > 0 && gapPct >= 10;
+  const hasGrounds = analyse.hasGrounds || medForhold;
 
   sess.status        = "done";
   sess.hasGrounds    = hasGrounds;
   sess.klageTekst    = hasGrounds
-    ? buildKlageTekst({ sess, medianSqm, estimatedMarket, targetEV, comps: topComps })
+    ? buildKlageTekst({ sess, medianSqm, estimatedMarket, targetEV, comps: topComps, forhold: medForhold ? forhold : [] })
     : buildNoGroundsReport({ sess, medianSqm, estimatedMarket, targetEV, comps: topComps });
   sess.comps         = topComps;
   sess.estimatedMarket = estimatedMarket;
@@ -1020,6 +1049,7 @@ async function generateKlage(sessionId, sess) {
     kommunekode: sess.kommunekode,
     estimatedMarket, targetEV, medianSqm,
     compsCount: topComps.length,
+    forhold: medForhold ? forhold : [],
     customerEmail: sess.customerEmail || null,
     klageTekst: (sess.klageTekst || "").slice(0, 300),
   });
@@ -1028,7 +1058,7 @@ async function generateKlage(sessionId, sess) {
 function fmtKr(n) { return Math.round(n).toLocaleString("da-DK") + " kr"; }
 function fmtDate(d) { try { return new Date(d).toLocaleDateString("da-DK"); } catch(e) { return d || ""; } }
 
-function buildKlageTekst({ sess, medianSqm, estimatedMarket, targetEV, comps }) {
+function buildKlageTekst({ sess, medianSqm, estimatedMarket, targetEV, comps, forhold = [] }) {
   const evNum = Number(sess.ev);
   const m2Num = Number(sess.m2);
   // gap_pct: hvor mange procent EV overstiger markedsestimatet (målt som andel af EV)
@@ -1055,9 +1085,14 @@ BEGRUNDELSE
 Det gøres gældende, at den fastsatte ejendomsværdi på ${fmtKr(evNum)} er for høj i
 forhold til ejendomsvurderingslovens § 15, stk. 1. Loven bestemmer, at ejendomsværdien
 skal ansættes til ejendommens forventede kontantværdi i fri handel (markedsværdien).
-En klage kan ændre ejendomsværdien, da vores analyse viser, at ejendomsværdien afviger
+${forhold.length === 0 ? `En klage kan ændre ejendomsværdien, da vores analyse viser, at ejendomsværdien afviger
 med mere end 20 % fra den dokumenterede markedsværdi (jf. skatteforvaltningsloven § 35 h,
-stk. 2, der kræver en ændring på over 20 % for at klagemyndigheden kan ændre vurderingen).
+stk. 2, der kræver en ændring på over 20 % for at klagemyndigheden kan ændre vurderingen).` :
+`Sammenlignelige handler viser allerede en markedsværdi under den fastsatte ejendomsværdi.
+Derudover har ejendommen særlige forhold, som trækker værdien yderligere ned, og som den
+automatiske vurdering ikke tager højde for (se nedenfor). Samlet afviger ejendomsværdien
+derfor med mere end 20 % fra ejendommens reelle markedsværdi (jf. skatteforvaltningsloven
+§ 35 h, stk. 2).`}
 
 MARKEDSANALYSE — SAMMENLIGNELIGE HANDLER 2020–2022
 
@@ -1071,17 +1106,28 @@ ${gap != null ? `Ejendomsværdien overstiger markedsestimatet med ca. ${gap} % (
 
 REFERENCEEJENDOMME (tinglysningsregistrerede handler 2020–2022):
 ${rows}
+${forhold.length > 0 ? `
+SÆRLIGE FORHOLD VED EJENDOMMEN
 
+${forhold.map(k => `  - ${FORHOLD[k]}`).join("\n")}
+
+Forholdene bør dokumenteres med fotos, tilstandsrapport, støjkort eller lignende, som
+vedlægges klagen.
+` : ""}
 PÅSTAND
 
-Ejendomsværdien bedes nedsat til ${fmtKr(estimatedMarket || Math.round(evNum * 0.80))}
-svarende til ejendommens dokumenterede markedsværdi (jf. ejendomsvurderingsloven § 15, stk. 1).${
+${forhold.length === 0
+  ? `Ejendomsværdien bedes nedsat til ${fmtKr(estimatedMarket || Math.round(evNum * 0.80))}
+svarende til ejendommens dokumenterede markedsværdi (jf. ejendomsvurderingsloven § 15, stk. 1).`
+  : `Ejendomsværdien bedes nedsat til højst ${fmtKr(estimatedMarket)}, svarende til markedsværdien
+efter de sammenlignelige handler, og yderligere under hensyn til de særlige forhold ved
+ejendommen (jf. ejendomsvurderingsloven § 15, stk. 1).`}${
   sess.gv ? "\n\nGrundværdien klages der ikke over i denne omgang." : ""}
 
 BILAG
   1. Vurderingsmeddelelse (vedlægges ved indsendelse til skatteankestyrelsen.dk)
   2. BBR-meddelelse
-  3. Oversigt over sammenlignelige handler (se ovenfor)
+  3. Oversigt over sammenlignelige handler (se ovenfor)${forhold.length > 0 ? "\n  4. Dokumentation for de særlige forhold (fotos, tilstandsrapport m.m.)" : ""}
 
 Med venlig hilsen
 
@@ -1219,6 +1265,8 @@ app.get("/api/test-klage", async (req, res) => {
       boligtypeLabel: bbrAnvendelseLabel(anvKode),
       ev: evOverride || 4000000,
       gv: null,
+      postnr: req.query.postnr || null,
+      forhold: req.query.forhold ? String(req.query.forhold).split(",") : [],
       createdAt: Date.now(),
     };
   } else {
