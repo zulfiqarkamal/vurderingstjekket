@@ -728,35 +728,59 @@ button{width:100%;padding:11px;background:#1c6dc4;color:#fff;border:none;border-
     (r.customerEmail||"").toLowerCase().includes(search)
   );
   if (typeFilter) rows = rows.filter(r => r.type === typeFilter);
+  else rows = rows.filter(r => r.type !== "pay_shown"); // fylder kun i listen; tælles i salgstragten
 
   const total = rows.length;
   const pages = Math.max(1, Math.ceil(total / perPage));
   const slice = rows.slice((page - 1) * perPage, page * perPage);
 
-  // Stats
+  // Overblik: alt samlet i tre farver. Tjek uden lokale handler (landsdelsgennemsnit) tælles med i
+  // deres farve og vises kun som én linje, fordi de er et groft estimat.
   const payments    = HISTORY.filter(r => r.type === "payment").length;
   const klager      = HISTORY.filter(r => r.type === "klage_done").length;
   const ingenBelaeg = HISTORY.filter(r => r.type === "klage_no_grounds").length;
   const freeChecks  = HISTORY.filter(r => r.type === "free_check").length;
   const revenue     = HISTORY.filter(r => r.type === "payment").reduce((sum, r) => sum + (r.amount || 350), 0);
-  // Salg pr. farve: hvor mange får hvert resultat, og hvor mange af dem klikker og betaler
-  const FARVER = [["SAG","🔴 Stor afvigelse"],["TÆT","🟠 Mulig afvigelse"],["INGEN","🟢 Mindre afvigelse"],
-                  ["STÆRK","🔴 Stærk (landsdel)"],["MULIG","🟠 Mulig (landsdel)"],["USIKKER","🟡 Usikker (landsdel)"]];
-  const tael = (type, key, v) => HISTORY.filter(r => r.type === type && r[key] === v).length;
-  const funnelRows = FARVER.map(([v, navn]) => {
-    const tjek = tael("free_check", "verdict", v), klik = tael("checkout_started", "freeVerdict", v), betalt = tael("payment", "freeVerdict", v);
-    if (!tjek && !klik && !betalt) return "";
-    const andel = (a, b) => b ? ` (${Math.round(a / b * 1000) / 10} %)` : "";
-    const oms = HISTORY.filter(r => r.type === "payment" && r.freeVerdict === v).reduce((s, r) => s + (r.amount || 350), 0);
-    return `<tr><td>${navn}</td><td>${tjek}${andel(tjek, freeChecks)}</td><td>${klik}${andel(klik, tjek)}</td><td>${betalt}${andel(betalt, tjek)}</td><td>${tjek ? Math.round(oms / tjek * 100).toLocaleString("da-DK") + " kr" : "–"}</td></tr>`;
-  }).join("");
   const signups     = HISTORY.filter(r => r.type === "notify_signup").length;
+  // MULIG/USIKKER kommer kun uden lokale handler og får ingen købeknap, så de står for sig
+  const FARVE = { SAG: "roed", STÆRK: "roed", TÆT: "orange", MULIG: "usikker", USIKKER: "usikker", INGEN: "groen" };
+  const farveAf = v => FARVE[v] || "groen";
+  const tjekListe = HISTORY.filter(r => r.type === "free_check");
+  const udenLokale = tjekListe.filter(r => r.source === "landsdel").length;
+  const pct = (a, b) => b ? Math.round(a / b * 1000) / 10 + " %" : "–";
+  const sidst7 = Date.now() - 7 * 864e5;
+  const tjek7 = tjekListe.filter(r => Date.parse(r.ts) >= sidst7).length;
+  const betalt7 = HISTORY.filter(r => r.type === "payment" && Date.parse(r.ts) >= sidst7).length;
+  const tael = (type, f) => HISTORY.filter(r => r.type === type && f(r)).length;
+  const raekker = [["roed", "🔴 Rød", "Stor afvigelse – købeknap vises med det samme"],
+                   ["orange", "🟠 Orange", "Mulig sag – købeknap efter kryds ved forhold"],
+                   ["groen", "🟢 Grøn", "Ingen sag – kun tilmelding"],
+                   ["usikker", "⚪ Usikker", "Ingen lokale handler – kun tilmelding"]].map(([f, navn, forklaring]) => {
+    const tjek   = tael("free_check", r => farveAf(r.verdict) === f);
+    const vist   = tael("pay_shown", r => farveAf(r.verdict) === f);
+    const klik   = tael("buy_click", r => farveAf(r.verdict) === f);
+    const stripe_ = tael("checkout_started", r => farveAf(r.freeVerdict) === f);
+    const betalt = tael("payment", r => farveAf(r.freeVerdict) === f);
+    return { f, navn, forklaring, tjek, vist, klik, stripe: stripe_, betalt };
+  });
+  const medSag = raekker[0].tjek + raekker[1].tjek;
+  const ingenKnap = f => f === "groen" || f === "usikker";
+  const sum = k => raekker.reduce((s, r) => s + r[k], 0);
+  // Klik registreres først fra denne version; før da kendes kun "gik til betaling"
+  const sporingFra = HISTORY.filter(r => r.type === "pay_shown" || r.type === "buy_click").map(r => r.ts).sort()[0];
+  const funnelHtml = `<div class="scroll"><table class="funnel"><thead><tr><th>Resultat</th><th>Tjek</th><th>Så købeknap</th><th>Klikkede køb</th><th>Gik til betaling</th><th>Betalte</th></tr></thead><tbody>
+${raekker.map(r => `<tr><td><strong>${r.navn}</strong><div class="hint">${r.forklaring}</div></td><td>${r.tjek} <span class="hint">${pct(r.tjek, freeChecks)}</span></td><td>${ingenKnap(r.f) ? "–" : r.vist}</td><td>${ingenKnap(r.f) ? "–" : r.klik}</td><td>${ingenKnap(r.f) ? "–" : r.stripe}</td><td>${r.betalt}</td></tr>`).join("")}
+<tr class="sum"><td>I alt</td><td>${freeChecks}</td><td>${sum("vist")}</td><td>${sum("klik")}</td><td>${sum("stripe")}</td><td>${payments}</td></tr></tbody></table></div>`;
+  const advarsel = medSag > 0 && payments === 0
+    ? `<div class="alert">⚠️ <strong>${medSag} tjek med en mulig sag, men 0 betalinger.</strong> ${sum("klik") ? `${sum("klik")} har klikket køb, men kun ${sum("stripe")} kom videre til betaling. Klik der stopper, skyldes typisk, at kunden ikke har sat kryds ved "endelig vurdering" (${tael("buy_click", r => r.blocked)} af klikkene).` : sporingFra ? "Ingen har klikket på købeknappen endnu." : "Klik på købeknappen måles fra nu af, så næste gang kan du se, hvor kunderne falder fra."}</div>`
+    : "";
 
   const rowHtml = slice.map(r => {
     const TYPES = {
       payment: ["💳", "Betaling"], klage_done: ["📄", "Klagetekst"], klage_no_grounds: ["📋", "Ingen belæg"],
       klage_error: ["❌", "Fejl"], free_check: ["🔍", "Gratis tjek"], checkout_started: ["🛒", "Til betaling"],
       input_warning: ["⚠️", "Tjek af tal"], notify_signup: ["📬", "Tilmelding"], email_sent: ["📧", "Mail sendt"],
+      pay_shown: ["👀", "Så købeknap"], buy_click: ["👆", "Klik på køb"],
     };
     const [ico, label] = TYPES[r.type] || ["•", r.type];
     const snippet = (r.klageTekst||"").slice(0,120).replace(/</g,"&lt;") || "";
@@ -810,10 +834,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 header{background:#0b2447;color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between}
 header h1{margin:0;font-size:1.1rem}
 header a{color:#aac4e8;font-size:0.82rem;text-decoration:none}
-.stats{display:flex;gap:12px;padding:18px 24px;flex-wrap:wrap}
-.stat{background:#fff;border-radius:10px;padding:14px 20px;min-width:130px;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid #e2e8f0}
-.stat .n{font-size:1.7rem;font-weight:700;color:#0b2447}
-.stat .l{font-size:0.78rem;color:#6b7280;margin-top:2px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;padding:20px 24px 8px;max-width:1100px}
+.kpi{background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #e2e8f0}
+.kpi.hl{background:#0b2447;color:#fff;border-color:#0b2447}
+.kpi .n{font-size:1.9rem;font-weight:700;line-height:1.1}
+.kpi .l{font-size:0.85rem;font-weight:600;margin-top:4px}
+.kpi .hint{margin-top:2px}
+.kpi.hl .hint{color:#aac4e8}
+.hint{font-size:0.76rem;color:#6b7280;font-weight:400}
+.alert{margin:8px 24px 0;max-width:1052px;background:#fff7ed;border:1px solid #fdba74;color:#7c2d12;border-radius:10px;padding:12px 16px;font-size:0.9rem}
+.box{background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin:16px 24px;padding:18px 20px;max-width:1052px}
+.box h2,.evh{margin:0 0 10px;font-size:1rem}
+.evh{margin:24px 24px 10px}
+.funnel{margin:0}
+.scroll{overflow-x:auto}
+@media(max-width:600px){.kpis{grid-template-columns:1fr 1fr;padding:16px}.kpi .n{font-size:1.5rem}.box,.alert{margin-left:16px;margin-right:16px}.bar form{min-width:0;flex-wrap:wrap}}
+.funnel td,.funnel th{padding:10px 12px}
+.funnel tr.sum td{font-weight:700;border-top:2px solid #e2e8f0}
 .bar{padding:0 24px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .bar form{display:flex;gap:8px;flex:1;min-width:240px}
 .bar input{flex:1;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem}
@@ -827,21 +864,26 @@ tr:hover td{background:#f8fafc}
 .empty{text-align:center;padding:40px;color:#9ca3af;font-size:0.9rem}
 </style></head><body>
 <header>
-  <h1>📊 Vurderingstjekket — Admin Dashboard</h1>
+  <h1>Vurderingstjekket · Salg</h1>
   <a href="/admin?key=${ADMIN_KEY}">← Alle poster</a>
 </header>
 
-<div class="stats">
-  <div class="stat"><div class="n">💳 ${payments}</div><div class="l">Betalinger</div></div>
-  <div class="stat"><div class="n">💰 ${revenue.toLocaleString("da-DK")} kr</div><div class="l">Total omsætning</div></div>
-  <div class="stat"><div class="n">📄 ${klager}</div><div class="l">Klagetekster</div></div>
-  <div class="stat"><div class="n">📋 ${ingenBelaeg}</div><div class="l">Ingen belæg</div></div>
-  <div class="stat"><div class="n">🔍 ${freeChecks}</div><div class="l">Gratis tjek</div></div>
-  <div class="stat"><div class="n">📬 ${signups}</div><div class="l">Tilmeldinger</div></div>
-  <div class="stat"><div class="n">${total}</div><div class="l">Filtrerede poster</div></div>
+<div class="kpis">
+  <div class="kpi"><div class="n">${freeChecks}</div><div class="l">Gratis tjek</div><div class="hint">${tjek7} de sidste 7 dage</div></div>
+  <div class="kpi"><div class="n">${medSag}</div><div class="l">Med mulig sag (rød/orange)</div><div class="hint">${pct(medSag, freeChecks)} af tjek</div></div>
+  <div class="kpi"><div class="n">${payments}</div><div class="l">Betalinger</div><div class="hint">${betalt7} de sidste 7 dage</div></div>
+  <div class="kpi"><div class="n">${pct(payments, medSag)}</div><div class="l">Konvertering</div><div class="hint">betalinger af tjek med sag</div></div>
+  <div class="kpi hl"><div class="n">${revenue.toLocaleString("da-DK")} kr</div><div class="l">Omsætning</div><div class="hint">${freeChecks ? Math.round(revenue / freeChecks).toLocaleString("da-DK") + " kr pr. tjek" : "–"}</div></div>
 </div>
-${funnelRows ? `<table style="margin:0 0 16px;max-width:560px"><thead><tr><th>Resultat</th><th>Gratis tjek (andel)</th><th>Klik på køb (af tjek)</th><th>Betalt (af tjek)</th><th>Omsætning pr. 100 tjek</th></tr></thead><tbody>${funnelRows}<tr style="font-weight:600"><td>I alt</td><td>${freeChecks}</td><td>${HISTORY.filter(r => r.type === "checkout_started").length}</td><td>${payments}</td><td>${freeChecks ? Math.round(revenue / freeChecks * 100).toLocaleString("da-DK") + " kr" : "–"}</td></tr></tbody></table>` : ""}
+${advarsel}
+<section class="box">
+  <h2>Salgstragt</h2>
+  ${funnelHtml}
+  <p class="hint" style="margin:10px 0 0">${udenLokale} tjek (${pct(udenLokale, freeChecks)}) fandt ingen lokale handler og brugte et groft gennemsnit for landsdelen. De røde blandt dem er talt med under Rød.${sporingFra ? ` Klik måles fra ${sporingFra.slice(0, 10)}.` : ""}</p>
+  <p class="hint" style="margin:4px 0 0">Klagetekster lavet: ${klager} · Intet belæg efter betaling: ${ingenBelaeg} · E-mail-tilmeldinger: ${signups}</p>
+</section>
 
+<h2 class="evh">Alle hændelser</h2>
 <div class="bar">
   <form method="get" action="/admin">
     <input type="hidden" name="key" value="${ADMIN_KEY}">
@@ -853,20 +895,22 @@ ${funnelRows ? `<table style="margin:0 0 16px;max-width:560px"><thead><tr><th>Re
       <option value="klage_no_grounds"${typeFilter==="klage_no_grounds"?" selected":""}>📋 Ingen belæg</option>
       <option value="klage_error"${typeFilter==="klage_error"?" selected":""}>❌ Fejl</option>
       <option value="free_check"${typeFilter==="free_check"?" selected":""}>🔍 Gratis tjek</option>
+      <option value="buy_click"${typeFilter==="buy_click"?" selected":""}>👆 Klik på køb</option>
+      <option value="checkout_started"${typeFilter==="checkout_started"?" selected":""}>🛒 Til betaling</option>
       <option value="notify_signup"${typeFilter==="notify_signup"?" selected":""}>📬 Tilmeldinger</option>
     </select>
     <button type="submit">Søg</button>
   </form>
 </div>
 
-<table>
+<div class="scroll"><table>
 <thead><tr>
   <th>Tidspunkt</th><th>Type</th><th>Adresse</th><th>Resultat</th><th>EV</th><th>Areal</th><th>E-mail</th><th>Uddrag</th>
 </tr></thead>
 <tbody>
 ${rowHtml || '<tr><td colspan="8" class="empty">Ingen poster fundet</td></tr>'}
 </tbody>
-</table>
+</table></div>
 ${pagerHtml ? `<div class="pager">${pagerHtml}</div>` : ""}
 </body></html>`);
 });
@@ -1434,6 +1478,17 @@ app.post("/api/notify-signup", (req, res) => {
   const { email, address, verdict } = req.body || {};
   if (!email || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(String(email).trim())) return res.status(400).json({ error: "Ugyldig e-mailadresse" });
   logEvent("notify_signup", { customerEmail: String(email).trim(), address: address || "", verdict: verdict || null });
+  res.json({ ok: true });
+});
+
+// Hvor langt kommer kunden: så købeknappen, klikkede (også når kryds mangler). Kun faste hændelser.
+app.post("/api/track", (req, res) => {
+  const { event, verdict, blocked } = req.body || {};
+  if (!["pay_shown", "buy_click"].includes(event)) return res.status(400).json({ error: "Ukendt hændelse" });
+  logEvent(event, {
+    verdict: ["SAG", "TÆT", "INGEN", "STÆRK", "MULIG", "USIKKER"].includes(verdict) ? verdict : null,
+    ...(event === "buy_click" ? { blocked: blocked === true } : {}),
+  });
   res.json({ ok: true });
 });
 
