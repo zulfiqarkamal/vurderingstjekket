@@ -713,7 +713,7 @@ function renderFreeResult(d, ev, m2) {
     tag      = "🟠 Mulig afvigelse";
     headline = `Vores estimat ligger ${pct}&nbsp;% under din vurdering`;
     subtext  = d.gap_pct >= 20
-      ? `Afvigelsen er over 20 %, men datagrundlaget i dit område er for spinkelt til, at vi kan kalde det en stor afvigelse. Særlige forhold ved boligen kan have betydning for, om der er grundlag for en klage. Sæt kryds ved det, der passer, nedenfor.`
+      ? `Afvigelsen er over 20 %, men der er for få handler med lignende huse i ${omraade}, eller priserne svinger for meget, til at vi kan kalde det en stor afvigelse ud fra handlerne alene. Særlige forhold ved boligen kan have betydning for, om der er grundlag for en klage. Sæt kryds ved det, der passer, nedenfor.`
       : `Du ligger tæt på grænsen på 20 %. Særlige forhold ved boligen kan have betydning for, om der er grundlag for en klage. Sæt kryds ved det, der passer, nedenfor.`;
   } else if (lokal) {
     tlColor  = "tl-green";
