@@ -1019,21 +1019,23 @@ const COMPS_INFLIGHT = new Map();
 async function getSoldComps(zipCode, typeCode) {
   if (!APIFY_TOKEN) throw new Error("APIFY_TOKEN mangler på serveren.");
   if (!zipCode) throw new Error("Mangler postnummer");
-  const key = `v2|${zipCode}|${typeCode}`; // v2: handler 2020–2021
+  const key = `v3|${zipCode}|${typeCode}`; // v3: handler 2020–2021 via Boligas egen periode
   const cached = COMPS_CACHE[key];
   if (cached && Date.now() - cached.ts < COMPS_TTL_MS) return cached.comps;
   // To samtidige opslag i samme postnummer deler én Apify-kørsel
   if (COMPS_INFLIGHT.has(key)) return COMPS_INFLIGHT.get(key);
 
   const job = (async () => {
+    // Aktørens soldYearMin/soldYearMax bliver ignoreret (den returnerer de nyeste salg),
+    // så perioden sættes direkte i Boligas egen søge-URL. Kun handler før vurderings-
+    // tidspunktet 1.1.2022 bruges som sammenligningsgrundlag.
+    const boligaUrl = "https://api.boliga.dk/api/v2/sold/search/results?searchTab=1" +
+      `&propertyType=${encodeURIComponent(typeCode)}&salesDateMin=2020&salesDateMax=2021` +
+      `&zipcodeFrom=${encodeURIComponent(zipCode)}&zipcodeTo=${encodeURIComponent(zipCode)}&sort=date-d&page=1`;
     const actorInput = {
-      listingType:  "sold",
-      zipCodes:     zipCode,
-      propertyTypes:[typeCode],
-      // Kun handler før vurderingstidspunktet 1.1.2022 bruges som sammenligningsgrundlag
-      soldYearMin:   2020,
-      soldYearMax:   2021,
-      maxItems:      60,
+      listingType: "sold",
+      startUrls:   [{ url: boligaUrl }],
+      maxItems:    80,
     };
     const apifyUrl =
       `https://api.apify.com/v2/acts/${BOLIGA_ACTOR}/run-sync-get-dataset-items` +
@@ -1067,9 +1069,9 @@ function streetName(address) {
   return m ? m[1].trim().toLowerCase() : null;
 }
 
-// Familiehandler, auktioner o.l. er ikke markedshandler og må ikke trække estimatet
+// Familiehandler ("Fam. Salg"), auktioner o.l. er ikke markedshandler og må ikke trække estimatet
 function erMarkedshandel(c) {
-  return !/famil|auktion|tvang/i.test(String(c.salesType || ""));
+  return !/fam|auktion|tvang/i.test(String(c.salesType || ""));
 }
 
 // Kvartal for en salgsdato, fx "2021-05-10" → "2021K2"
@@ -1094,7 +1096,7 @@ function analyseComps(allComps, m2Num, evNum, subject = {}) {
   let band = pool.filter(c => c.size >= m2Num * 0.75 && c.size <= m2Num * 1.25);
   if (band.length < 4) band = pool.filter(c => c.size >= m2Num * 0.60 && c.size <= m2Num * 1.40);
   if (band.length < 3) band = pool;
-  if (band.length === 0) band = allComps.filter(c => c.squareMeterPrice).map(c => ({ ...c, faktor: 1, adjSqm: c.squareMeterPrice }));
+  // Ingen brugbare handler før 1.1.2022: hellere intet lokalt estimat end et forkert (så bruges landsdelen)
   // Byggeår: brug huse fra omtrent samme periode, når der er nok af dem
   const yr = parseInt(subjectYear);
   if (yr > 1700) {
