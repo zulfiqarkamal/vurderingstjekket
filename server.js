@@ -486,7 +486,7 @@ function checkInputPlausibility({ evNum, m2Num, marketValue2022, erLejlighed }) 
 // ─── Free eligibility check ───────────────────────────────────
 // POST /api/free-check  body: { m2, kommunekode, anvKode, ev, address }
 app.post("/api/free-check", async (req, res) => {
-  const { m2, kommunekode, anvKode, ev, address } = req.body || {};
+  const { m2, kommunekode, anvKode, ev, address, opfoeretAar } = req.body || {};
   const evNum = Number(ev);
   const m2Num = Number(m2);
 
@@ -526,7 +526,7 @@ app.post("/api/free-check", async (req, res) => {
     if (APIFY_TOKEN && postnr) {
       try {
         const comps = await getSoldComps(postnr, apifyTypeCode(anvKode || "120"));
-        const a = analyseComps(comps, m2Num, evNum, address);
+        const a = analyseComps(comps, m2Num, evNum, address, opfoeretAar);
         if (a.estimatedMarket && a.compsCount >= 3) local = a;
       } catch (e) {
         console.warn("Lokale handler fejlede, bruger landsdelsgennemsnit:", e.message);
@@ -538,9 +538,9 @@ app.post("/api/free-check", async (req, res) => {
       source   = "lokal";
       estimate = local.estimatedMarket;
       const localGap = ((evNum - estimate) / evNum) * 100;
-      if      (localGap >= 20) { verdict="SAG";   label="De lokale handler viser en sag";        color="red";   }
-      else if (localGap >= 10) { verdict="TÆT";   label="Tæt på, men under klagegrænsen";         color="amber"; }
-      else                     { verdict="INGEN"; label="Ingen sag ud fra de lokale handler";     color="green"; }
+      if      (localGap >= 20) { verdict="SAG";   label="Stor afvigelse";    color="red";   }
+      else if (localGap >= 10) { verdict="TÆT";   label="Mulig afvigelse";   color="amber"; }
+      else                     { verdict="INGEN"; label="Mindre afvigelse";  color="green"; }
       canBuy = verdict === "SAG";
     } else {
       // Ingen lokale handler: landsdelsgennemsnittet er for groft til at sige ja,
@@ -568,9 +568,6 @@ app.post("/api/free-check", async (req, res) => {
       savingsPerYear,
       price: PRICE_DKK,
       postnr,
-      compsCount: local ? local.compsCount : 0,
-      sameStreet: local ? local.usedSameStreet : false,
-      medianSqm:  local ? Math.round(local.medianSqm) : null,
       landsdel, landsdelnavn: LANDSDEL_NAVN[landsdel],
       propertyType: erLejlighed ? "ejerlejlighed" : "enfamiliehus",
       ejenData,
@@ -579,7 +576,7 @@ app.post("/api/free-check", async (req, res) => {
       address: address || "",
       m2: m2Num, ev: evNum, kommunekode: String(kommunekode).padStart(4,"0"),
       verdict, gap_pct: result.gap_pct, targetEV, propertyType: result.propertyType,
-      source, compsCount: result.compsCount, savingsPerYear,
+      source, compsCount: local ? local.compsCount : 0, savingsPerYear,
     });
     res.json(result);
   } catch (err) {
@@ -658,6 +655,16 @@ button{width:100%;padding:11px;background:#1c6dc4;color:#fff;border:none;border-
   const ingenBelaeg = HISTORY.filter(r => r.type === "klage_no_grounds").length;
   const freeChecks  = HISTORY.filter(r => r.type === "free_check").length;
   const revenue     = HISTORY.filter(r => r.type === "payment").reduce((sum, r) => sum + (r.amount || 350), 0);
+  // Salg pr. farve: hvor mange får hvert resultat, og hvor mange af dem klikker og betaler
+  const FARVER = [["SAG","🔴 Stor afvigelse"],["TÆT","🟠 Mulig afvigelse"],["INGEN","🟢 Mindre afvigelse"],
+                  ["STÆRK","🔴 Stærk (landsdel)"],["MULIG","🟠 Mulig (landsdel)"],["USIKKER","🟡 Usikker (landsdel)"]];
+  const tael = (type, key, v) => HISTORY.filter(r => r.type === type && r[key] === v).length;
+  const funnelRows = FARVER.map(([v, navn]) => {
+    const tjek = tael("free_check", "verdict", v), klik = tael("checkout_started", "freeVerdict", v), betalt = tael("payment", "freeVerdict", v);
+    if (!tjek && !klik && !betalt) return "";
+    const pct = tjek ? ` (${Math.round(betalt / tjek * 1000) / 10} %)` : "";
+    return `<tr><td>${navn}</td><td>${tjek}</td><td>${klik}</td><td>${betalt}${pct}</td></tr>`;
+  }).join("");
   const signups     = HISTORY.filter(r => r.type === "notify_signup").length;
 
   const rowHtml = slice.map(r => {
@@ -748,6 +755,7 @@ tr:hover td{background:#f8fafc}
   <div class="stat"><div class="n">📬 ${signups}</div><div class="l">Tilmeldinger</div></div>
   <div class="stat"><div class="n">${total}</div><div class="l">Filtrerede poster</div></div>
 </div>
+${funnelRows ? `<table style="margin:0 0 16px;max-width:560px"><thead><tr><th>Resultat</th><th>Gratis tjek</th><th>Klik på køb</th><th>Betalt</th></tr></thead><tbody>${funnelRows}</tbody></table>` : ""}
 
 <div class="bar">
   <form method="get" action="/admin">
@@ -867,6 +875,7 @@ app.post("/api/stripe-webhook", async (req, res) => {
       kommunekode: sess.kommunekode,
       stripePaymentId: co.payment_intent || co.id,
       amount: co.amount_total != null ? co.amount_total / 100 : PRICE_DKK,
+      freeVerdict: sess.freeResult?.verdict || null,
       customerEmail: sess.customerEmail || null,
     });
     console.log(`✅ Payment OK for session ${sessionId} — starting klage generation`);
@@ -903,7 +912,7 @@ function postnrFrom(obj) {
   return m ? m[1] : null;
 }
 
-// Tinglyste handler 2020–2022 pr. postnummer og boligtype. Handlerne ændrer sig ikke,
+// Tinglyste handler 2020–2021 pr. postnummer og boligtype. Handlerne ændrer sig ikke,
 // så de gemmes på disk og hentes kun én gang pr. postnummer (sparer Apify-kørsler og tid).
 const COMPS_CACHE_FILE = path.join(HISTORY_DIR, "comps-cache.json");
 const COMPS_TTL_MS     = 90 * 24 * 3600 * 1000;
@@ -916,7 +925,7 @@ const COMPS_INFLIGHT = new Map();
 async function getSoldComps(zipCode, typeCode) {
   if (!APIFY_TOKEN) throw new Error("APIFY_TOKEN mangler på serveren.");
   if (!zipCode) throw new Error("Mangler postnummer");
-  const key = `${zipCode}|${typeCode}`;
+  const key = `v2|${zipCode}|${typeCode}`; // v2: handler 2020–2021
   const cached = COMPS_CACHE[key];
   if (cached && Date.now() - cached.ts < COMPS_TTL_MS) return cached.comps;
   // To samtidige opslag i samme postnummer deler én Apify-kørsel
@@ -927,9 +936,10 @@ async function getSoldComps(zipCode, typeCode) {
       listingType:  "sold",
       zipCodes:     zipCode,
       propertyTypes:[typeCode],
+      // Kun handler før vurderingstidspunktet 1.1.2022 bruges som sammenligningsgrundlag
       soldYearMin:   2020,
-      soldYearMax:   2022,
-      maxItems:      40,
+      soldYearMax:   2021,
+      maxItems:      60,
     };
     const apifyUrl =
       `https://api.apify.com/v2/acts/${BOLIGA_ACTOR}/run-sync-get-dataset-items` +
@@ -963,12 +973,29 @@ function streetName(address) {
   return m ? m[1].trim().toLowerCase() : null;
 }
 
-function analyseComps(allComps, m2Num, evNum, subjectAddress) {
+// Familiehandler, auktioner o.l. er ikke markedshandler og må ikke trække estimatet
+function erMarkedshandel(c) {
+  return !/famil|auktion|tvang/i.test(String(c.salesType || ""));
+}
+
+function analyseComps(allComps, m2Num, evNum, subjectAddress, subjectYear) {
+  // Kun almindelige handler før vurderingstidspunktet 1.1.2022 (gamle cache-poster kan indeholde 2022)
+  const pool = allComps.filter(c => c.squareMeterPrice && erMarkedshandel(c) &&
+    (!c.soldDate || String(c.soldDate) < "2022-01-01"));
   // Size band: ±25% around subject, widen if fewer than 4
-  let band = allComps.filter(c => c.squareMeterPrice && c.size >= m2Num * 0.75 && c.size <= m2Num * 1.25);
-  if (band.length < 4) band = allComps.filter(c => c.squareMeterPrice && c.size >= m2Num * 0.60 && c.size <= m2Num * 1.40);
-  if (band.length < 3) band = allComps.filter(c => c.squareMeterPrice);
-  if (band.length === 0) band = allComps;
+  let band = pool.filter(c => c.size >= m2Num * 0.75 && c.size <= m2Num * 1.25);
+  if (band.length < 4) band = pool.filter(c => c.size >= m2Num * 0.60 && c.size <= m2Num * 1.40);
+  if (band.length < 3) band = pool;
+  if (band.length === 0) band = allComps.filter(c => c.squareMeterPrice);
+  // Byggeår: brug huse fra omtrent samme periode, når der er nok af dem
+  const yr = parseInt(subjectYear);
+  if (yr > 1700) {
+    const sameEra = band.filter(c => c.buildYear && Math.abs(c.buildYear - yr) <= 25);
+    if (sameEra.length >= 5) band = sameEra;
+  }
+  // Nyeste handler ligger tættest på vurderingstidspunktet. Brug 2021, når der er nok
+  const recent = band.filter(c => String(c.soldDate || "") >= "2021-01-01");
+  if (recent.length >= 5) band = recent;
   // De mest sammenlignelige handler er dem på samme vej. Brug dem, når der er nok af dem,
   // uanset om de trækker estimatet op eller ned.
   const street = streetName(subjectAddress);
@@ -1023,7 +1050,7 @@ async function generateKlage(sessionId, sess) {
   const zipCode = postnrFrom(sess);
   // Normalt allerede hentet og gemt under det gratis tjek, så det går hurtigt
   const allComps = await getSoldComps(zipCode, apifyTypeCode(sess.anvKode || "120"));
-  const analyse = analyseComps(allComps, m2Num, evNum, sess.address || sess.label);
+  const analyse = analyseComps(allComps, m2Num, evNum, sess.address || sess.label, sess.opfoeretAar);
   const { medianSqm, estimatedMarket, targetEV, topComps } = analyse;
   // Lige under grænsen (10–20 %) med forhold ved boligen: klagen bygger på handlerne plus forholdene
   const forhold = (Array.isArray(sess.forhold) ? sess.forhold : []).filter(k => FORHOLD[k]);
@@ -1094,17 +1121,17 @@ automatiske vurdering ikke tager højde for (se nedenfor). Samlet afviger ejendo
 derfor med mere end 20 % fra ejendommens reelle markedsværdi (jf. skatteforvaltningsloven
 § 35 h, stk. 2).`}
 
-MARKEDSANALYSE — SAMMENLIGNELIGE HANDLER 2020–2022
+MARKEDSANALYSE — SAMMENLIGNELIGE HANDLER 2020–2021
 
 Analysen er baseret på ${comps.length} sammenlignelige, tinglysningsregistrerede handler
-i postnummerområdet i perioden 2020–2022, som er det prisleje, Vurderingsstyrelsen selv
-har anvendt som grundlag for 2022-vurderingen.
+i postnummerområdet fra perioden 2020–2021, dvs. før vurderingstidspunktet 1. januar 2022.
+Familiehandler og andre handler, der ikke er almindelige markedshandler, indgår ikke.
 
 ${medianSqm ? `Median salgspris pr. m²: ${fmtKr(medianSqm)}/m²` : "Se vedlagte bilag."}
 ${estimatedMarket ? `Skønnet markedsværdi for ejendommen (${m2Num} m²): ${fmtKr(estimatedMarket)}` : ""}
-${gap != null ? `Ejendomsværdien overstiger markedsestimatet med ca. ${gap} % (${fmtKr(evNum - (estimatedMarket || 0))}).` : ""}
+${gap != null ? `Markedsestimatet ligger ${fmtKr(evNum - (estimatedMarket || 0))} under den ansatte ejendomsværdi, svarende til ca. ${gap} % af ejendomsværdien.` : ""}
 
-REFERENCEEJENDOMME (tinglysningsregistrerede handler 2020–2022):
+REFERENCEEJENDOMME (tinglysningsregistrerede handler 2020–2021):
 ${rows}
 ${forhold.length > 0 ? `
 SÆRLIGE FORHOLD VED EJENDOMMEN
@@ -1170,8 +1197,7 @@ EJENDOMSOPLYSNINGER
 KONKLUSION: Ikke tilstrækkeligt belæg for en klage
 
 Vi har analyseret ${comps.length} sammenlignelige, tinglysningsregistrerede handler i dit
-postnummerområde fra perioden 2020–2022 — samme grundlag Vurderingsstyrelsen selv har
-anvendt. Baseret på disse konkrete lokale handler (ikke kun landsdelsgennemsnittet fra
+postnummerområde fra perioden 2020–2021, før vurderingstidspunktet 1. januar 2022. Baseret på disse konkrete lokale handler (ikke kun landsdelsgennemsnittet fra
 det gratis tjek) kan vi ikke finde grundlag for at hævde, at din ejendomsværdi er sat
 for højt.
 
@@ -1183,7 +1209,7 @@ ${medianSqm ? `Median salgspris pr. m² i dit postnummer: ${fmtKr(medianSqm)}/m�
 ${estimatedMarket ? `Skønnet markedsværdi for ejendommen (${m2Num} m²): ${fmtKr(estimatedMarket)}` : ""}
 ${gap != null ? `Forskel (EV minus markedsestimat): ca. ${gap} % af EV — kræver over 20 % for at klage kan ændre vurderingen.` : ""}
 
-REFERENCEEJENDOMME (tinglysningsregistrerede handler 2020–2022):
+REFERENCEEJENDOMME (tinglysningsregistrerede handler 2020–2021):
 ${rows}
 
 Du er naturligvis velkommen til at indsende en klage til Skatteankestyrelsen alligevel —
