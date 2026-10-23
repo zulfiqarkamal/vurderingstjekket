@@ -731,7 +731,7 @@ function renderFreeResult(d, ev, m2) {
   }
 
   const savings = d.canBuy && d.savingsPerYear > 0
-    ? `<div class="note" style="margin-top:12px;font-size:1rem;">💰 Illustrativ skattevirkning: op til ca. <strong>${fmtKr(d.savingsPerYear)} om året</strong> i ejendomsværdiskat, hvis vurderingen nedsættes til ${fmtKr(d.estimate)}. Din faktiske besparelse kan være lavere eller nul, fx på grund af skatterabat eller hvornår du købte boligen.</div>`
+    ? `<div class="note" style="margin-top:12px;font-size:1rem;">💰 Illustrativ skattevirkning: op til ca. <strong>${fmtKr(d.savingsPerYear)} om året</strong> i ejendomsværdiskat, hvis vurderingen nedsættes til ${fmtEstimat(d.estimate)}. Din faktiske besparelse kan være lavere eller nul, fx på grund af skatterabat eller hvornår du købte boligen.</div>`
     : "";
 
   const deadlineNote = d.canBuy
@@ -757,7 +757,7 @@ function renderFreeResult(d, ev, m2) {
       <span class="k">Din ejendomsværdi:</span>
       <span class="v">${fmtKr(ev)}</span>
       <span class="k">${lokal ? "Vores estimat:" : "Ud fra landsdelens gennemsnit:"}</span>
-      <span class="v">${fmtKr(d.estimate)}</span>
+      <span class="v">${fmtEstimat(d.estimate)}</span>
       <span class="k">Forskel:</span>
       <span class="v">${d.estimate < ev ? `${pct}&nbsp;% af din vurdering` : "Ingen"}</span>
       <span class="k">Boligareal:</span>
@@ -1022,6 +1022,13 @@ function resetApp() {
 // ─── Helpers ──────────────────────────────────────────────────
 function fmtKr(n) {
   return Math.round(n).toLocaleString("da-DK") + " kr";
+}
+
+// Estimater vises afrundet, fx "ca. 4,45 mio. kr", så de ikke ser mere præcise ud, end de er
+function fmtEstimat(n) {
+  return n >= 1000000
+    ? "ca. " + (Math.round(n / 10000) / 100).toLocaleString("da-DK") + " mio. kr"
+    : "ca. " + (Math.round(n / 10000) * 10000).toLocaleString("da-DK") + " kr";
 }
 
 function escHtml(s) {
