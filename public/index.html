@@ -788,6 +788,7 @@ function renderFreeResult(d, ev, m2) {
     document.getElementById("card-pay").classList.remove("hidden");
     document.getElementById("card-notify").classList.add("hidden");
     if (TEST_MODE) document.getElementById("test-btn").classList.remove("hidden");
+    track("pay_shown");
   } else if (lokal && d.verdict === "TÆT") {
     // Lige under grænsen: spørg til forhold ved boligen, før vi siger ja eller nej
     document.getElementById("card-pay").classList.add("hidden");
@@ -810,6 +811,7 @@ function checkForhold() {
     document.getElementById("pay-btn").textContent = `Få min klagepakke – ${d.price} kr →`;
     document.getElementById("card-pay").classList.remove("hidden");
     if (TEST_MODE) document.getElementById("test-btn").classList.remove("hidden");
+    track("pay_shown");
     document.getElementById("card-pay").scrollIntoView({ behavior: "smooth", block: "start" });
   } else {
     document.getElementById("card-notify").classList.remove("hidden");
@@ -836,9 +838,18 @@ async function signupNotify() {
   }
 }
 
+// Måler kun hvor langt kunden kommer (ingen adresse eller tal), så admin kan se hvor salget stopper
+function track(event, extra) {
+  try {
+    fetch("/api/track", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event, verdict: state.freeResult?.verdict || null, ...(extra || {}) }) }).catch(() => {});
+  } catch (e) {}
+}
+
 // ─── Payment ──────────────────────────────────────────────────
 async function startPayment() {
   const btn = document.getElementById("pay-btn");
+  track("buy_click", { blocked: !document.getElementById("final-check").checked });
   if (!document.getElementById("final-check").checked) {
     document.getElementById("final-check-err").classList.remove("hidden");
     return;
