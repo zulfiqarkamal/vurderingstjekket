@@ -179,8 +179,8 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 
 <header>
   <h1>Vurderingstjekket</h1>
-  <p>Er din ejendomsvurdering for høj? Vi sammenligner gratis med de rigtige handler i dit postnummer og fortæller dig, om du har en sag.</p>
-  <span class="badge">Gratis svar · Du betaler kun, hvis du har en sag</span>
+  <p>Er din ejendomsvurdering for høj? Vi sammenligner gratis med faktiske tinglyste handler i dit område og viser, om din vurdering ser for høj ud.</p>
+  <span class="badge">Gratis tjek · Du betaler kun, hvis der er en væsentlig afvigelse</span>
 </header>
 
 <main>
@@ -525,6 +525,7 @@ async function lookupBBR(husnummerId, adresseId, kommunekode) {
       state.landsdel       = data.landsdel;
       state.landsdelnavn   = data.landsdelnavn;
       state.kommunekode    = data.kommunekode || state.kommunekode;
+      state.opfoeretAar    = data.opfoeretAar || "";
 
       renderBBRChip(data);
       document.getElementById("card-ev").classList.remove("hidden");
@@ -629,7 +630,7 @@ async function runFreeCheck(confirmed) {
 
   const btn = document.getElementById("check-btn");
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Henter handler fra dit postnummer…';
+  btn.innerHTML = '<span class="spinner"></span>Henter handler fra dit område…';
 
   try {
     const r = await fetch("/api/free-check", {
@@ -642,6 +643,7 @@ async function runFreeCheck(confirmed) {
         ev, gv,
         address:     state.label || "",
         postnr:      state.postnr || "",
+        opfoeretAar: state.opfoeretAar || "",
         confirmed:   confirmed === true,
       }),
     });
@@ -677,35 +679,40 @@ function renderFreeResult(d, ev, m2) {
   document.querySelectorAll("#forhold-list input").forEach(i => { i.checked = false; });
   document.getElementById("card-forhold").classList.add("hidden");
 
+  // Procenten måles altid i forhold til den offentlige vurdering, fordi 20 %-grænsen regnes sådan
+  // Tæt på grænsen vises én decimal, så 20,4 % ikke ligner præcis 20 %
+  const pct = d.gap_pct >= 19 && d.gap_pct < 21
+    ? d.gap_pct.toLocaleString("da-DK", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    : Math.round(d.gap_pct);
   if (lokal && d.verdict === "SAG") {
     tlColor  = "tl-red";
-    tag      = "🔴 Du har sandsynligvis en sag";
-    headline = `Din vurdering ligger ${Math.round(d.gap_pct)} % over de lokale handler`;
-    subtext  = `Vi har sammenlignet med ${d.compsCount} tinglyste handler i ${escHtml(d.postnr)} fra 2020–2022. En klage kan ændre vurderingen, når den rammer mere end 20 % for højt, og det gør din efter de lokale handler.`;
+    tag      = "🔴 Stor afvigelse";
+    headline = `Vores estimat ligger ${pct}&nbsp;% under din vurdering`;
+    subtext  = `Vores beregning ud fra faktiske handler i dit lokalområde viser en væsentlig forskel. En klage kan kun ændre vurderingen, hvis den skal ned med mere end 20 %. Det er en stærk indikation, men ingen garanti for, at en klage får medhold. Klagepakken undersøger din bolig nærmere og giver dig et begrundet klageudkast.`;
   } else if (lokal && d.verdict === "TÆT") {
     tlColor  = "tl-amber";
-    tag      = "🟠 Tæt på, men under grænsen";
-    headline = `Din vurdering ligger ${Math.round(d.gap_pct)} % over de lokale handler`;
-    subtext  = `Vi har sammenlignet med ${d.compsCount} tinglyste handler i ${escHtml(d.postnr)}. En klage kan ændre vurderingen, når den rammer mere end 20 % for højt. Du ligger lige under, men har din bolig forhold, som trækker værdien ned, kan du stadig have en sag. Svar på spørgsmålene nedenfor.`;
+    tag      = "🟠 Mulig afvigelse";
+    headline = `Vores estimat ligger ${pct}&nbsp;% under din vurdering`;
+    subtext  = `Du ligger tæt på grænsen på 20 %. Særlige forhold ved boligen kan have betydning for, om der er grundlag for en klage. Sæt kryds ved det, der passer, nedenfor.`;
   } else if (lokal) {
     tlColor  = "tl-green";
-    tag      = "✅ Ingen sag";
-    headline = "Din vurdering passer med de lokale handler";
-    subtext  = `Vi har sammenlignet med ${d.compsCount} tinglyste handler i ${escHtml(d.postnr)}. Der er ikke grundlag for at klage, og du sparer klagegebyret.`;
+    tag      = "🟢 Mindre afvigelse";
+    headline = "Ingen væsentlig afvigelse fundet";
+    subtext  = `Den indledende beregning viser ikke en afvigelse, der i sig selv giver grundlag for en klage. Det udelukker ikke fejl i vurderingen, fx i grundværdien eller ved særlige forhold ved ejendommen.`;
   } else if (d.canBuy) {
     tlColor  = "tl-red";
-    tag      = "🟠 Bør undersøges nærmere";
-    headline = "Din vurdering ser høj ud";
-    subtext  = `Ud fra gennemsnittet for ${escHtml(d.landsdelnavn)} ligger din vurdering ca. ${Math.round(d.gap_pct)} % over markedsniveauet. Vi kunne ikke hente de lokale handler lige nu, så klagepakken tjekker dem, før klagen skrives.`;
+    tag      = "🔴 Stor afvigelse";
+    headline = `Estimatet ligger ca. ${pct}&nbsp;% under din vurdering`;
+    subtext  = `Ud fra gennemsnittet for ${escHtml(d.landsdelnavn)} ser din vurdering høj ud. Vi kunne ikke hente de lokale handler lige nu, så klagepakken tjekker dem, før klagen skrives.`;
   } else {
     tlColor  = d.color === "green" ? "tl-green" : "tl-amber";
-    tag      = d.color === "green" ? "✅ Ingen tydelig sag" : "🟡 Ingen tydelig sag";
-    headline = "Vi kan ikke se en sag ud fra gennemsnittet";
-    subtext  = `Ud fra gennemsnittet for ${escHtml(d.landsdelnavn)} er der ikke en tydelig sag. Vi kunne ikke hente de lokale handler lige nu, så prøv gerne igen senere.`;
+    tag      = d.color === "green" ? "🟢 Mindre afvigelse" : "🟡 Usikkert resultat";
+    headline = "Ingen tydelig afvigelse ud fra gennemsnittet";
+    subtext  = `Ud fra gennemsnittet for ${escHtml(d.landsdelnavn)} kan vi ikke se en tydelig afvigelse. Vi kunne ikke hente de lokale handler lige nu, så prøv gerne igen senere.`;
   }
 
   const savings = d.canBuy && d.savingsPerYear > 0
-    ? `<div class="note" style="margin-top:12px;font-size:1rem;">💰 Hvis vurderingen nedsættes til ${fmtKr(d.estimate)}, sparer du ca. <strong>${fmtKr(d.savingsPerYear)} om året</strong> i ejendomsværdiskat, eller ca. <strong>${fmtKr(d.savingsPerYear * 10)} over 10 år</strong>.</div>`
+    ? `<div class="note" style="margin-top:12px;font-size:1rem;">💰 Illustrativ skattevirkning: op til ca. <strong>${fmtKr(d.savingsPerYear)} om året</strong> i ejendomsværdiskat, hvis vurderingen nedsættes til ${fmtKr(d.estimate)}. Din faktiske besparelse kan være lavere eller nul, fx på grund af skatterabat eller hvornår du købte boligen.</div>`
     : "";
 
   const deadlineNote = d.canBuy
@@ -713,7 +720,7 @@ function renderFreeResult(d, ev, m2) {
     : "";
 
   const method = lokal
-    ? `Vi har fundet ${d.compsCount} tinglyste handler med en lignende boligtype og størrelse i ${escHtml(d.postnr)} fra 2020–2022. Det er den periode, Vurderingsstyrelsen selv bruger. Medianprisen er ${fmtKr(d.medianSqm)}/m², ganget med din boligs ${m2} m².`
+    ? `Estimatet bygger på faktiske tinglyste handler med lignende boliger i dit lokalområde fra før vurderingstidspunktet. Det er en statistisk indikation, ikke en individuel vurdering af netop din bolig.`
     : `Estimatet bygger på Danmarks Statistiks gennemsnitspris for ${d.propertyType === "ejerlejlighed" ? "ejerlejligheder" : "enfamiliehuse"} i ${escHtml(d.landsdelnavn)} fra 2020–2022 (${fmtKr(d.krPerM2)}/m²). Det er et groft gennemsnit, ikke en vurdering af netop din bolig.`;
 
   const body = document.getElementById("result-body");
@@ -730,8 +737,10 @@ function renderFreeResult(d, ev, m2) {
     <div class="data-grid">
       <span class="k">Din ejendomsværdi:</span>
       <span class="v">${fmtKr(ev)}</span>
-      <span class="k">${lokal ? "Ud fra de lokale handler:" : "Ud fra landsdelens gennemsnit:"}</span>
+      <span class="k">${lokal ? "Vores estimat:" : "Ud fra landsdelens gennemsnit:"}</span>
       <span class="v">${fmtKr(d.estimate)}</span>
+      <span class="k">Forskel:</span>
+      <span class="v">${d.estimate < ev ? `${pct}&nbsp;% af din vurdering` : "Ingen"}</span>
       <span class="k">Boligareal:</span>
       <span class="v">${m2} m²</span>
     </div>
@@ -741,7 +750,9 @@ function renderFreeResult(d, ev, m2) {
 
     <details style="margin-top:12px;font-size:0.85rem;color:var(--gray-600);">
       <summary style="cursor:pointer;">Sådan har vi regnet</summary>
-      <p style="margin:8px 0 0;">${method} En klage kan kun ændre vurderingen, hvis ændringen er over 20 % (skatteforvaltningsloven § 35 h, stk. 2). Besparelsen er beregnet med 5,1 ‰ ejendomsværdiskat af 80 % af værdien, uden grundskyld og rabatter. Ikke juridisk rådgivning.</p>
+      <p style="margin:8px 0 0;">${method}</p>
+      <p style="margin:8px 0 0;">Procenten er forskellen mellem din vurdering og estimatet, målt i forhold til din vurdering. Det er sådan grænsen regnes: En klage kan kun ændre vurderingen, hvis ændringen er over 20 % af vurderingen (skatteforvaltningsloven § 35 h, stk. 2).</p>
+      <p style="margin:8px 0 0;">Skattevirkningen er et regneeksempel med 5,1 ‰ ejendomsværdiskat af 80 % af værdien, uden grundskyld, skatterabat og andre forhold. Ikke juridisk rådgivning.</p>
     </details>`;
 
   document.getElementById("card-result").classList.remove("hidden");
@@ -824,6 +835,7 @@ async function startPayment() {
         ev:            state.ev,
         gv:            state.gv,
         landsdel:      state.landsdel,
+        opfoeretAar:   state.opfoeretAar || "",
         freeResult:    state.freeResult,
         forhold:       state.forhold || [],
       }),
