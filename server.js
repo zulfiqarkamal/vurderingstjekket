@@ -594,7 +594,7 @@ app.post("/api/free-check", async (req, res) => {
     // så kunden får svaret gratis og kun betaler for klagen, når der er noget at klage over.
     const postnr = postnrFrom(req.body);
     let local = null;
-    if (APIFY_TOKEN && postnr) {
+    if (postnr) {
       try {
         const [comps, indeks, koord] = await Promise.all([
           getSoldComps(postnr, apifyTypeCode(anvKode || "120")),
@@ -1018,17 +1018,82 @@ try {
   if (fs.existsSync(COMPS_CACHE_FILE)) COMPS_CACHE = JSON.parse(fs.readFileSync(COMPS_CACHE_FILE, "utf8"));
 } catch (e) { console.warn("Kunne ikke læse comps-cache.json:", e.message); }
 const COMPS_INFLIGHT = new Map();
+// Seneste hentning af handler, så /api/health viser om Boliga eller Apify virker (ingen persondata)
+let LAST_COMPS_FETCH = null;
+
+// Salgsdatoen som dansk dato. Boliga sender midnat dansk tid i UTC, fx "2021-03-31T22:00:00Z" = 1. april
+function danskDato(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? String(iso || "") : d.toLocaleDateString("sv-SE", { timeZone: "Europe/Copenhagen" });
+}
+
+// Handler direkte fra Boligas offentlige søge-API (gratis, op til 200 handler).
+// Felterne oversættes til samme form, som Apify-aktøren giver.
+async function getSoldCompsBoliga(zipCode, typeCode) {
+  const url = page => "https://api.boliga.dk/api/v2/sold/search/results?searchTab=1" +
+    `&propertyType=${encodeURIComponent(typeCode)}&salesDateMin=2020&salesDateMax=2021` +
+    `&zipcodeFrom=${encodeURIComponent(zipCode)}&zipcodeTo=${encodeURIComponent(zipCode)}` +
+    `&sort=date-d&pageSize=50&page=${page}`;
+  const results = [];
+  for (let page = 1; page <= 4; page++) {
+    const r = await fetch(url(page), {
+      headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0 (Vurderingstjekket)" },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!r.ok) throw new Error(`Boliga HTTP ${r.status}`);
+    const data = await r.json();
+    if (!Array.isArray(data?.results)) throw new Error("Uventet Boliga-svar");
+    results.push(...data.results);
+    if (page >= (data.meta?.totalPages || 1)) break;
+  }
+  return results.map(c => ({
+    guid:             c.guid,
+    address:          `${c.address}, ${c.zipCode} ${c.city || ""}`.trim(),
+    price:            c.price,
+    size:             c.size,
+    squareMeterPrice: c.sqmPrice ? Math.round(c.sqmPrice) : null,
+    soldDate:         danskDato(c.soldDate),
+    buildYear:        c.buildYear,
+    latitude:         c.latitude,
+    longitude:        c.longitude,
+    salesType:        c.saleType,
+  }));
+}
 
 async function getSoldComps(zipCode, typeCode) {
-  if (!APIFY_TOKEN) throw new Error("APIFY_TOKEN mangler på serveren.");
   if (!zipCode) throw new Error("Mangler postnummer");
-  const key = `v3|${zipCode}|${typeCode}`; // v3: handler 2020–2021 via Boligas egen periode
+  const key = `v4|${zipCode}|${typeCode}`; // v4: op til 200 handler 2020–2021, direkte fra Boliga
   const cached = COMPS_CACHE[key];
   if (cached && Date.now() - cached.ts < COMPS_TTL_MS) return cached.comps;
   // To samtidige opslag i samme postnummer deler én Apify-kørsel
   if (COMPS_INFLIGHT.has(key)) return COMPS_INFLIGHT.get(key);
 
   const job = (async () => {
+    let comps;
+    try {
+      comps = await getSoldCompsBoliga(zipCode, typeCode);
+      LAST_COMPS_FETCH = { kilde: "boliga", ok: true, antal: comps.length, tid: new Date().toISOString() };
+    } catch (e) {
+      console.warn("Boliga direkte fejlede, prøver Apify:", e.message);
+      LAST_COMPS_FETCH = { kilde: "boliga", ok: false, fejl: e.message.slice(0, 120), tid: new Date().toISOString() };
+      comps = await getSoldCompsApify(zipCode, typeCode);
+      LAST_COMPS_FETCH = { ...LAST_COMPS_FETCH, reserve: "apify", reserveAntal: comps.length };
+    }
+    // Et tomt svar kan være en midlertidig fejl hos Boliga, så det gemmes ikke
+    if (comps.length === 0) return comps;
+    COMPS_CACHE[key] = { ts: Date.now(), comps };
+    try { fs.writeFileSync(COMPS_CACHE_FILE, JSON.stringify(COMPS_CACHE)); }
+    catch (e) { console.warn("Kunne ikke skrive comps-cache.json:", e.message); }
+    return comps;
+  })();
+  COMPS_INFLIGHT.set(key, job);
+  try { return await job; } finally { COMPS_INFLIGHT.delete(key); }
+}
+
+// Reserve: samme handler via Apify-aktøren (koster pr. handel og har en månedsgrænse)
+async function getSoldCompsApify(zipCode, typeCode) {
+  if (!APIFY_TOKEN) throw new Error("APIFY_TOKEN mangler på serveren.");
+  {
     // Aktørens soldYearMin/soldYearMax bliver ignoreret (den returnerer de nyeste salg),
     // så perioden sættes direkte i Boligas egen søge-URL. Kun handler før vurderings-
     // tidspunktet 1.1.2022 bruges som sammenligningsgrundlag.
@@ -1059,16 +1124,8 @@ async function getSoldComps(zipCode, typeCode) {
     if (!Array.isArray(raw)) throw new Error("Uventet Apify-svar");
     // Samme handel kan komme med på to sider, hvis Boliga får nye data imens
     const seen = new Set();
-    const comps = raw.filter(c => { const k = c.id || c.guid || `${c.address}|${c.soldDate}`; if (seen.has(k)) return false; seen.add(k); return true; });
-    // Et tomt svar kan være en midlertidig fejl hos Boliga, så det gemmes ikke
-    if (comps.length === 0) return comps;
-    COMPS_CACHE[key] = { ts: Date.now(), comps };
-    try { fs.writeFileSync(COMPS_CACHE_FILE, JSON.stringify(COMPS_CACHE)); }
-    catch (e) { console.warn("Kunne ikke skrive comps-cache.json:", e.message); }
-    return comps;
-  })();
-  COMPS_INFLIGHT.set(key, job);
-  try { return await job; } finally { COMPS_INFLIGHT.delete(key); }
+    return raw.filter(c => { const k = c.id || c.guid || `${c.address}|${c.soldDate}`; if (seen.has(k)) return false; seen.add(k); return true; });
+  }
 }
 
 // Vejnavnet foran husnummeret, fx "Højager" i "Højager 20, 2670 Greve"
@@ -1182,12 +1239,6 @@ const FORHOLD = {
 };
 
 async function generateKlage(sessionId, sess) {
-  if (!APIFY_TOKEN) {
-    sess.status = "error";
-    sess.error = "APIFY_TOKEN mangler på serveren.";
-    return;
-  }
-
   const m2Num  = Number(sess.m2);
   const evNum  = Number(sess.ev);
   const zipCode = postnrFrom(sess);
@@ -1678,6 +1729,7 @@ app.get("/api/health", (_req, res) => {
     ok: true,
     stripe:  !!stripe,
     apify:   !!APIFY_TOKEN,
+    handler: LAST_COMPS_FETCH,
     sessions: SESSIONS.size,
   });
 });
