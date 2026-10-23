@@ -690,6 +690,8 @@ function renderFreeResult(d, ev, m2) {
   // d.source = "lokal": vurderet mod tinglyste handler i postnummeret (afgør om der er en sag)
   // d.source = "landsdel": fallback til DST-gennemsnit, når lokale handler ikke kunne hentes
   const lokal = d.source === "lokal";
+  // Området, handlerne kommer fra: postnummeret, hvor de nærmeste handler vægtes højest
+  const omraade = state.postnr ? escHtml(`${state.postnr} ${state.by}`.trim()) : "dit lokalområde";
   let tlColor, tag, headline, subtext;
   // Et nyt resultat nulstiller spørgsmålene fra et tidligere tjek
   state.forhold = [];
@@ -705,7 +707,7 @@ function renderFreeResult(d, ev, m2) {
     tlColor  = "tl-red";
     tag      = "🔴 Stor afvigelse";
     headline = `Vores estimat ligger ${pct}&nbsp;% under din vurdering`;
-    subtext  = `Vores beregning ud fra faktiske handler i dit lokalområde viser en væsentlig forskel. En klage kan kun ændre vurderingen, hvis den skal ned med mere end 20 %. Det er en stærk indikation, men ingen garanti for, at en klage får medhold. Klagepakken undersøger din bolig nærmere og giver dig et begrundet klageudkast.`;
+    subtext  = `Vores beregning ud fra faktiske handler i ${omraade} viser en væsentlig forskel. En klage kan kun ændre vurderingen, hvis den skal ned med mere end 20 %. Det er en stærk indikation, men ingen garanti for, at en klage får medhold. Klagepakken undersøger din bolig nærmere og giver dig et begrundet klageudkast.`;
   } else if (lokal && d.verdict === "TÆT") {
     tlColor  = "tl-amber";
     tag      = "🟠 Mulig afvigelse";
@@ -739,7 +741,7 @@ function renderFreeResult(d, ev, m2) {
     : "";
 
   const method = lokal
-    ? `Estimatet bygger på faktiske tinglyste handler med lignende boliger i dit lokalområde fra før vurderingstidspunktet. Det er en statistisk indikation, ikke en individuel vurdering af netop din bolig.`
+    ? `Estimatet bygger på faktiske tinglyste handler med lignende boliger i ${omraade} fra før vurderingstidspunktet. De nærmeste handler tæller mest. Det er en statistisk indikation, ikke en individuel vurdering af netop din bolig.`
     : `Estimatet bygger på Danmarks Statistiks gennemsnitspris for ${d.propertyType === "ejerlejlighed" ? "ejerlejligheder" : "enfamiliehuse"} i ${escHtml(d.landsdelnavn)} fra 2020–2022 (${fmtKr(d.krPerM2)}/m²). Det er et groft gennemsnit, ikke en vurdering af netop din bolig.`;
 
   const body = document.getElementById("result-body");
@@ -758,6 +760,7 @@ function renderFreeResult(d, ev, m2) {
       <span class="v">${fmtKr(ev)}</span>
       <span class="k">${lokal ? "Vores estimat:" : "Ud fra landsdelens gennemsnit:"}</span>
       <span class="v">${fmtEstimat(d.estimate)}</span>
+      ${lokal ? `<span class="k">Sammenlignet med:</span><span class="v">Handler i ${omraade}</span>` : ""}
       <span class="k">Forskel:</span>
       <span class="v">${d.estimate < ev ? `${pct}&nbsp;% af din vurdering` : "Ingen"}</span>
       <span class="k">Boligareal:</span>
