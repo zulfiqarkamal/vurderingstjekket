@@ -237,10 +237,16 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
       </label>
       <input type="number" id="gv-input" placeholder="Indtast beløb i kr" min="0" step="1000" />
     </div>
+    <div id="grund-wrap">
+      <label for="grund-input">Grundareal (m²) <em style="font-weight:400;color:var(--gray-600);">valgfri</em>
+        <span class="hint">Står på din vurdering. Gør sammenligningen mere præcis.</span>
+      </label>
+      <input type="number" id="grund-input" placeholder="fx 750" min="0" step="1" />
+    </div>
   </div>
 
   <div class="warn-note">
-    <strong>Husk klagefrist.</strong> Du har 90 dage fra du modtog din vurdering.
+    <strong>Husk klagefrist.</strong> Klagefristen er typisk 90 dage eller 3 måneder fra du modtog vurderingen. Den præcise frist står i klagevejledningen i din vurdering.
     Tjek din præcise frist på <a href="https://vurderingsportalen.dk" target="_blank" rel="noopener">vurderingsportalen.dk</a> inden du handler.
   </div>
 
@@ -262,6 +268,12 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
   <p class="sub" id="pay-sub">En færdig klage med dokumentationen fra de lokale handler. Du indsætter den direkte hos Skatteankestyrelsen.</p>
 
   <p style="margin:14px 0 6px;font-weight:600;font-size:1.05rem;" id="pay-price">350 kr. Engangsbetaling.</p>
+  <p class="note" style="margin:0 0 10px;font-size:0.9rem;">Bemærk: Skatteankestyrelsen opkræver selv et klagegebyr på 1.300 kr., når du sender klagen. Det er ikke med i prisen her.</p>
+  <label style="display:flex;gap:8px;align-items:flex-start;margin:0 0 12px;font-size:0.95rem;cursor:pointer;">
+    <input type="checkbox" id="final-check" style="margin-top:3px;">
+    <span>Jeg har modtaget min <strong>endelige</strong> ejendomsvurdering med klagevejledning. En foreløbig vurdering kan ikke påklages.</span>
+  </label>
+  <p id="final-check-err" class="hidden" style="margin:0 0 10px;color:#b91c1c;font-size:0.9rem;">Sæt kryds, før du køber. Har du kun en foreløbig vurdering, kan du ikke klage endnu.</p>
 
   <button class="btn btn-pay" id="pay-btn">
     Få min klagepakke →
@@ -526,6 +538,8 @@ async function lookupBBR(husnummerId, adresseId, kommunekode) {
       state.landsdelnavn   = data.landsdelnavn;
       state.kommunekode    = data.kommunekode || state.kommunekode;
       state.opfoeretAar    = data.opfoeretAar || "";
+      // Grundareal giver kun mening for huse
+      document.getElementById("grund-wrap").classList.toggle("hidden", !!data.isEjerlejlighed);
 
       renderBBRChip(data);
       document.getElementById("card-ev").classList.remove("hidden");
@@ -627,6 +641,7 @@ async function runFreeCheck(confirmed) {
 
   state.m2  = m2;
   const gv  = parseFloat(document.getElementById("gv-input").value) || null;
+  state.grundareal = parseInt(document.getElementById("grund-input").value) || null;
 
   const btn = document.getElementById("check-btn");
   btn.disabled = true;
@@ -644,6 +659,8 @@ async function runFreeCheck(confirmed) {
         address:     state.label || "",
         postnr:      state.postnr || "",
         opfoeretAar: state.opfoeretAar || "",
+        grundareal:  state.grundareal || null,
+        adresseId:   state.adresseId || null,
         confirmed:   confirmed === true,
       }),
     });
@@ -693,7 +710,9 @@ function renderFreeResult(d, ev, m2) {
     tlColor  = "tl-amber";
     tag      = "🟠 Mulig afvigelse";
     headline = `Vores estimat ligger ${pct}&nbsp;% under din vurdering`;
-    subtext  = `Du ligger tæt på grænsen på 20 %. Særlige forhold ved boligen kan have betydning for, om der er grundlag for en klage. Sæt kryds ved det, der passer, nedenfor.`;
+    subtext  = d.gap_pct >= 20
+      ? `Afvigelsen er over 20 %, men datagrundlaget i dit område er for spinkelt til, at vi kan kalde det en stor afvigelse. Særlige forhold ved boligen kan have betydning for, om der er grundlag for en klage. Sæt kryds ved det, der passer, nedenfor.`
+      : `Du ligger tæt på grænsen på 20 %. Særlige forhold ved boligen kan have betydning for, om der er grundlag for en klage. Sæt kryds ved det, der passer, nedenfor.`;
   } else if (lokal) {
     tlColor  = "tl-green";
     tag      = "🟢 Mindre afvigelse";
@@ -716,7 +735,7 @@ function renderFreeResult(d, ev, m2) {
     : "";
 
   const deadlineNote = d.canBuy
-    ? `<div class="note" style="margin-top:8px;">⏰ <strong>Klagefrist:</strong> Du har <strong>90 dage</strong> fra du modtog din vurdering. Kontrollér din præcise frist på <a href="https://skatteankestyrelsen.dk" target="_blank" rel="noopener">skatteankestyrelsen.dk</a>.</div>`
+    ? `<div class="note" style="margin-top:8px;">⏰ <strong>Klagefrist:</strong> Klagefristen er typisk 90 dage eller 3 måneder fra du modtog vurderingen. Den præcise frist står i klagevejledningen i din vurdering.</div>`
     : "";
 
   const method = lokal
@@ -817,6 +836,11 @@ async function signupNotify() {
 // ─── Payment ──────────────────────────────────────────────────
 async function startPayment() {
   const btn = document.getElementById("pay-btn");
+  if (!document.getElementById("final-check").checked) {
+    document.getElementById("final-check-err").classList.remove("hidden");
+    return;
+  }
+  document.getElementById("final-check-err").classList.add("hidden");
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Opretter betaling…';
 
@@ -836,6 +860,8 @@ async function startPayment() {
         gv:            state.gv,
         landsdel:      state.landsdel,
         opfoeretAar:   state.opfoeretAar || "",
+        grundareal:    state.grundareal || null,
+        adresseId:     state.adresseId || null,
         freeResult:    state.freeResult,
         forhold:       state.forhold || [],
       }),
@@ -970,6 +996,8 @@ function resetApp() {
   document.getElementById("address-input").value = "";
   document.getElementById("ev-input").value = "";
   document.getElementById("gv-input").value = "";
+  document.getElementById("grund-input").value = "";
+  document.getElementById("final-check").checked = false;
   document.getElementById("bbr-chip").classList.add("hidden");
   document.getElementById("card-ev").classList.add("hidden");
   document.getElementById("card-result").classList.add("hidden");
