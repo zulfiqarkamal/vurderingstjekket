@@ -1,0 +1,159 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
+import crypto from 'node:crypto';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Run the real route handlers without installing packages, opening sockets,
+// reading customer storage, writing files, or allowing external requests.
+function fixture() {
+  const routes = new Map();
+  const app = { use() {}, get(p, fn) { routes.set('GET ' + p, fn); },
+    post(p, fn) { routes.set('POST ' + p, fn); }, listen() {} };
+  const express = Object.assign(() => app, { raw() {}, json() {}, static() {} });
+  let emails = 0;
+  let generations = 0;
+  class Stripe {
+    static createFetchHttpClient() { return {}; }
+    checkout = { sessions: { create: async () => ({ id: 'cs_test_order', url: 'https://checkout.invalid' }) } };
+    webhooks = { constructEvent(body, signature) {
+      if (signature !== 'test-signature') throw new Error('Invalid signature');
+      return body;
+    } };
+  }
+  const context = vm.createContext({ express, Stripe, path, fileURLToPath, crypto,
+    fs: { existsSync: () => false, writeFileSync() { throw new Error('Disk writes prohibited'); } },
+    process: { env: { STRIPE_SECRET_KEY: 'synthetic-test-key', STRIPE_WEBHOOK_SECRET: 'synthetic-test-secret', ADMIN_KEY: 'synthetic-test-admin', NODE_ENV: 'production' } },
+    console: { log() {}, warn() {}, error() {} }, URL, URLSearchParams, AbortController, AbortSignal,
+    setTimeout, clearTimeout, Buffer,
+    fetch: async () => { throw new Error('Network prohibited'); },
+    mockMail: async () => { emails++; return true; },
+    mockGenerate: async (_id, sess) => { generations++; sess.status = 'done'; sess.klageTekst = 'Synthetic report'; },
+  });
+  const source = readFileSync(new URL('../server.js', import.meta.url), 'utf8')
+    .replace(/^import .*;\r?\n/gm, '')
+    .replace('fileURLToPath(import.meta.url)', "'/offline/server.js'");
+  vm.runInContext(source, context, { filename: 'server.js' });
+  vm.runInContext('sendKlageMail = mockMail; generateKlage = mockGenerate;', context);
+  async function request(method, route, { body = {}, cookie = '', params = {}, signature = '', query = {} } = {}) {
+    const req = { body, params, query, headers: { origin: 'https://app.invalid', cookie, 'stripe-signature': signature } };
+    const res = { statusCode: 200, headers: {}, status(n) { this.statusCode = n; return this; },
+      set(k, v) { this.headers[k.toLowerCase()] = v; return this; },
+      setHeader(k, v) { this.headers[k.toLowerCase()] = v; },
+      cookie(name, value, options) { this.headers['set-cookie'] = `${name}=${value}`; this.cookieOptions = options; return this; },
+      json(data) { this.body = data; return this; }, send(data) { this.body = data; return this; } };
+    await routes.get(method + ' ' + route)(req, res);
+    return res;
+  }
+  const checkout = body => request('POST', '/api/create-payment', { body: {
+    address: 'Synthetic address', postnr: '9999', m2: 120, ev: 3000000, kommunekode: '0101', ...body,
+  } });
+  const report = (id, cookie) => request('GET', '/api/klage/:sessionId', { params: { sessionId: id }, cookie });
+  const mail = (id, cookie) => request('POST', '/api/send-klage-mail', { body: { sessionId: id, email: 'reader@example.invalid' }, cookie });
+  const complete = (id, fields = {}, signature = 'test-signature') => request('POST', '/api/stripe-webhook', {
+    signature, body: { type: 'checkout.session.completed', data: { object: {
+      id: 'cs_test_order', metadata: { sessionId: id }, payment_status: 'paid',
+      currency: 'dkk', amount_total: 35000, ...fields,
+    } } },
+  });
+  return { checkout, report, mail, complete, request, get emails() { return emails; }, get generations() { return generations; },
+    session: id => vm.runInContext(`SESSIONS.get(${JSON.stringify(id)})`, context) };
+}
+
+function ownerCookie(checkout) { return (checkout.headers['set-cookie'] || '').split(';')[0]; }
+
+test('checkout cannot inject internal report or payment fields', async () => {
+  const f = fixture();
+  const r = await f.checkout({ status: 'done', createdAt: 1, klageTekst: 'Injected', paid: true,
+    paymentVerified: true, testAuthorized: true, expectedAmount: 1, accessExpiresAt: Infinity,
+    stripeCheckoutId: 'attacker', customerEmail: 'attacker@example.invalid', accessTokenHash: 'attacker' });
+  assert.equal(r.statusCode, 200);
+  const s = f.session(r.body.sessionId);
+  assert.equal(s.status, 'pending_payment');
+  assert.notEqual(s.createdAt, 1);
+  assert.equal(s.klageTekst, undefined);
+  assert.equal(s.paymentVerified, false);
+  assert.equal(s.paid, undefined);
+  assert.equal(s.customerEmail, undefined);
+  assert.equal(s.testAuthorized, undefined);
+  assert.equal(s.expectedAmount, 35000);
+  assert.notEqual(s.accessTokenHash, 'attacker');
+});
+
+test('unpaid owner cannot read or email a report', async () => {
+  const f = fixture(); const r = await f.checkout(); const id = r.body.sessionId;
+  assert.equal((await f.report(id, ownerCookie(r))).statusCode, 403);
+  assert.equal((await f.mail(id, ownerCookie(r))).statusCode, 403);
+  assert.equal(f.emails, 0);
+});
+
+test('paid report and email require the owning browser cookie', async () => {
+  const f = fixture(); const r = await f.checkout(); const id = r.body.sessionId;
+  const other = await f.checkout();
+  await f.complete(id);
+  for (const cookie of ['', 'unrelated=value', ownerCookie(other), ownerCookie(r) + 'tampered']) {
+    assert.equal((await f.report(id, cookie)).statusCode, 403);
+    assert.equal((await f.mail(id, cookie)).statusCode, 403);
+  }
+  assert.equal(f.emails, 0);
+  assert.equal((await f.report(id, ownerCookie(r))).body.klageTekst, 'Synthetic report');
+  assert.equal((await f.mail(id, ownerCookie(r))).statusCode, 200);
+  assert.equal(f.emails, 1);
+  assert.equal(r.cookieOptions.httpOnly, true);
+  assert.equal(r.cookieOptions.secure, true);
+  assert.equal(r.cookieOptions.sameSite, 'lax');
+  assert.equal(r.cookieOptions.path, '/api');
+  assert.equal(r.cookieOptions.maxAge, 86400000);
+  assert.equal((await f.report(id, ownerCookie(r))).headers['cache-control'], 'no-store');
+});
+
+test('unpaid, mismatched, and unsigned events never authorize reports', async () => {
+  for (const fields of [{ payment_status: 'unpaid' }, { id: 'cs_other' }, { currency: 'eur' }, { amount_total: 1 }]) {
+    const f = fixture(); const r = await f.checkout();
+    await f.complete(r.body.sessionId, fields);
+    assert.equal((await f.report(r.body.sessionId, ownerCookie(r))).statusCode, 403);
+    assert.equal(f.generations, 0);
+  }
+  const f = fixture(); const r = await f.checkout();
+  assert.equal((await f.complete(r.body.sessionId, {}, 'invalid')).statusCode, 400);
+  assert.equal((await f.report(r.body.sessionId, ownerCookie(r))).statusCode, 403);
+});
+
+test('repeat payment completion does not fulfill twice', async () => {
+  const f = fixture(); const r = await f.checkout();
+  await f.complete(r.body.sessionId); await f.complete(r.body.sessionId);
+  assert.equal(f.generations, 1);
+});
+
+test('invalid checkout inputs are rejected without creating an order', async () => {
+  const f = fixture();
+  for (const body of [{ m2: -1 }, { m2: '1e999' }, { ev: 0 }, { ev: 'invalid' },
+    { m2: '<img src=x>' }, { m2: [120] }, { ev: true }, { address: {} }, { gv: -1 }, { gv: [] }]) {
+    assert.equal((await f.checkout(body)).statusCode, 400);
+  }
+});
+
+test('expired and unknown report access is denied without disclosing report data', async () => {
+  const f = fixture(); const r = await f.checkout(); const id = r.body.sessionId;
+  await f.complete(id);
+  f.session(id).accessExpiresAt = Date.now() - 1;
+  for (const target of [id, 'unknown']) {
+    const response = await f.report(target, ownerCookie(r));
+    assert.equal(response.statusCode, 403);
+    assert.equal(response.body.klageTekst, undefined);
+    assert.equal((await f.mail(target, ownerCookie(r))).statusCode, 403);
+  }
+  assert.equal(f.emails, 0);
+});
+
+test('admin test reports retain browser-bound access without authorizing public checkout', async () => {
+  const f = fixture();
+  assert.equal((await f.request('GET', '/api/test-klage')).statusCode, 403);
+  const r = await f.request('GET', '/api/test-klage', { query: { key: 'synthetic-test-admin' } });
+  assert.equal(r.statusCode, 200);
+  assert.equal((await f.report(r.body.sessionId, ownerCookie(r))).statusCode, 200);
+  assert.equal((await f.report(r.body.sessionId)).statusCode, 403);
+  assert.equal((await f.mail(r.body.sessionId, ownerCookie(r))).statusCode, 200);
+});
