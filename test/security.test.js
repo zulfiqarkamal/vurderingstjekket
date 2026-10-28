@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 // Run the real route handlers without installing packages, opening sockets,
 // reading customer storage, writing files, or allowing external requests.
-function fixture() {
+function fixture(extraEnv = {}) {
   const routes = new Map();
   const app = { use() {}, get(p, fn) { routes.set('GET ' + p, fn); },
     post(p, fn) { routes.set('POST ' + p, fn); }, listen() {} };
@@ -25,7 +25,7 @@ function fixture() {
   }
   const context = vm.createContext({ express, Stripe, path, fileURLToPath, crypto,
     fs: { existsSync: () => false, writeFileSync() { throw new Error('Disk writes prohibited'); } },
-    process: { env: { STRIPE_SECRET_KEY: 'synthetic-test-key', STRIPE_WEBHOOK_SECRET: 'synthetic-test-secret', ADMIN_KEY: 'synthetic-test-admin', NODE_ENV: 'production' } },
+    process: { env: { STRIPE_SECRET_KEY: 'synthetic-test-key', STRIPE_WEBHOOK_SECRET: 'synthetic-test-secret', ADMIN_KEY: 'synthetic-test-admin', NODE_ENV: 'production', ...extraEnv } },
     console: { log() {}, warn() {}, error() {} }, URL, URLSearchParams, AbortController, AbortSignal,
     setTimeout, clearTimeout, Buffer,
     fetch: async () => { throw new Error('Network prohibited'); },
@@ -43,6 +43,8 @@ function fixture() {
       set(k, v) { this.headers[k.toLowerCase()] = v; return this; },
       setHeader(k, v) { this.headers[k.toLowerCase()] = v; },
       cookie(name, value, options) { this.headers['set-cookie'] = `${name}=${value}`; this.cookieOptions = options; return this; },
+      sendFile(file) { this.file = file; return this; },
+      redirect(status, target) { this.statusCode = status; this.target = target; return this; },
       json(data) { this.body = data; return this; }, send(data) { this.body = data; return this; } };
     await routes.get(method + ' ' + route)(req, res);
     return res;
@@ -156,4 +158,64 @@ test('admin test reports retain browser-bound access without authorizing public 
   assert.equal((await f.report(r.body.sessionId, ownerCookie(r))).statusCode, 200);
   assert.equal((await f.report(r.body.sessionId)).statusCode, 403);
   assert.equal((await f.mail(r.body.sessionId, ownerCookie(r))).statusCode, 200);
+});
+
+test('product routes isolate Worker navigation from Railway APIs', async () => {
+  const offline = fixture();
+  assert.match((await offline.request('GET', '/ejendomsvurdering')).file, /ejendomsvurdering\.html$/);
+  assert.match((await offline.request('GET', '/boliglaanstjek')).file, /boliglaanstjek-preview\.html$/);
+  const worker = fixture({ BOLIGLAANSRADAR_URL: 'https://mortgage.example.invalid' });
+  const response = await worker.request('GET', '/boliglaanstjek');
+  assert.equal(response.statusCode, 302);
+  assert.equal(response.target, 'https://mortgage.example.invalid/');
+  assert.equal(response.headers['cache-control'], 'no-store');
+});
+
+test('invalid Worker configuration cannot become an unsafe redirect', async () => {
+  for (const url of ['javascript:alert(1)', 'http://example.invalid', 'https://user:pass@example.invalid', 'https://example.invalid/api', 'https://example.invalid/?token=x', 'broken']) {
+    const response = await fixture({ BOLIGLAANSRADAR_URL: url }).request('GET', '/boliglaanstjek');
+    assert.match(response.file, /boliglaanstjek-preview\.html$/);
+    assert.equal(response.target, undefined);
+  }
+});
+
+test('historical Stripe callback links retain the query and owning origin', () => {
+  const script = readFileSync(new URL('../public/home.js', import.meta.url), 'utf8');
+  for (const search of ['', '?session=synthetic-order', '?cancelled=1', '?test=synthetic']) {
+    let destination;
+    vm.runInNewContext(script, { URLSearchParams, location: { search, hash: '', replace: value => { destination = value; } } });
+    assert.equal(destination, search ? '/ejendomsvurdering' + search : undefined);
+  }
+});
+
+test('frontend scripts compile and product links resolve to local entries', () => {
+  for (const file of ['index.html', 'ejendomsvurdering.html', 'boliglaanstjek-preview.html']) {
+    const html = readFileSync(new URL('../public/' + file, import.meta.url), 'utf8');
+    assert.equal((html.match(/<body>/g) || []).length, 1);
+    assert.equal((html.match(/<\/body>/g) || []).length, 1);
+    for (const [, script] of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) new vm.Script(script);
+  }
+  const home = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  assert.match(home, /href="\/ejendomsvurdering"/);
+  assert.match(home, /href="\/boliglaanstjek"/);
+  const assessment = readFileSync(new URL('../public/ejendomsvurdering.html', import.meta.url), 'utf8');
+  assert.match(assessment, /fetch\("\/api\/create-payment"/);
+  assert.match(assessment, /history.replaceState\(\{\}, "", "\/ejendomsvurdering"\)/);
+});
+
+test('mortgage preview blocks network and preserves basic calculation behaviour', async () => {
+  const preview = readFileSync(new URL('../public/boliglaanstjek-preview.html', import.meta.url), 'utf8');
+  const calculation = preview.slice(preview.indexOf('const MARKEDSRENTER'), preview.indexOf('// ── Main calculation'));
+  const context = vm.createContext({});
+  vm.runInContext(calculation, context);
+  assert.equal(vm.runInContext('mYdelse(1200000, 0, 10)', context), 10000);
+  assert.equal(vm.runInContext('mYdelse(1200000, 4, 30, true)', context), 4000);
+  assert.equal(vm.runInContext('bidragssats(60)', context), 0.55);
+  assert.equal(vm.runInContext('bidragssats(80)', context), 0.85);
+  assert.equal(vm.runInContext('konvOmk(1000000)', context), 20000);
+  const window = { addEventListener() {} };
+  vm.runInNewContext(readFileSync(new URL('../public/mortgage-preview.js', import.meta.url), 'utf8'), { window });
+  await assert.rejects(window.fetch('/api/subscribe'), /afkoblet/);
+  await assert.rejects(window.fetch('/api/analyze-screenshot'), /afkoblet/);
+  await assert.rejects(window.fetch('/api/dawa'), /afkoblet/);
 });

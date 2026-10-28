@@ -1,0 +1,2038 @@
+<!doctype html><html lang="da"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BoligLånsRadar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap">
+
+<style>
+/* ── Tokens ─────────────────────────────────────────────────────────────────
+   Layout: centered wizard card, max 520px, full-bleed header               */
+:root {
+  --navy:    #152B4E;
+  --navy-lt: #1E3E70;
+  --sky:     #EBF2FF;
+  --accent:  #2660D8;
+  --success: #1A8A54;
+  --warn:    #C47A0A;
+  --danger:  #C03030;
+  --bg:      #F3F6FB;
+  --surface: #FFFFFF;
+  --border:  #DCE4F2;
+  --text:    #111827;
+  --muted:   #5A6E96;
+  --radius:  14px;
+  --shadow:  0 2px 16px rgba(21,43,78,.10);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --navy:    #2A4780;
+    --navy-lt: #3558A0;
+    --sky:     #162240;
+    --accent:  #5585F0;
+    --success: #25B06A;
+    --warn:    #E09020;
+    --danger:  #E04848;
+    --bg:      #0C1628;
+    --surface: #152035;
+    --border:  #203050;
+    --text:    #E4EAF8;
+    --muted:   #8AA0C8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --navy:#2A4780;--navy-lt:#3558A0;--sky:#162240;--accent:#5585F0;
+  --success:#25B06A;--warn:#E09020;--danger:#E04848;--bg:#0C1628;
+  --surface:#152035;--border:#203050;--text:#E4EAF8;--muted:#8AA0C8;
+  color-scheme: dark;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Outfit',system-ui,sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100%;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0;
+}
+
+/* ── App header ─────────────────────────────────────────────────────────── */
+.app-header{
+  background:var(--navy);
+  padding:0 max(24px,env(safe-area-inset-left,0px));
+  padding-right:max(24px,env(safe-area-inset-right,0px));
+  padding-top:calc(env(safe-area-inset-top,0px) + 16px);
+  padding-bottom:16px;
+  display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:10;
+}
+body::before{
+  content:"";position:fixed;inset:0 0 auto;
+  height:env(safe-area-inset-top,0px);
+  background:var(--navy);z-index:11;
+}
+.logo-mark{
+  width:36px;height:36px;border-radius:10px;
+  background:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.logo-mark svg{fill:#fff}
+.logo-text{color:#fff;font-weight:700;font-size:1.05rem;letter-spacing:.02em}
+.logo-sub{color:rgba(255,255,255,.55);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;display:block;margin-top:1px}
+
+/* ── Progress stepper ───────────────────────────────────────────────────── */
+.stepper{
+  display:flex;align-items:center;gap:0;
+  padding:20px max(24px,env(safe-area-inset-left,0px));
+  padding-right:max(24px,env(safe-area-inset-right,0px));
+  background:var(--surface);border-bottom:1px solid var(--border);
+}
+.step{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;position:relative;}
+.step:not(:last-child)::after{
+  content:"";position:absolute;top:13px;left:calc(50% + 16px);
+  right:calc(-50% + 16px);height:2px;background:var(--border);
+}
+.step.done:not(:last-child)::after{background:var(--accent);}
+.step-dot{
+  width:26px;height:26px;border-radius:50%;border:2px solid var(--border);
+  background:var(--surface);display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;font-weight:700;color:var(--muted);z-index:1;transition:.2s;
+}
+.step.done .step-dot{background:var(--accent);border-color:var(--accent);color:#fff;}
+.step.active .step-dot{border-color:var(--accent);color:var(--accent);}
+.step-label{font-size:.62rem;font-weight:500;color:var(--muted);letter-spacing:.03em;text-align:center;}
+.step.active .step-label{color:var(--accent);font-weight:600;}
+.step.done .step-label{color:var(--text);}
+
+/* ── Main container ─────────────────────────────────────────────────────── */
+.main{max-width:520px;margin:0 auto;padding:24px 0 48px;}
+
+/* ── Panel ──────────────────────────────────────────────────────────────── */
+.panel{display:none;}
+.panel.active{display:block;}
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:16px;}
+.card-title{
+  font-family:'Libre Baskerville',Georgia,serif;
+  font-size:1.25rem;font-weight:700;margin-bottom:4px;
+}
+.card-sub{font-size:.85rem;color:var(--muted);margin-bottom:20px;line-height:1.5;}
+
+/* ── Form ───────────────────────────────────────────────────────────────── */
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;}
+.field input,.field select{
+  width:100%;padding:12px 14px;font-size:1rem;font-family:inherit;
+  background:var(--bg);border:1.5px solid var(--border);border-radius:10px;
+  color:var(--text);transition:.15s;
+}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent);background:var(--surface);}
+.field input:disabled{opacity:.5;cursor:default;}
+.field-hint{font-size:.75rem;color:var(--muted);margin-top:5px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+.source-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--sky);color:var(--accent);
+  border-radius:6px;padding:4px 10px;font-size:.75rem;font-weight:600;
+  margin-bottom:20px;
+}
+.source-badge svg{flex-shrink:0;}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.btn{
+  display:block;width:100%;padding:15px 20px;
+  border:none;border-radius:11px;cursor:pointer;
+  font-family:inherit;font-size:1rem;font-weight:600;
+  transition:.15s;letter-spacing:.01em;
+}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{filter:brightness(1.1);}
+.btn-ghost{background:var(--sky);color:var(--accent);margin-top:10px;}
+.btn-ghost:hover{background:var(--border);}
+
+/* ── Screenshot example ─────────────────────────────────────────────────── */
+.example-section{
+  background:var(--sky);border-radius:var(--radius);padding:20px;
+  margin-bottom:20px;text-align:center;
+}
+.example-label{
+  font-size:.8rem;font-weight:600;color:var(--muted);
+  letter-spacing:.04em;text-transform:uppercase;margin-bottom:14px;
+}
+.phone-wrap{display:inline-block;filter:drop-shadow(0 8px 24px rgba(21,43,78,.18));}
+
+/* ── Upload zone ────────────────────────────────────────────────────────── */
+.upload-zone{
+  border:2px dashed var(--border);border-radius:var(--radius);
+  padding:32px 20px;text-align:center;cursor:pointer;
+  transition:.2s;position:relative;
+}
+.upload-zone:hover{border-color:var(--accent);background:var(--sky);}
+.upload-zone.dragover{border-color:var(--accent);background:var(--sky);}
+.upload-zone input[type=file]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+}
+.upload-icon{margin:0 auto 12px;opacity:.4;}
+.upload-title{font-weight:600;margin-bottom:4px;}
+.upload-sub{font-size:.82rem;color:var(--muted);}
+
+/* ── Analyzing state ────────────────────────────────────────────────────── */
+.analyzing{
+  display:none;align-items:center;justify-content:center;gap:14px;
+  padding:28px;background:var(--sky);border-radius:var(--radius);
+}
+.spinner{
+  width:32px;height:32px;border:3px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.analyzing-text{font-weight:600;color:var(--accent);}
+.analyzing-sub{font-size:.8rem;color:var(--muted);}
+
+/* ── Verified badge ─────────────────────────────────────────────────────── */
+.extracted-badge{
+  display:flex;align-items:center;gap:8px;
+  background:#e8f8ef;color:var(--success);
+  border-radius:8px;padding:10px 14px;font-size:.82rem;font-weight:600;
+  margin-bottom:18px;
+}
+:root[data-theme="dark"] .extracted-badge{background:#0d2a1c;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .extracted-badge{background:#0d2a1c;}}
+
+/* ── LTV Gauge ──────────────────────────────────────────────────────────── */
+.gauge-wrap{text-align:center;margin-bottom:20px;}
+.gauge-num{
+  font-family:'Libre Baskerville',Georgia,serif;
+  font-size:3.2rem;font-weight:700;line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.gauge-label{font-size:.8rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-top:4px;}
+.ltv-cat{display:inline-block;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700;margin-top:8px;letter-spacing:.05em;}
+.cat-green{background:#e0f5ea;color:var(--success);}
+.cat-yellow{background:#fff3d6;color:var(--warn);}
+.cat-red{background:#fde8e8;color:var(--danger);}
+:root[data-theme="dark"] .cat-green{background:#0d2a1c;}
+:root[data-theme="dark"] .cat-yellow{background:#2a1e00;}
+:root[data-theme="dark"] .cat-red{background:#2a0d0d;}
+
+/* ── Result cards ───────────────────────────────────────────────────────── */
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.stat-card{
+  background:var(--surface);border-radius:12px;padding:16px;
+  box-shadow:var(--shadow);
+}
+.stat-card.full{grid-column:1/-1;}
+.stat-label{font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;}
+.stat-val{
+  font-size:1.5rem;font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
+.stat-sub{font-size:.75rem;color:var(--muted);margin-top:2px;}
+
+.trafiklys{
+  display:flex;align-items:flex-start;gap:14px;
+  padding:18px;border-radius:12px;background:var(--sky);margin-bottom:16px;
+}
+.trafik-icon{font-size:2.2rem;flex-shrink:0;line-height:1;}
+.trafik-title{font-weight:700;font-size:1rem;margin-bottom:4px;}
+.trafik-detail{font-size:.83rem;color:var(--muted);line-height:1.55;}
+
+.savings-highlight{
+  background:linear-gradient(135deg,var(--navy) 0%,var(--navy-lt) 100%);
+  color:#fff;border-radius:var(--radius);padding:22px;margin-bottom:16px;
+  display:flex;align-items:center;gap:16px;
+}
+.savings-amount{font-family:'Libre Baskerville',Georgia,serif;font-size:2.2rem;font-weight:700;line-height:1;}
+.savings-period{font-size:.8rem;opacity:.7;margin-top:3px;}
+
+/* ── Phase 2 stepper ────────────────────────────────────────────────────── */
+.p2-stepper{display:flex;align-items:center;gap:6px;font-size:.72rem;}
+.p2-step{opacity:.45;font-weight:500;white-space:nowrap;}
+.p2-step.active{opacity:1;font-weight:700;color:#fff;}
+.p2-step.done{opacity:.65;}
+.p2-sep{opacity:.3;font-size:.8rem;}
+
+/* ── Budget ─────────────────────────────────────────────────────────────── */
+.budget-section{margin-bottom:8px;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.budget-section-header{
+  background:var(--sky);padding:10px 14px;
+  font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);
+  display:flex;align-items:center;gap:8px;
+}
+.budget-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;border-top:1px solid var(--border);gap:12px;
+}
+.budget-label{font-size:.85rem;color:var(--text);flex:1;min-width:0;}
+.budget-input-wrap{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.budget-input{
+  width:90px;padding:7px 10px;font-size:.9rem;font-family:inherit;
+  background:var(--bg);border:1.5px solid var(--border);border-radius:8px;
+  color:var(--text);text-align:right;
+}
+.budget-input:focus{outline:none;border-color:var(--accent);}
+.budget-unit{font-size:.78rem;color:var(--muted);white-space:nowrap;}
+.budget-summary{
+  background:var(--navy);color:#fff;border-radius:12px;padding:16px 18px;margin-top:16px;
+}
+.budget-sum-row{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:.88rem;padding:5px 0;opacity:.8;
+}
+.budget-sum-row.frie{
+  opacity:1;font-weight:700;font-size:1rem;padding-top:10px;margin-top:6px;
+  border-top:1px solid rgba(255,255,255,.2);
+}
+.budget-sum-row.frie.positive{color:#5ddb9a;}
+.budget-sum-row.frie.negative{color:#ff7070;}
+
+/* ── Documents ──────────────────────────────────────────────────────────── */
+.doc-source-block{border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.doc-source-header{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;
+  background:var(--sky);flex-wrap:wrap;gap:10px;
+}
+.doc-source-logo{
+  width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:.75rem;font-weight:900;flex-shrink:0;letter-spacing:-.03em;
+}
+.eboks-logo{background:#005499;color:#fff;}
+.eboks-logo span{color:#e8ab00;}
+.skat-logo{background:#c8102e;color:#fff;font-size:.65rem;border-radius:6px;}
+.doc-source-name{font-weight:700;font-size:.9rem;}
+.doc-source-desc{font-size:.75rem;color:var(--muted);}
+.fetch-btn{
+  margin-left:auto;padding:8px 14px;border:none;border-radius:8px;
+  background:var(--accent);color:#fff;font-family:inherit;font-size:.8rem;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;
+}
+.fetch-btn:disabled{opacity:.5;cursor:default;}
+.fetch-btn-icon{font-size:.9rem;}
+.mitid-loading{padding:14px 16px;}
+.mitid-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--accent);color:#fff;border-radius:8px;padding:8px 14px;font-size:.82rem;font-weight:600;
+}
+.doc-category{
+  font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+  padding:10px 16px 4px;
+}
+.doc-card{
+  display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid var(--border);
+}
+.doc-icon{font-size:1.3rem;flex-shrink:0;}
+.doc-info{flex:1;min-width:0;}
+.doc-name{font-size:.85rem;font-weight:600;}
+.doc-meta{display:flex;align-items:center;gap:6px;margin-top:2px;}
+.doc-badge{
+  font-size:.65rem;font-weight:700;letter-spacing:.05em;padding:2px 6px;border-radius:4px;
+  text-transform:uppercase;
+}
+.doc-badge.eboks{background:#005499;color:#fff;}
+.doc-badge.skat{background:#c8102e;color:#fff;}
+.doc-check{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);cursor:pointer;flex-shrink:0;}
+.doc-check input{accent-color:var(--accent);width:16px;height:16px;}
+.docs-ready-hint{
+  background:#e8f8ef;color:var(--success);border-radius:8px;padding:12px 16px;
+  font-weight:600;font-size:.85rem;margin-top:14px;
+}
+
+/* ── Bank selection ─────────────────────────────────────────────────────── */
+.bank-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+@media(max-width:400px){.bank-grid{grid-template-columns:1fr 1fr;}}
+.bank-card{
+  border:2px solid var(--border);border-radius:12px;padding:14px 10px;
+  text-align:center;cursor:pointer;transition:.15s;position:relative;
+  background:var(--surface);
+}
+.bank-card.active{border-color:var(--accent);background:var(--sky);}
+.bank-logo{
+  width:44px;height:44px;border-radius:10px;margin:0 auto 8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.75rem;font-weight:900;color:#fff;letter-spacing:.02em;
+}
+.nyk{background:#003d7a;} .tot{background:#0070c0;} .rd{background:#c8102e;}
+.nor{background:#00007b;} .brf{background:#004b28;}
+.bank-name{font-size:.75rem;font-weight:600;line-height:1.3;}
+.bank-tag{font-size:.6rem;font-weight:700;letter-spacing:.05em;color:var(--warn);text-transform:uppercase;margin-top:3px;}
+.bank-check{
+  position:absolute;top:6px;right:8px;font-size:.9rem;
+  opacity:0;transition:.15s;
+}
+.bank-card.active .bank-check{opacity:1;}
+
+/* ── Access management ──────────────────────────────────────────────────── */
+.access-header{font-weight:700;font-size:.88rem;margin-bottom:4px;}
+.access-sub{font-size:.78rem;color:var(--muted);margin-bottom:12px;line-height:1.5;}
+.access-row{
+  display:flex;align-items:flex-start;gap:10px;padding:10px 14px;
+  border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--surface);
+}
+.access-bank-name{font-size:.82rem;font-weight:600;min-width:110px;padding-top:2px;}
+.access-docs{display:flex;flex-wrap:wrap;gap:6px;}
+.access-chip{
+  display:flex;align-items:center;gap:4px;
+  background:var(--sky);border-radius:6px;padding:4px 8px;
+  font-size:.72rem;font-weight:600;cursor:pointer;user-select:none;
+  border:1.5px solid transparent;transition:.1s;
+}
+.access-chip.on{border-color:var(--accent);color:var(--accent);}
+.access-chip.off{opacity:.4;}
+
+/* ── Package summary ────────────────────────────────────────────────────── */
+.package-summary{
+  background:var(--sky);border-radius:12px;padding:16px;margin-top:16px;
+}
+.pkg-title{font-weight:700;font-size:.88rem;margin-bottom:10px;color:var(--accent);}
+.pkg-line{display:flex;justify-content:space-between;font-size:.82rem;padding:3px 0;color:var(--text);}
+.pkg-line span:last-child{color:var(--muted);}
+
+/* ── Timeline ───────────────────────────────────────────────────────────── */
+.timeline{display:flex;flex-direction:column;gap:0;margin:16px 0;}
+.tl-item{display:flex;align-items:flex-start;gap:14px;padding:12px 0;position:relative;}
+.tl-item:not(:last-child)::before{
+  content:"";position:absolute;left:15px;top:34px;bottom:-2px;width:2px;background:var(--border);
+}
+.tl-item.done:not(:last-child)::before{background:var(--success);}
+.tl-dot{
+  width:32px;height:32px;border-radius:50%;border:2px solid var(--border);
+  background:var(--surface);display:flex;align-items:center;justify-content:center;
+  font-size:.8rem;flex-shrink:0;z-index:1;
+}
+.tl-item.done .tl-dot{background:var(--success);border-color:var(--success);color:#fff;font-size:.9rem;}
+.tl-title{font-weight:600;font-size:.9rem;}
+.tl-desc{font-size:.78rem;color:var(--muted);margin-top:2px;}
+.savings-label{font-size:.82rem;opacity:.85;margin-bottom:2px;}
+
+.divider{height:1px;background:var(--border);margin:4px 0 20px;}
+
+/* ── Source chooser ────────────────────────────────────────────────────── */
+.source-chooser{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+.source-opt{
+  display:flex;align-items:center;gap:14px;
+  background:var(--surface);border:2px solid var(--border);border-radius:12px;
+  padding:14px 16px;cursor:pointer;transition:.15s;
+}
+.source-opt.active{border-color:var(--accent);background:var(--sky);}
+.src-icon{
+  width:40px;height:40px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.75rem;font-weight:900;color:#fff;
+}
+.src-vt{background:var(--accent);}
+.src-m{background:var(--muted);font-size:1.2rem;}
+.src-name{font-weight:700;font-size:.9rem;}
+.src-desc{font-size:.75rem;color:var(--muted);margin-top:2px;}
+.src-check{margin-left:auto;color:var(--accent);font-size:1.1rem;opacity:0;flex-shrink:0;}
+.source-opt.active .src-check{opacity:1;}
+
+/* ── DAWA autocomplete ──────────────────────────────────────────────── */
+.dawa-drop{
+  position:absolute;top:100%;left:0;right:0;z-index:99;
+  background:var(--surface);border:1.5px solid var(--accent);
+  border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);
+  max-height:260px;overflow-y:auto;margin-top:3px;
+}
+.dawa-item{
+  padding:11px 14px;font-size:.85rem;cursor:pointer;
+  border-bottom:1px solid var(--border);line-height:1.35;
+}
+.dawa-item:last-child{border-bottom:none;}
+.dawa-item:hover,.dawa-item.active{background:var(--sky);color:var(--accent);}
+.dawa-item strong{display:block;font-weight:700;}
+.dawa-item span{font-size:.78rem;color:var(--muted);}
+
+/* ── Manuel mode helpers ────────────────────────────────────────────────── */
+.info-box{
+  background:var(--sky);border-radius:10px;padding:14px 16px;margin-bottom:18px;
+}
+.info-box-title{font-weight:700;font-size:.84rem;margin-bottom:8px;}
+.info-steps{
+  padding-left:18px;font-size:.82rem;color:var(--text);line-height:1.8;
+}
+.vt-cta{
+  background:var(--sky);border-radius:10px;padding:12px 14px;margin-bottom:18px;
+}
+
+/* ── Upload zone ─────────────────────────────────────────────────────────── */
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: 12px;
+  padding: 22px 16px; text-align: center; cursor: pointer;
+  transition: .15s; margin: 14px 0 4px; background: var(--bg);
+}
+.upload-zone:hover, .upload-zone.dz-over {
+  border-color: var(--accent); background: var(--sky);
+}
+.uz-icon { font-size: 1.8rem; margin-bottom: 6px; }
+.uz-label { font-size: .85rem; font-weight: 600; color: var(--accent); }
+.uz-hint  { font-size: .75rem; color: var(--muted); margin-top: 3px; }
+
+/* ── Guide steps ─────────────────────────────────────────────────────────── */
+.guide-steps { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 4px; }
+.guide-step  { display: flex; align-items: flex-start; gap: 10px; font-size: .82rem; color: var(--text); line-height: 1.45; }
+.gs-num {
+  min-width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .72rem; font-weight: 800; flex-shrink: 0; margin-top: 1px;
+}
+
+/* ── Number inputs with kr suffix ───────────────────────────────────────── */
+.field-suffix{position:relative;}
+.field-suffix input{padding-right:44px;}
+.field-suffix span{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  font-size:.85rem;color:var(--muted);pointer-events:none;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media(max-width:480px){
+  .result-grid{grid-template-columns:1fr;}
+  .stat-card.full{grid-column:1;}
+  .field-row{grid-template-columns:1fr;}
+}
+
+/* ── Panel 8: Overvågningsservice ───────────────────────────────────────── */
+.plan-toggle{display:flex;border:2px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px}
+.plan-btn{flex:1;padding:10px;border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:.9rem;font-weight:500;cursor:pointer;transition:all .2s;position:relative}
+.plan-btn.active{background:var(--accent);color:#fff}
+.save-badge{background:#1A8A54;color:#fff;font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:6px;vertical-align:middle}
+.price-box{text-align:center;padding:18px;background:var(--sky);border-radius:12px;margin-bottom:20px}
+.price-main{font-size:2.4rem;font-weight:700;color:var(--navy)}
+.price-sub{font-size:.85rem;color:var(--muted);margin-top:4px}
+:root[data-theme="dark"] .price-main,:root:not([data-theme="light"]) .price-main{color:var(--accent)}
+.feature-list{list-style:none;display:flex;flex-direction:column;gap:10px;margin:0 0 4px}
+.feature-list li{display:flex;gap:10px;align-items:flex-start;font-size:.9rem}
+.feat-check{color:var(--success);font-size:1rem;flex-shrink:0;margin-top:1px}
+
+/* ── Email preview ───────────────────────────────────────────────────────── */
+.email-preview{border:1px solid var(--border);border-radius:12px;overflow:hidden;font-size:.85rem}
+.ep-header{background:var(--navy);color:#fff;padding:14px 16px}
+.ep-logo{font-weight:700;font-size:.95rem;letter-spacing:.02em}
+.ep-date{font-size:.75rem;color:rgba(255,255,255,.6);margin-top:2px}
+.ep-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+.ep-section:last-child{border-bottom:none}
+.ep-section-title{font-weight:600;color:var(--text);margin-bottom:10px}
+.ep-gauge-row{display:flex;flex-direction:column;gap:6px}
+.ep-gauge-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.ep-gauge-fill{height:100%;background:linear-gradient(90deg,var(--warn),var(--accent));border-radius:4px}
+.ep-gauge-label{font-size:.8rem;color:var(--muted)}
+.ep-hint{margin-top:8px;font-size:.82rem;color:var(--muted);background:var(--sky);padding:8px 10px;border-radius:8px}
+.ep-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ep-stat{text-align:center;background:var(--sky);border-radius:8px;padding:8px 4px}
+.ep-stat-val{font-size:.95rem;font-weight:700;color:var(--text)}
+.ep-stat-lbl{font-size:.7rem;color:var(--muted);margin-top:2px}
+.ep-up{color:var(--success)}
+.ep-sale-card{background:var(--sky);border-radius:8px;padding:12px}
+.ep-sale-addr{font-weight:600;color:var(--text)}
+.ep-sale-price{font-size:1.3rem;font-weight:700;color:var(--accent);margin:4px 0}
+.ep-sale-meta{font-size:.78rem;color:var(--muted)}
+
+/* ── MobilePay ───────────────────────────────────────────────────────────── */
+.mobilepay-box{background:var(--sky);border-radius:12px;padding:20px;text-align:center}
+.mp-logo{font-size:1.1rem;font-weight:700;color:#5851EA;margin-bottom:8px}
+.mp-number{font-size:2rem;font-weight:700;color:var(--text);letter-spacing:.05em}
+.mp-hint{font-size:.8rem;color:var(--muted);margin-top:8px}
+</style></head><body><div style="padding:14px;background:#fff5d6;color:#173e35;font:14px system-ui"><a href="/">? Forside</a> ? Boligl?nstjek ? lokal forh?ndsvisning. Ingen live data, afsendelse eller betaling.</div>
+
+<!-- ── App header ─────────────────────────────────────────────────────────── -->
+<header class="app-header">
+  <div class="logo-mark">
+    <svg width="20" height="20" viewBox="0 0 20 20">
+      <path d="M10 2L3 8v10h4v-6h6v6h4V8L10 2z"/>
+      <circle cx="10" cy="12" r="2" fill="rgba(255,255,255,.4)"/>
+    </svg>
+  </div>
+  <div>
+    <div class="logo-text">BoligLånsRadar</div>
+    <span class="logo-sub">Låneoptimering for boligejere</span>
+  </div>
+</header>
+
+<!-- ── Stepper ────────────────────────────────────────────────────────────── -->
+<nav class="stepper" id="stepper">
+  <div class="step active" data-step="1">
+    <div class="step-dot">1</div>
+    <div class="step-label">Ejendom</div>
+  </div>
+  <div class="step" data-step="2">
+    <div class="step-dot">2</div>
+    <div class="step-label">Screenshot</div>
+  </div>
+  <div class="step" data-step="3">
+    <div class="step-dot">3</div>
+    <div class="step-label">Lån</div>
+  </div>
+  <div class="step" data-step="4">
+    <div class="step-dot">4</div>
+    <div class="step-label">Analyse</div>
+  </div>
+</nav>
+
+<div class="main" id="main">
+
+<!-- ═══════════════════ STEP 1 — EJENDOM ════════════════════════════════ -->
+<div class="panel active" id="panel-1">
+
+  <!-- Source chooser -->
+  <div class="source-chooser" id="sourceChooser">
+    <div class="source-opt active" id="srcVt" onclick="setSource('vt')">
+      <div class="src-icon src-vt">VT</div>
+      <div>
+        <div class="src-name">Fra Vurderingstjekket.dk</div>
+        <div class="src-desc">Data er allerede hentet — bekræft og fortsæt</div>
+      </div>
+      <div class="src-check">✓</div>
+    </div>
+    <div class="source-opt" id="srcManuel" onclick="setSource('manuel')">
+      <div class="src-icon src-m">📋</div>
+      <div>
+        <div class="src-name">Ny indtastning</div>
+        <div class="src-desc">Jeg kender ikke Vurderingstjekket.dk</div>
+      </div>
+      <div class="src-check">✓</div>
+    </div>
+  </div>
+
+  <!-- VT mode -->
+  <div class="card" id="vtCard">
+    <div class="card-title">Din ejendom</div>
+    <div class="card-sub">Vi har hentet ejendomsværdi og grundværdi fra Vurderingstjekket.dk. Kontrollér at tallene er korrekte.</div>
+
+    <div class="source-badge">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor"><path d="M6.5 0a6.5 6.5 0 110 13A6.5 6.5 0 016.5 0zm.75 5.5h-1.5v5h1.5v-5zm0-2.5h-1.5v1.5h1.5V3z"/></svg>
+      Hentet fra Vurderingstjekket.dk
+    </div>
+
+    <div class="field">
+      <label>Adresse</label>
+      <input type="text" id="adresse" value="Pilegårds Vænge 36, 2635 Ishøj" disabled>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Ejendomsværdi</label>
+        <div class="field-suffix">
+          <input type="number" id="ejendomsvaerdi" value="3200000" min="100000" max="50000000" step="10000">
+          <span>kr</span>
+        </div>
+        <div class="field-hint">Fra Skatteforvaltningens vurdering</div>
+      </div>
+      <div class="field">
+        <label>Grundværdi</label>
+        <div class="field-suffix">
+          <input type="number" id="grundvaerdi" value="980000" min="10000" max="20000000" step="10000">
+          <span>kr</span>
+        </div>
+        <div class="field-hint">Fra Skatteforvaltningens vurdering</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="goTo(2)">Bekræft og fortsæt →</button>
+  </div>
+
+  <!-- Manuel mode -->
+  <div class="card" id="manuelCard" style="display:none">
+    <div class="card-title">Din ejendom</div>
+    <div class="card-sub">Udfyld din adresse og ejendomsværdi. Du finder tallene på <strong>vurdering.dk</strong> eller på din seneste årsopgørelse fra SKAT.</div>
+
+    <div class="info-box">
+      <div class="info-box-title">📍 Sådan finder du dine tal</div>
+      <ol class="info-steps">
+        <li>Gå til <strong>vurdering.dk</strong> og søg på din adresse</li>
+        <li>Find <strong>Ejendomsværdi</strong> — det er den samlede vurdering af din bolig</li>
+        <li>Find <strong>Grundværdi</strong> — det er værdien af grunden alene</li>
+        <li>Alternativt: Se årsopgørelsen fra SKAT under "Ejendomsværdiskat"</li>
+      </ol>
+    </div>
+
+    <div class="field" style="position:relative">
+      <label>Adresse</label>
+      <input type="text" id="adresseM" placeholder="Begynd at skrive din adresse..." autocomplete="off" oninput="dawaSearch(this.value)" onkeydown="dawaKey(event)">
+      <div id="dawaDrop" class="dawa-drop" style="display:none"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Ejendomsværdi</label>
+        <div class="field-suffix">
+          <input type="number" id="ejendomsvaerdiM" placeholder="3000000" min="100000" max="50000000" step="10000" oninput="syncManuel()">
+          <span>kr</span>
+        </div>
+        <div class="field-hint">Fra vurdering.dk</div>
+      </div>
+      <div class="field">
+        <label>Grundværdi</label>
+        <div class="field-suffix">
+          <input type="number" id="grundvaerdiM" placeholder="800000" min="10000" max="20000000" step="10000" oninput="syncManuel()">
+          <span>kr</span>
+        </div>
+        <div class="field-hint">Fra vurdering.dk</div>
+      </div>
+    </div>
+
+    <div class="vt-cta">
+      <div style="font-size:.82rem;color:var(--muted);line-height:1.55;">
+        💡 <strong>Tip:</strong> Brug <a href="https://vurderingstjekket.dk" target="_blank" style="color:var(--accent)">Vurderingstjekket.dk</a> til at tjekke om din vurdering er korrekt — og få tallene pre-udfyldt her automatisk.
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="confirmManuel()">Bekræft og fortsæt →</button>
+  </div>
+
+</div>
+
+<!-- ═══════════════════ STEP 2 — SCREENSHOT ═════════════════════════════ -->
+<div class="panel" id="panel-2">
+  <div class="card">
+    <div class="card-title">Upload skærmbillede</div>
+    <div class="card-sub">Gå ind på dit boliglån i netbanken og tag et screenshot af oversigtssiden. Se eksemplet herunder.</div>
+
+    <!-- Example netbank screenshot -->
+    <div class="example-section">
+      <div class="example-label">📱 Tag et screenshot af denne side i din netbank</div>
+      <div class="phone-wrap">
+        <svg viewBox="0 0 210 390" width="180" style="display:block;max-width:100%;" xmlns="http://www.w3.org/2000/svg">
+          <!-- Phone body -->
+          <rect x="4" y="4" width="202" height="382" rx="22" ry="22" fill="#1A1A2E" stroke="#333" stroke-width="1.5"/>
+          <!-- Screen -->
+          <rect x="10" y="14" width="190" height="362" rx="16" ry="16" fill="#F8F9FC"/>
+          <!-- Notch -->
+          <rect x="75" y="14" width="60" height="18" rx="9" fill="#1A1A2E"/>
+
+          <!-- Bank header -->
+          <rect x="10" y="32" width="190" height="44" fill="#152B4E"/>
+          <!-- Back arrow -->
+          <text x="22" y="60" fill="white" font-size="16" font-family="system-ui">‹</text>
+          <!-- Title -->
+          <text x="105" y="58" fill="white" font-size="11.5" font-family="system-ui" font-weight="600" text-anchor="middle">Mit boliglån</text>
+          <!-- Menu dots -->
+          <text x="188" y="59" fill="white" font-size="14" font-family="system-ui" text-anchor="end">⋯</text>
+
+          <!-- Loan name block -->
+          <rect x="10" y="76" width="190" height="38" fill="#F0F3F9"/>
+          <text x="22" y="92" fill="#5A6E96" font-size="8.5" font-family="system-ui" font-weight="600">REALKREDIT · TOTALKREDIT</text>
+          <text x="22" y="107" fill="#111827" font-size="9.5" font-family="system-ui" font-weight="500">Fastforrentet lån · nr. 2409-xxxx</text>
+
+          <!-- Highlight box for key fields (orange dashed) -->
+          <rect x="14" y="117" width="182" height="130" rx="8" fill="none" stroke="#E8820A" stroke-width="2" stroke-dasharray="5,3"/>
+
+          <!-- Field: Restgæld -->
+          <rect x="10" y="114" width="190" height="1" fill="#E2E7F0"/>
+          <text x="22" y="133" fill="#5A6E96" font-size="8" font-family="system-ui">Restgæld</text>
+          <text x="188" y="133" fill="#111827" font-size="11" font-family="system-ui" font-weight="700" text-anchor="end">1.850.000 kr</text>
+          <rect x="10" y="138" width="190" height="1" fill="#E2E7F0"/>
+
+          <!-- Field: Rente -->
+          <text x="22" y="155" fill="#5A6E96" font-size="8" font-family="system-ui">Rente</text>
+          <text x="188" y="155" fill="#111827" font-size="11" font-family="system-ui" font-weight="700" text-anchor="end">4,00 % fast</text>
+          <rect x="10" y="160" width="190" height="1" fill="#E2E7F0"/>
+
+          <!-- Field: Ydelse -->
+          <text x="22" y="177" fill="#5A6E96" font-size="8" font-family="system-ui">Månedlig ydelse</text>
+          <text x="188" y="177" fill="#111827" font-size="11" font-family="system-ui" font-weight="700" text-anchor="end">10.800 kr</text>
+          <rect x="10" y="182" width="190" height="1" fill="#E2E7F0"/>
+
+          <!-- Field: Løbetid -->
+          <text x="22" y="199" fill="#5A6E96" font-size="8" font-family="system-ui">Resterende løbetid</text>
+          <text x="188" y="199" fill="#111827" font-size="11" font-family="system-ui" font-weight="700" text-anchor="end">22 år</text>
+          <rect x="10" y="204" width="190" height="1" fill="#E2E7F0"/>
+
+          <!-- Field: Næste (not highlighted) -->
+          <text x="22" y="221" fill="#5A6E96" font-size="8" font-family="system-ui">Næste ydelsesdato</text>
+          <text x="188" y="221" fill="#111827" font-size="10" font-family="system-ui" text-anchor="end">01.01.2027</text>
+          <rect x="10" y="226" width="190" height="1" fill="#E2E7F0"/>
+
+          <!-- Field: Panthaver (not highlighted) -->
+          <text x="22" y="243" fill="#5A6E96" font-size="8" font-family="system-ui">Panthaver</text>
+          <text x="188" y="243" fill="#111827" font-size="10" font-family="system-ui" text-anchor="end">Totalkredit A/S</text>
+          <rect x="10" y="248" width="190" height="1" fill="#E2E7F0"/>
+
+          <!-- Annotation label -->
+          <rect x="104" y="111" width="78" height="14" rx="4" fill="#E8820A"/>
+          <text x="143" y="121" fill="white" font-size="7.5" font-family="system-ui" font-weight="700" text-anchor="middle">Disse felter bruger vi</text>
+
+          <!-- Action button -->
+          <rect x="20" y="262" width="170" height="28" rx="8" fill="#152B4E"/>
+          <text x="105" y="280" fill="white" font-size="10" font-family="system-ui" font-weight="600" text-anchor="middle">Omlæg lån →</text>
+
+          <!-- Bottom nav bar -->
+          <rect x="10" y="340" width="190" height="36" fill="#F0F3F9" rx="0"/>
+          <rect x="10" y="340" width="190" height="1" fill="#E2E7F0"/>
+          <text x="42" y="362" fill="#5A6E96" font-size="18" text-anchor="middle">⌂</text>
+          <text x="84" y="362" fill="#5A6E96" font-size="16" text-anchor="middle">💳</text>
+          <text x="126" y="361" fill="#152B4E" font-size="15" text-anchor="middle" font-weight="700">🏠</text>
+          <text x="168" y="362" fill="#5A6E96" font-size="16" text-anchor="middle">☰</text>
+        </svg>
+      </div>
+      <div style="font-size:.78rem;color:var(--muted);margin-top:10px;line-height:1.5;">
+        Find dit boliglån → tryk på lånet → se detaljerne → tag screenshot
+      </div>
+    </div>
+
+    <!-- Upload zone -->
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="fileInput" accept="image/*" onchange="handleScreenshotUpload(this)">
+      <div class="upload-icon">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="40" height="40" rx="10" fill="var(--accent)" fill-opacity=".12"/>
+          <path d="M20 10v14M14 16l6-6 6 6" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 28h16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="upload-title">Tryk for at uploade dit screenshot</div>
+      <div class="upload-sub">JPG, PNG eller HEIC · Maks 20 MB</div>
+    </div>
+
+    <!-- Analyzing state -->
+    <div class="analyzing" id="analyzing">
+      <div class="spinner"></div>
+      <div>
+        <div class="analyzing-text">Analyserer skærmbillede…</div>
+        <div class="analyzing-sub">Claude Vision udtrækker låneoplysninger</div>
+      </div>
+    </div>
+
+    <button class="btn btn-ghost" onclick="goTo(1)" style="margin-top:16px;">← Tilbage</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ STEP 3 — LÅN VERIFICER ══════════════════════════ -->
+<div class="panel" id="panel-3">
+  <div class="card">
+    <div class="card-title">Kontrollér dine låneoplysninger</div>
+    <div class="card-sub">Udtrukket automatisk fra dit screenshot — ret hvis nødvendigt.</div>
+
+    <div class="extracted-badge" id="extractedBadge" style="display:none;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--success)"><path d="M8 0a8 8 0 110 16A8 8 0 018 0zm3.2 5.4L7 9.6 4.8 7.4 3.6 8.6l3.4 3.4 5.6-5.6-1.4-1z"/></svg>
+      Udtrukket fra dit screenshot
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Restgæld</label>
+        <div class="field-suffix">
+          <input type="number" id="restgaeld" value="1850000" min="10000" max="20000000" step="1000">
+          <span>kr</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Månedlig ydelse</label>
+        <div class="field-suffix">
+          <input type="number" id="maanedligYdelse" value="10800" min="0" max="500000" step="100">
+          <span>kr</span>
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Rente (% p.a.)</label>
+        <input type="number" id="rente" value="4.00" min="0" max="20" step="0.05">
+      </div>
+      <div class="field">
+        <label>Løbetid (år)</label>
+        <input type="number" id="loebetid" value="22" min="1" max="30" step="1">
+      </div>
+    </div>
+    <div class="field">
+      <label>Låntype</label>
+      <select id="laantype">
+        <option value="fastforrentet">Fastforrentet</option>
+        <option value="F1">F1 (rentetilpasning hvert år)</option>
+        <option value="F3">F3 (rentetilpasning hvert 3. år)</option>
+        <option value="F5">F5 (rentetilpasning hvert 5. år)</option>
+        <option value="afdragsfri">Afdragsfri</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary" onclick="beregn()">Beregn min optimering →</button>
+    <button class="btn btn-ghost" onclick="goTo(2)">← Tilbage</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ STEP 4 — RESULTAT ════════════════════════════════ -->
+<div class="panel" id="panel-4">
+
+  <!-- LTV Gauge card -->
+  <div class="card">
+    <div class="gauge-wrap">
+      <svg viewBox="0 0 220 130" width="220" style="display:block;margin:0 auto 8px;" id="gaugeSvg">
+        <defs>
+          <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#1A8A54"/>
+            <stop offset="55%" stop-color="#C47A0A"/>
+            <stop offset="100%" stop-color="#C03030"/>
+          </linearGradient>
+          <clipPath id="gaugeClip">
+            <rect x="0" y="0" width="220" height="130"/>
+          </clipPath>
+        </defs>
+        <!-- Track -->
+        <path d="M20 110 A90 90 0 0 1 200 110" fill="none" stroke="var(--border)" stroke-width="14" stroke-linecap="round"/>
+        <!-- Fill (animated via JS) -->
+        <path id="gaugeFill" d="M20 110 A90 90 0 0 1 200 110" fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/>
+        <!-- Zone labels -->
+        <text x="16" y="125" font-size="9" fill="var(--success)" font-family="system-ui" font-weight="600">0%</text>
+        <text x="96" y="30" font-size="9" fill="var(--warn)" font-family="system-ui" font-weight="600" text-anchor="middle">60%</text>
+        <text x="188" y="72" font-size="9" fill="var(--warn)" font-family="system-ui" font-weight="600" text-anchor="end">80%</text>
+        <!-- Needle -->
+        <g id="gaugeNeedle" transform="rotate(-90 110 110)">
+          <line x1="110" y1="110" x2="110" y2="28" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="110" cy="110" r="6" fill="var(--surface)" stroke="var(--text)" stroke-width="2.5"/>
+        </g>
+      </svg>
+      <div class="gauge-num" id="ltvNum">–</div>
+      <div class="gauge-label">Belåningsgrad (LTV)</div>
+      <div id="ltvCat" class="ltv-cat" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- Trafiklys anbefaling -->
+  <div class="trafiklys" id="trafiklysCard">
+    <div class="trafik-icon" id="trafiklysIcon">–</div>
+    <div>
+      <div class="trafik-title" id="trafiklysTitle">–</div>
+      <div class="trafik-detail" id="trafiklysDetail">–</div>
+    </div>
+  </div>
+
+  <!-- Savings highlight (kun hvis positiv) -->
+  <div class="savings-highlight" id="savingsHighlight" style="display:none;">
+    <div>
+      <div class="savings-label">Estimeret månedlig besparelse</div>
+      <div class="savings-amount" id="savingsAmt">–</div>
+      <div class="savings-period" id="savingsYear">– kr/år</div>
+    </div>
+    <div style="margin-left:auto;opacity:.6;">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="22" stroke="white" stroke-width="1.5" fill="none"/>
+        <path d="M16 26l6 6 10-12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Nøgletal grid -->
+  <div class="result-grid">
+    <div class="stat-card">
+      <div class="stat-label">Nuværende rente</div>
+      <div class="stat-val" id="resNuvRente">–</div>
+      <div class="stat-sub" id="resLaantype">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Bidragssats</div>
+      <div class="stat-val" id="resBidrag">–</div>
+      <div class="stat-sub">Totalkredit estimat</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Nuværende ydelse</div>
+      <div class="stat-val" id="resNuvYdelse">–</div>
+      <div class="stat-sub">kr / måned</div>
+    </div>
+    <div class="stat-card" id="resNyYdelseCard" style="display:none;">
+      <div class="stat-label">Ny ydelse</div>
+      <div class="stat-val" id="resNyYdelse">–</div>
+      <div class="stat-sub" id="resNyRente">–</div>
+    </div>
+    <div class="stat-card full" id="resTbCard" style="display:none;">
+      <div class="stat-label">Tilbagebetalingstid for omk.</div>
+      <div class="stat-val" id="resTb">–</div>
+      <div class="stat-sub" id="resTbSub">–</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div style="font-size:.78rem;color:var(--muted);line-height:1.55;margin-bottom:20px;padding:0 4px;">
+    ⚠️ Beregningerne er vejledende og baseret på aktuelle markedsrenter. Kontakt din bank eller Totalkredit for et konkret tilbud.
+  </div>
+
+  <button class="btn btn-primary" onclick="startBankpakke()">Start bankpakke →</button>
+  <button class="btn btn-ghost" onclick="goTo(1)">Beregn igen</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     FASE 2: BANKPAKKE
+     panel-5 Budget · panel-6 Dokumenter · panel-7 Banker & Send
+     ═══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- Phase 2 banner (hidden initially) -->
+<div id="phase2-header" style="display:none;background:var(--navy);color:#fff;padding:14px max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));">
+  <div style="max-width:520px;margin:0 auto;display:flex;align-items:center;gap:12px;">
+    <div style="flex:1">
+      <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;opacity:.6;margin-bottom:3px;">Fase 2</div>
+      <div style="font-weight:700;font-size:.95rem;">Bankpakke</div>
+    </div>
+    <div class="p2-stepper">
+      <span class="p2-step" id="p2s-budget">Budget</span>
+      <span class="p2-sep">›</span>
+      <span class="p2-step" id="p2s-docs">Dokumenter</span>
+      <span class="p2-sep">›</span>
+      <span class="p2-step" id="p2s-send">Send</span>
+    </div>
+  </div>
+</div>
+
+<!-- panel-5: Budget -->
+<div class="panel" id="panel-5">
+  <div class="card">
+    <div class="card-title">Månedligt budget</div>
+    <div class="card-sub">Vi har udfyldt det vi ved. Tilpas tallene så de passer til din faktiske økonomi — bankerne bruger det til at vurdere din rådighedsbeløb.</div>
+
+    <div class="budget-section">
+      <div class="budget-section-header">
+        <span>💰</span> Indkomst
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Løn (netto)</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_loen" type="number" value="34000" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Anden indkomst</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_anden" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+    </div>
+
+    <div class="budget-section">
+      <div class="budget-section-header"><span>🏠</span> Bolig</div>
+      <div class="budget-row">
+        <span class="budget-label">Boligydelse (ny ydelse)</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_bolig" type="number" value="9500" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Fællesudgifter / grundejerforening</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_faelles" type="number" value="800" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">El</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_el" type="number" value="1200" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Varme / gas</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_varme" type="number" value="2000" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Vand</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_vand" type="number" value="300" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Indboforsikring</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_forsikring" type="number" value="400" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+    </div>
+
+    <div class="budget-section">
+      <div class="budget-section-header"><span>🚗</span> Transport</div>
+      <div class="budget-row">
+        <span class="budget-label">Bil — leasingydelse / afdrag</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_bil" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Benzin / ladning</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_benzin" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Bilforsikring</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_bilfors" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Offentlig transport / DSB</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_transport" type="number" value="800" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+    </div>
+
+    <div class="budget-section">
+      <div class="budget-section-header"><span>🛒</span> Dagligdag</div>
+      <div class="budget-row">
+        <span class="budget-label">Mad og dagligvarer</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_mad" type="number" value="6000" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Børnepasning / SFO</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_born" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Fritid &amp; sport</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_fritid" type="number" value="1000" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+    </div>
+
+    <div class="budget-section">
+      <div class="budget-section-header"><span>📱</span> Abonnementer &amp; personligt</div>
+      <div class="budget-row">
+        <span class="budget-label">Mobiltelefon</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_mobil" type="number" value="200" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Internet</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_net" type="number" value="250" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Streaming (Netflix, Spotify…)</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_stream" type="number" value="300" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Kontaktlinser / briller</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_linser" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Medicin &amp; tandlæge (gns.)</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_helbred" type="number" value="300" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Tøj &amp; personlig pleje</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_toej" type="number" value="800" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+    </div>
+
+    <div class="budget-section">
+      <div class="budget-section-header"><span>💳</span> Øvrige forpligtelser</div>
+      <div class="budget-row">
+        <span class="budget-label">Forbrugslån / kviklån</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_laan" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Kreditkort (gns. forbrug)</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_kk" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Opsparing / investering</span>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_opsp" type="number" value="2000" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="budget-summary" id="budgetSummary">
+      <div class="budget-sum-row">
+        <span>Samlede udgifter</span>
+        <span id="bSumUd">–</span>
+      </div>
+      <div class="budget-sum-row">
+        <span>Samlet indkomst</span>
+        <span id="bSumInd">–</span>
+      </div>
+      <div class="budget-sum-row frie" id="frieMidlerRow">
+        <span>Rådighedsbeløb</span>
+        <span id="bFrie">–</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="goToPhase2(6)" style="margin-top:20px">Fortsæt til dokumenter →</button>
+    <button class="btn btn-ghost" onclick="goTo(4)">← Tilbage til analyse</button>
+  </div>
+</div>
+
+<!-- panel-6: Dokumenter -->
+<div class="panel" id="panel-6">
+  <div class="card">
+    <div class="card-title">Upload dine dokumenter</div>
+    <div class="card-sub">Log ind på e-Boks og SKAT i en ny fane, download dine dokumenter og upload dem her. Ingen deles med banker uden din godkendelse.</div>
+
+    <!-- e-Boks -->
+    <div class="doc-source-block">
+      <div class="doc-source-header">
+        <div class="doc-source-logo eboks-logo">e<span>B</span></div>
+        <div>
+          <div class="doc-source-name">e-Boks</div>
+          <div class="doc-source-desc">Lønsedler &amp; forbrugsregninger</div>
+        </div>
+        <a class="fetch-btn" href="https://www.e-boks.com/danmark/da/" target="_blank" rel="noopener">
+          <span class="fetch-btn-icon">↗</span> Åbn e-Boks
+        </a>
+      </div>
+
+      <div class="guide-steps">
+        <div class="guide-step"><span class="gs-num">1</span><span>Åbn e-Boks → log ind med MitID</span></div>
+        <div class="guide-step"><span class="gs-num">2</span><span>Find de <strong>3 seneste lønsedler</strong> under din arbejdsgivers mappe</span></div>
+        <div class="guide-step"><span class="gs-num">3</span><span>Find <strong>el- og varmeregninger</strong> fra de seneste 3 måneder</span></div>
+        <div class="guide-step"><span class="gs-num">4</span><span>Download som PDF og upload herunder</span></div>
+      </div>
+
+      <div class="upload-zone" id="eboksZone" onclick="document.getElementById('eboksFile').click()" ondragover="dzOver(event,'eboksZone')" ondragleave="dzLeave('eboksZone')" ondrop="dzDrop(event,'eboks')">
+        <input type="file" id="eboksFile" multiple accept=".pdf" style="display:none" onchange="handleUpload(this.files,'eboks')">
+        <div class="uz-icon">📂</div>
+        <div class="uz-label">Træk PDF'er hertil eller <u>klik for at vælge</u></div>
+        <div class="uz-hint">Lønsedler + el/varme-regninger</div>
+      </div>
+      <div id="eboks-docs" style="display:none"></div>
+    </div>
+
+    <!-- SKAT -->
+    <div class="doc-source-block" style="margin-top:16px">
+      <div class="doc-source-header">
+        <div class="doc-source-logo skat-logo">SKAT</div>
+        <div>
+          <div class="doc-source-name">Skattestyrelsen</div>
+          <div class="doc-source-desc">Årsopgørelse &amp; skattemappen</div>
+        </div>
+        <a class="fetch-btn" href="https://skat.dk/" target="_blank" rel="noopener">
+          <span class="fetch-btn-icon">↗</span> Åbn SKAT
+        </a>
+      </div>
+
+      <div class="guide-steps">
+        <div class="guide-step"><span class="gs-num">1</span><span>Åbn skat.dk → log ind med MitID → gå til <strong>Skattemappen</strong></span></div>
+        <div class="guide-step"><span class="gs-num">2</span><span>Download din <strong>årsopgørelse</strong> (seneste år)</span></div>
+        <div class="guide-step"><span class="gs-num">3</span><span>Download <strong>ejendomsoplysninger</strong> og <strong>kapitalindkomst</strong> hvis relevant</span></div>
+        <div class="guide-step"><span class="gs-num">4</span><span>Upload PDF'erne herunder</span></div>
+      </div>
+
+      <div class="upload-zone" id="skatZone" onclick="document.getElementById('skatFile').click()" ondragover="dzOver(event,'skatZone')" ondragleave="dzLeave('skatZone')" ondrop="dzDrop(event,'skat')">
+        <input type="file" id="skatFile" multiple accept=".pdf" style="display:none" onchange="handleUpload(this.files,'skat')">
+        <div class="uz-icon">📂</div>
+        <div class="uz-label">Træk PDF'er hertil eller <u>klik for at vælge</u></div>
+        <div class="uz-hint">Årsopgørelse + skattemappen</div>
+      </div>
+      <div id="skat-docs" style="display:none"></div>
+    </div>
+
+    <div id="docs-ready-hint" style="display:none" class="docs-ready-hint">
+      ✅ Dokumenter klar til bankpakken
+    </div>
+
+    <button class="btn btn-primary" id="docsNextBtn" onclick="goToPhase2(7)" style="margin-top:20px;display:none">Vælg banker &amp; send →</button>
+    <button class="btn btn-ghost" onclick="goToPhase2(5)">← Tilbage til budget</button>
+  </div>
+</div>
+
+<!-- panel-7: Banker & Send -->
+<div class="panel" id="panel-7">
+  <div class="card">
+    <div class="card-title">Vælg banker</div>
+    <div class="card-sub">Vælg hvilke banker der skal modtage din bankpakke. Du kan styre præcist hvilke dokumenter den enkelte bank har adgang til.</div>
+
+    <div class="bank-grid" id="bankGrid">
+      <div class="bank-card" id="bank-nykredit" onclick="toggleBank('nykredit')">
+        <div class="bank-logo nyk">NK</div>
+        <div class="bank-name">Nykredit</div>
+        <div class="bank-check">✓</div>
+      </div>
+      <div class="bank-card active" id="bank-totalkredit" onclick="toggleBank('totalkredit')">
+        <div class="bank-logo tot">TK</div>
+        <div class="bank-name">Totalkredit</div>
+        <div class="bank-tag">Nuværende</div>
+        <div class="bank-check">✓</div>
+      </div>
+      <div class="bank-card" id="bank-rd" onclick="toggleBank('rd')">
+        <div class="bank-logo rd">RD</div>
+        <div class="bank-name">Realkredit Danmark</div>
+        <div class="bank-check">✓</div>
+      </div>
+      <div class="bank-card" id="bank-nordea" onclick="toggleBank('nordea')">
+        <div class="bank-logo nor">NB</div>
+        <div class="bank-name">Nordea Kredit</div>
+        <div class="bank-check">✓</div>
+      </div>
+      <div class="bank-card" id="bank-brf" onclick="toggleBank('brf')">
+        <div class="bank-logo brf">BRF</div>
+        <div class="bank-name">BRFkredit</div>
+        <div class="bank-check">✓</div>
+      </div>
+    </div>
+
+    <!-- Access management per bank -->
+    <div id="accessSection" style="margin-top:20px">
+      <div class="access-header">Adgangsstyring til skattemappen</div>
+      <div class="access-sub">Alle valgte banker får adgang til lønsedler. Nedenfor kan du styre adgang til SKAT-dokumenter individuelt.</div>
+      <div id="accessRows"></div>
+    </div>
+
+    <!-- Package summary -->
+    <div class="package-summary" id="pkgSummary">
+      <div class="pkg-title">📦 Bankpakke oversigt</div>
+      <div id="pkgLines"></div>
+    </div>
+
+    <button class="btn btn-primary" id="sendBtn" onclick="sendPakke()" style="margin-top:20px">
+      <span id="sendBtnTxt">Send til <span id="sendCount">0</span> banker</span>
+    </button>
+    <button class="btn btn-ghost" onclick="goToPhase2(6)">← Tilbage til dokumenter</button>
+  </div>
+
+  <!-- Success state -->
+  <div class="card" id="successCard" style="display:none">
+    <div style="text-align:center;padding:12px 0 20px">
+      <div style="font-size:3rem;margin-bottom:12px">🎉</div>
+      <div class="card-title" style="margin-bottom:8px">Bankpakken er sendt!</div>
+      <div class="card-sub">Bankerne vil kontakte dig inden for 2–3 hverdage med et tilbud.</div>
+    </div>
+    <div class="timeline">
+      <div class="tl-item done">
+        <div class="tl-dot">✓</div>
+        <div><div class="tl-title">Pakke samlet</div><div class="tl-desc">Budget, dokumenter &amp; låneoplysninger</div></div>
+      </div>
+      <div class="tl-item done">
+        <div class="tl-dot">✓</div>
+        <div><div class="tl-title">Sendt til banker</div><div class="tl-desc" id="sentToBanks">–</div></div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot">⏳</div>
+        <div><div class="tl-title">Bankerne kontakter dig</div><div class="tl-desc">Forventet inden for 2–3 hverdage</div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">
+      <button class="btn btn-primary" onclick="goToPanel8()">📡 Tilmeld løbende overvågning</button>
+      <button class="btn btn-ghost" onclick="goTo(1)">Start forfra</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PANEL 8: Overvågningsservice ═══════════════ -->
+<div class="panel" id="panel-8">
+  <div class="card" id="p8-plans">
+    <div style="text-align:center;padding:8px 0 20px">
+      <div style="font-size:2.2rem;margin-bottom:8px">📡</div>
+      <div class="card-title">Lad radaren holde øje</div>
+      <div class="card-sub" style="max-width:360px;margin:8px auto 0">Vi scanner renter og kurser dagligt og giver dig besked når det kan betale sig at omlægge — plus månedlig rapport om dit boligmarked.</div>
+    </div>
+
+    <!-- Plan toggle -->
+    <div class="plan-toggle" id="planToggle">
+      <button class="plan-btn active" id="btnMaaned" onclick="setPlan('maaned')">Månedlig</button>
+      <button class="plan-btn" id="btnAarlig" onclick="setPlan('aarlig')">
+        Årlig <span class="save-badge">Spar 189 kr</span>
+      </button>
+    </div>
+
+    <!-- Price display -->
+    <div class="price-box">
+      <div class="price-main" id="priceMain">49 kr</div>
+      <div class="price-sub" id="priceSub">pr. måned · opsig når som helst</div>
+    </div>
+
+    <!-- Features -->
+    <ul class="feature-list">
+      <li><span class="feat-check">✓</span><span><strong>Daglig scanning</strong> af renter og kurser fra alle realkreditinstitutter</span></li>
+      <li><span class="feat-check">✓</span><span><strong>Alarm</strong> når omlægning kan spare dig penge (din gevinst­tærskel)</span></li>
+      <li><span class="feat-check">✓</span><span><strong>Omlægningsanbefaling</strong> med break-even beregning</span></li>
+      <li><span class="feat-check">✓</span><span><strong>Automatisk dokumentpakke</strong> klar til banken</span></li>
+      <li><span class="feat-check">✓</span><span><strong>Månedlig rapport</strong> med boligmarked, prisudvikling og månedens handler i dit område</span></li>
+    </ul>
+
+    <!-- Email input -->
+    <div style="margin-top:20px">
+      <label class="field-label">Din e-mail</label>
+      <input type="email" id="subEmail" class="field-input" placeholder="din@email.dk" autocomplete="email">
+    </div>
+
+    <button class="btn btn-primary" id="subBtn" onclick="startSubscription()" style="margin-top:14px;width:100%">
+      Fortsæt til betaling
+    </button>
+    <div style="text-align:center;margin-top:10px;font-size:.8rem;color:var(--muted)">Sikker betaling · MobilePay eller kort · Ingen binding på månedlig</div>
+  </div>
+
+  <!-- Email preview card -->
+  <div class="card" style="margin-top:16px">
+    <div style="font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px">Eksempel på månedlig rapport</div>
+    <div class="email-preview">
+      <div class="ep-header">
+        <div class="ep-logo">📡 BoligLånsRadar</div>
+        <div class="ep-date">Oktober 2026 — Din månedlige rapport</div>
+      </div>
+
+      <div class="ep-section">
+        <div class="ep-section-title">🎯 Din lånstatus</div>
+        <div class="ep-gauge-row">
+          <div class="ep-gauge-bar">
+            <div class="ep-gauge-fill" style="width:68%"></div>
+          </div>
+          <div class="ep-gauge-label">Gevinst ved omlægning: <strong>1.847 kr/md</strong></div>
+        </div>
+        <div class="ep-hint">Du er <strong>153 kr/md</strong> fra din alarm-tærskel på 2.000 kr/md. Vi holder øje.</div>
+      </div>
+
+      <div class="ep-section">
+        <div class="ep-section-title">🏘️ Boligmarked i dit område</div>
+        <div class="ep-stats">
+          <div class="ep-stat"><div class="ep-stat-val">21.847 kr</div><div class="ep-stat-lbl">m²-pris</div></div>
+          <div class="ep-stat"><div class="ep-stat-val ep-up">+2,3%</div><div class="ep-stat-lbl">vs. sep.</div></div>
+          <div class="ep-stat"><div class="ep-stat-val">38 dage</div><div class="ep-stat-lbl">liggetid</div></div>
+          <div class="ep-stat"><div class="ep-stat-val">12</div><div class="ep-stat-lbl">handler</div></div>
+        </div>
+      </div>
+
+      <div class="ep-section ep-sale">
+        <div class="ep-section-title">🏡 Månedens største handel i dit område</div>
+        <div class="ep-sale-card">
+          <div class="ep-sale-addr">Strandgårds Allé 12, Ishøj</div>
+          <div class="ep-sale-price">4.200.000 kr</div>
+          <div class="ep-sale-meta">247 m² · 17.004 kr/m² · solgt 14. okt.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment panel (hidden until email entered) -->
+  <div class="card" id="p8-payment" style="display:none">
+    <div style="text-align:center;padding:12px 0 20px">
+      <div style="font-size:2.5rem;margin-bottom:10px">📱</div>
+      <div class="card-title" style="margin-bottom:6px">Betal med MobilePay</div>
+      <div class="card-sub" id="paySubtitle">49 kr/md</div>
+    </div>
+    <p>Betaling er afkoblet i denne forh?ndsvisning.</p>
+    <div style="text-align:center;margin:16px 0;color:var(--muted);font-size:.85rem">— eller —</div>
+    <button class="btn btn-primary" style="width:100%;background:#5851EA" onclick="payCard()">💳 Betal med kort</button>
+    <div style="text-align:center;margin-top:12px">
+      <button class="btn btn-ghost" onclick="document.getElementById('p8-payment').style.display='none';document.getElementById('p8-plans').style.display='block'">← Tilbage</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script src="/mortgage-preview.js"></script><script>
+// ── State ─────────────────────────────────────────────────────────────────
+let currentStep = 1;
+
+// ── Navigation ────────────────────────────────────────────────────────────
+function goTo(step) {
+  document.querySelector(`#panel-${currentStep}`).classList.remove('active');
+  document.querySelector(`#panel-${step}`).classList.add('active');
+  document.querySelectorAll('.step').forEach((el, i) => {
+    const n = i + 1;
+    el.classList.toggle('done', n < step);
+    el.classList.toggle('active', n === step);
+  });
+  currentStep = step;
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+// ── Upload handler ────────────────────────────────────────────────────────
+function handleScreenshotUpload(input) {
+  if (!input.files.length) return;
+  const file = input.files[0];
+
+  // Show analyzing state
+  document.getElementById('uploadZone').style.display = 'none';
+  const analyzing = document.getElementById('analyzing');
+  analyzing.style.display = 'flex';
+
+  // Simulate Claude Vision extraction (1.8s)
+  const reader = new FileReader();
+    reader.onload = async function(e) {
+      const base64 = e.target.result.split(',')[1];
+      const mType = file.type || 'image/png';
+      try {
+        const resp = await fetch('/api/analyze-screenshot', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ image: base64, mediaType: mType })
+        });
+        const data = await resp.json();
+        analyzing.style.display = 'none';
+        document.getElementById('uploadZone').style.display = '';
+        if (data.restgaeld) document.getElementById('restgaeld').value = data.restgaeld;
+        if (data.maanedligYdelse) document.getElementById('maanedligYdelse').value = data.maanedligYdelse;
+        if (data.rente) document.getElementById('rente').value = data.rente;
+        if (data.loebetid) document.getElementById('loebetid').value = data.loebetid;
+        if (data.laantype) document.getElementById('laantype').value = data.laantype;
+        document.getElementById('extractedBadge').style.display = 'flex';
+        goTo(3);
+      } catch(err) {
+        analyzing.style.display = 'none';
+        document.getElementById('uploadZone').style.display = '';
+        alert('Kunne ikke analysere billedet: ' + err.message);
+      }
+    };
+    reader.readAsDataURL(file);
+}
+
+// Drag-and-drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('dragover');
+  const dt = e.dataTransfer;
+  if (dt.files.length) handleScreenshotUpload({ files: dt.files });
+});
+
+// ── Markedsrenter ─────────────────────────────────────────────────────────
+const MARKEDSRENTER = {
+  fastforrentet: 4.50, F1: 3.20, F3: 3.50, F5: 3.75, afdragsfri: 4.00
+};
+const KONV_FAST_OMK = 15000;
+const KONV_VAR_PCT  = 0.005;
+
+function mYdelse(restgaeld, rentePct, loebetidAar, afdragsfri = false) {
+  if (afdragsfri || loebetidAar === 0) return restgaeld * (rentePct / 100) / 12;
+  const r = (rentePct / 100) / 12, n = loebetidAar * 12;
+  if (r === 0) return restgaeld / n;
+  return restgaeld * r * Math.pow(1+r, n) / (Math.pow(1+r, n) - 1);
+}
+function bidragssats(ltv) {
+  if (ltv <= 40) return 0.40;
+  if (ltv <= 60) return 0.55;
+  if (ltv <= 80) return 0.85;
+  return 1.50;
+}
+function konvOmk(restgaeld) { return KONV_FAST_OMK + KONV_VAR_PCT * restgaeld; }
+function kurstabEstimat(gRente, nRente, restgaeld, loebetid) {
+  const varighed = Math.min(loebetid * 0.6, 8);
+  return ((nRente - gRente) / 100) * varighed * restgaeld;
+}
+
+// ── Main calculation ──────────────────────────────────────────────────────
+function beregn() {
+  const ejd   = +document.getElementById('ejendomsvaerdi').value;
+  const rest  = +document.getElementById('restgaeld').value;
+  const rente = +document.getElementById('rente').value;
+  const loeb  = +document.getElementById('loebetid').value;
+  const ltype = document.getElementById('laantype').value;
+  const mYdl  = +document.getElementById('maanedligYdelse').value || null;
+  const afdrf = ltype === 'afdragsfri';
+
+  if (!ejd || !rest || !rente || !loeb) return alert('Udfyld alle felter.');
+
+  const ltv       = (rest / ejd) * 100;
+  const bidr      = bidragssats(ltv);
+  const nuv       = mYdl || mYdelse(rest, rente, loeb, afdrf);
+  const mrente    = MARKEDSRENTER[ltype] || MARKEDSRENTER.fastforrentet;
+  const rentediff = rente - mrente;        // pos = din rente > marked
+  const omk       = konvOmk(rest);
+  const kursDiff  = kurstabEstimat(rente, mrente, rest, loeb);
+
+  let sc = { type:'ingen', nyRente:rente, nyYdelse:nuv, besparelse:0, omk:0, tb:null, anbefalet:false, txt:'' };
+
+  if (Math.abs(rentediff) < 0.25) {
+    sc.txt = `Renteforskellen er kun ${Math.abs(rentediff).toFixed(2)} pp — konvertering kan ikke betale sig.`;
+  } else if (rentediff > 0) {
+    // Nedkonvertering
+    const kurstab = Math.max(0, -kursDiff);
+    const ny      = mYdelse(rest, mrente, loeb);
+    const bespar  = nuv - ny;
+    const tomk    = omk + kurstab;
+    const tb      = bespar > 50 ? Math.round(tomk / bespar) : null;
+    const anbef   = tb !== null && tb <= 48 && ltv <= 80;
+    sc = { type:'nedkonvertering', nyRente:mrente, nyYdelse:ny, besparelse:bespar,
+           omk:tomk, tb, anbefalet:anbef,
+           txt: tb ? `Din rente (${rente.toFixed(2)}%) er ${rentediff.toFixed(2)} pp højere end markedet (${mrente.toFixed(2)}%). Månedlig besparelse: ${fmt(bespar)} kr. Tilbagebetaling: ${tb} måneder.`
+                   : `Din rente (${rente.toFixed(2)}%) er ${rentediff.toFixed(2)} pp over markedet — besparelsen er marginal.` };
+  } else {
+    // Opkonvertering
+    const kursgevinst = Math.max(0, kursDiff);
+    const nyRest = Math.max(rest - kursgevinst, rest * 0.5);
+    const ny = mYdelse(nyRest, mrente, loeb);
+    const bespar = nuv - ny;
+    const anbef = kursgevinst > omk * 1.5;
+    sc = { type:'opkonvertering', nyRente:mrente, nyYdelse:ny, besparelse:bespar,
+           omk, tb:null, anbefalet:anbef,
+           txt: anbef ? `Kursgevinst ved indfrielse: ${fmt(kursgevinst)} kr (${(kursgevinst/rest*100).toFixed(1)}% af restgæld). Ny gæld: ${fmt(nyRest)} kr.`
+                      : `Kursgevinsten (${fmt(kursgevinst)} kr) dækker knap omkostningerne (${fmt(omk)} kr) — overvej at vente på større rentestigninger.` };
+  }
+
+  // LTV category
+  let ltvKat, ltvCls;
+  if (ltv < 60)       { ltvKat = 'GUL ≥60%'; ltvCls = 'cat-green'; ltvKat = 'GRØN <60%'; }
+  else if (ltv <= 80) { ltvKat = 'GUL 60–80%'; ltvCls = 'cat-yellow'; }
+  else                { ltvKat = 'RØD >80%'; ltvCls = 'cat-red'; }
+  if (ltv < 60) ltvCls = 'cat-green';
+
+  // Trafiklys
+  let icon, titel, detalje;
+  if (ltv > 80) {
+    icon='🔴'; titel='Belåningsgraden er over 80%';
+    detalje=`Din LTV er ${ltv.toFixed(1)}%. Du er over 80%-grænsen for realkreditlån alene. Tal med din bank om en kombineret løsning.`;
+  } else if (!sc.anbefalet) {
+    icon='🟡'; titel='Konvertering er ikke oplagt nu';
+    detalje = sc.txt;
+  } else {
+    icon='🟢'; titel=`Konvertering anbefalet — spar ${fmt(sc.besparelse*12)} kr/år`;
+    detalje = sc.txt + ' Kontakt Totalkredit eller Nykredit for et konkret tilbud.';
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────
+  animateGauge(ltv);
+  document.getElementById('ltvNum').textContent = ltv.toFixed(1) + '%';
+  const catEl = document.getElementById('ltvCat');
+  catEl.style.display = 'inline-block';
+  catEl.className = `ltv-cat ${ltvCls}`;
+  catEl.textContent = ltvKat;
+
+  document.getElementById('trafiklysIcon').textContent = icon;
+  document.getElementById('trafiklysTitle').textContent = titel;
+  document.getElementById('trafiklysDetail').textContent = detalje;
+
+  // Savings highlight
+  if (sc.besparelse > 50 && sc.anbefalet) {
+    document.getElementById('savingsHighlight').style.display = 'flex';
+    document.getElementById('savingsAmt').textContent = fmt(sc.besparelse) + ' kr';
+    document.getElementById('savingsYear').textContent = fmt(sc.besparelse * 12) + ' kr/år';
+  } else {
+    document.getElementById('savingsHighlight').style.display = 'none';
+  }
+
+  // Grid stats
+  document.getElementById('resNuvRente').textContent = rente.toFixed(2) + '%';
+  document.getElementById('resLaantype').textContent = ltype;
+  document.getElementById('resBidrag').textContent = bidr.toFixed(2) + '%';
+  document.getElementById('resNuvYdelse').textContent = fmt(Math.round(nuv));
+
+  if (sc.type !== 'ingen') {
+    document.getElementById('resNyYdelseCard').style.display = '';
+    document.getElementById('resNyYdelse').textContent = fmt(Math.round(sc.nyYdelse));
+    document.getElementById('resNyRente').textContent = mrente.toFixed(2) + '% (marked)';
+  } else {
+    document.getElementById('resNyYdelseCard').style.display = 'none';
+  }
+  if (sc.tb) {
+    document.getElementById('resTbCard').style.display = '';
+    document.getElementById('resTb').textContent = sc.tb + ' måneder';
+    document.getElementById('resTbSub').textContent = sc.tb <= 24 ? '✅ Klart anbefalet' : sc.tb <= 48 ? '👍 Overvej det' : '⚠️ Lang tilbagebetalingstid';
+  } else {
+    document.getElementById('resTbCard').style.display = 'none';
+  }
+
+  goTo(4);
+}
+
+// ── Gauge animation ───────────────────────────────────────────────────────
+function animateGauge(ltv) {
+  const arc = document.getElementById('gaugeFill');
+  const needle = document.getElementById('gaugeNeedle');
+  const totalLen = 283; // π × 90 ≈ 283
+  const pct = Math.min(ltv / 100, 1);
+  const dashOffset = totalLen - pct * totalLen;
+
+  // Needle: -90° = 0%, 0° = 50%, 90° = 100%
+  const angle = -90 + pct * 180;
+
+  let start = null;
+  const dur = 900;
+  function step(ts) {
+    if (!start) start = ts;
+    const p = Math.min((ts - start) / dur, 1);
+    const ease = 1 - Math.pow(1-p, 3);
+    arc.style.strokeDashoffset = totalLen - ease * pct * totalLen;
+    needle.setAttribute('transform', `rotate(${-90 + ease * angle + 90} 110 110)`);
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ── DAWA address autocomplete ────────────────────────────────────────────────
+let dawaTimer = null;
+let dawaCursor = -1;
+let dawaResults = [];
+
+function dawaSearch(q) {
+  clearTimeout(dawaTimer);
+  const drop = document.getElementById('dawaDrop');
+  if (q.length < 2) { drop.style.display='none'; return; }
+  dawaTimer = setTimeout(async () => {
+    try {
+      const url = '/api/dawa?q=' +
+        encodeURIComponent(q) + '&per_side=8&caretpos=' + q.length;
+      const res = await fetch(url);
+      const data = await res.json();
+      dawaResults = data;
+      dawaCursor = -1;
+      if (!data.length) { drop.style.display='none'; return; }
+      drop.innerHTML = data.map((d,i) => {
+        const adr = d.adresse;
+        const linje1 = d.tekst.split(',')[0];
+        const linje2 = adr ? (adr.postnr + ' ' + adr.postnrnavn) : '';
+        return `<div class="dawa-item" data-i="${i}" onmousedown="dawaPick(${i})">
+          <strong>${linje1}</strong><span>${linje2}</span></div>`;
+      }).join('');
+      drop.style.display = 'block';
+    } catch(e) { drop.style.display='none'; }
+  }, 180);
+}
+
+function dawaPick(i) {
+  const d = dawaResults[i];
+  if (!d) return;
+  const adr = d.adresse;
+  const fullText = adr
+    ? (adr.vejnavn + ' ' + adr.husnr + (adr.etage ? ', ' + adr.etage + (adr.dør ? ' ' + adr.dør : '') : '') + ', ' + adr.postnr + ' ' + adr.postnrnavn)
+    : d.tekst.replace(/,$/, '').trim();
+  document.getElementById('adresseM').value = fullText;
+  document.getElementById('dawaDrop').style.display = 'none';
+  dawaCursor = -1;
+}
+
+function dawaKey(e) {
+  const items = document.querySelectorAll('#dawaDrop .dawa-item');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    dawaCursor = Math.min(dawaCursor + 1, items.length - 1);
+    items.forEach((el,i) => el.classList.toggle('active', i===dawaCursor));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    dawaCursor = Math.max(dawaCursor - 1, 0);
+    items.forEach((el,i) => el.classList.toggle('active', i===dawaCursor));
+  } else if (e.key === 'Enter' && dawaCursor >= 0) {
+    e.preventDefault();
+    dawaPick(dawaCursor);
+  } else if (e.key === 'Escape') {
+    document.getElementById('dawaDrop').style.display = 'none';
+  }
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#adresseM') && !e.target.closest('#dawaDrop'))
+    document.getElementById('dawaDrop').style.display = 'none';
+});
+
+// ── Source chooser ───────────────────────────────────────────────────────
+let sourceMode = 'vt'; // 'vt' | 'manuel'
+
+function setSource(mode) {
+  sourceMode = mode;
+  document.getElementById('srcVt').classList.toggle('active', mode === 'vt');
+  document.getElementById('srcManuel').classList.toggle('active', mode === 'manuel');
+  document.getElementById('vtCard').style.display = mode === 'vt' ? '' : 'none';
+  document.getElementById('manuelCard').style.display = mode === 'manuel' ? '' : 'none';
+}
+
+function syncManuel() {
+  const ev = document.getElementById('ejendomsvaerdiM').value;
+  const gv = document.getElementById('grundvaerdiM').value;
+  if (ev) document.getElementById('ejendomsvaerdi').value = ev;
+  if (gv) document.getElementById('grundvaerdi').value = gv;
+}
+
+function confirmManuel() {
+  const adr = document.getElementById('adresseM').value.trim();
+  const ev  = document.getElementById('ejendomsvaerdiM').value;
+  const gv  = document.getElementById('grundvaerdiM').value;
+  if (!adr) { alert('Udfyld venligst din adresse'); return; }
+  if (!ev || parseInt(ev) < 100000) { alert('Udfyld en gyldig ejendomsværdi'); return; }
+  // Sync to main hidden fields
+  document.getElementById('adresse').value = adr;
+  document.getElementById('ejendomsvaerdi').value = ev || 0;
+  document.getElementById('grundvaerdi').value = gv || 0;
+  goTo(2);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function fmt(n) { return Math.round(n).toLocaleString('da-DK'); }
+
+// Mangler upload → simuler skip knap
+document.getElementById('uploadZone').addEventListener('click', function(e) {
+  if (e.target.tagName !== 'INPUT') document.getElementById('fileInput').click();
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FASE 2 — BANKPAKKE
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Phase 2 state
+const p2Steps = {5:'budget',6:'docs',7:'send'};
+let selectedBanks = new Set(['totalkredit']);
+let bankAccess = {}; // bankId -> Set of doc ids they can access
+let docsReady = false;
+
+// ── Start bankpakke ───────────────────────────────────────────────────────
+function startBankpakke() {
+  // Pre-fill boligydelse from calculation (grab nyYdelse if available, else nuv)
+  const nyY = document.getElementById('resNyYdelse');
+  const nuvY = document.getElementById('resNuvYdelse');
+  if (nyY && nyY.textContent && nyY.textContent !== '') {
+    const v = parseInt(nyY.textContent.replace(/\./g,'').replace(/\s/g,'')) || 0;
+    if (v > 0) document.getElementById('b_bolig').value = v;
+  } else if (nuvY && nuvY.textContent) {
+    const v = parseInt(nuvY.textContent.replace(/\./g,'').replace(/\s/g,'')) || 0;
+    if (v > 0) document.getElementById('b_bolig').value = v;
+  }
+
+  // Show phase2 header, hide main stepper
+  document.getElementById('phase2-header').style.display = 'block';
+  document.querySelector('.stepper').style.display = 'none';
+  goToPhase2(5);
+  calcBudget();
+}
+
+// ── Phase 2 navigation ────────────────────────────────────────────────────
+function goToPhase2(step) {
+  // Hide all panels
+  [1,2,3,4,5,6,7].forEach(n => {
+    const p = document.getElementById('panel-' + n);
+    if (p) p.classList.remove('active');
+  });
+  const target = document.getElementById('panel-' + step);
+  if (target) target.classList.add('active');
+  currentStep = step;
+  window.scrollTo({top:0,behavior:'smooth'});
+
+  // Update p2 stepper
+  const map = {5:'budget', 6:'docs', 7:'send'};
+  ['budget','docs','send'].forEach((k,i) => {
+    const el = document.getElementById('p2s-' + k);
+    if (!el) return;
+    const stepNum = [5,6,7][i];
+    el.className = 'p2-step' + (stepNum === step ? ' active' : stepNum < step ? ' done' : '');
+  });
+
+  if (step === 7) renderBankerPanel();
+}
+
+// ── Budget calculation ────────────────────────────────────────────────────
+function calcBudget() {
+  const ids = ['b_loen','b_anden','b_bolig','b_faelles','b_el','b_varme','b_vand','b_forsikring',
+    'b_bil','b_benzin','b_bilfors','b_transport','b_mad','b_born','b_fritid',
+    'b_mobil','b_net','b_stream','b_linser','b_helbred','b_toej',
+    'b_laan','b_kk','b_opsp'];
+  const income = ['b_loen','b_anden'];
+  let ind = 0, ud = 0;
+  ids.forEach(id => {
+    const v = parseFloat(document.getElementById(id)?.value) || 0;
+    if (income.includes(id)) ind += v; else ud += v;
+  });
+  const frie = ind - ud;
+  document.getElementById('bSumInd').textContent = fmt(ind) + ' kr';
+  document.getElementById('bSumUd').textContent = fmt(ud) + ' kr';
+  const frRow = document.getElementById('frieMidlerRow');
+  document.getElementById('bFrie').textContent = (frie >= 0 ? '+' : '') + fmt(frie) + ' kr';
+  frRow.className = 'budget-sum-row frie ' + (frie >= 0 ? 'positive' : 'negative');
+}
+
+// ── Upload flow ───────────────────────────────────────────────────────────
+let uploadedDocs = { eboks: [], skat: [] };
+
+function handleUpload(files, group) {
+  Array.from(files).forEach(f => {
+    if (!uploadedDocs[group].find(d => d.name === f.name))
+      uploadedDocs[group].push(f);
+  });
+  renderUploadedDocs(group);
+  checkDocsReady();
+}
+
+function renderUploadedDocs(group) {
+  const el = document.getElementById(group === 'eboks' ? 'eboks-docs' : 'skat-docs');
+  const docs = uploadedDocs[group];
+  if (!docs.length) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = docs.map((f, i) => `
+    <div class="doc-card" style="margin-top:8px">
+      <div class="doc-icon">📄</div>
+      <div class="doc-info">
+        <div class="doc-name">${f.name}</div>
+        <div class="doc-meta"><span class="doc-badge ${group}">${group === 'eboks' ? 'e-Boks' : 'SKAT'}</span> ${(f.size/1024).toFixed(0)} KB</div>
+      </div>
+      <button onclick="removeDoc('${group}',${i})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:1.1rem;padding:4px">✕</button>
+    </div>`).join('');
+}
+
+function removeDoc(group, i) {
+  uploadedDocs[group].splice(i, 1);
+  renderUploadedDocs(group);
+  checkDocsReady();
+}
+
+function dzOver(e, zoneId) { e.preventDefault(); document.getElementById(zoneId).classList.add('dz-over'); }
+function dzLeave(zoneId) { document.getElementById(zoneId).classList.remove('dz-over'); }
+function dzDrop(e, group) {
+  e.preventDefault();
+  document.getElementById(group === 'eboks' ? 'eboksZone' : 'skatZone').classList.remove('dz-over');
+  handleUpload(e.dataTransfer.files, group);
+}
+
+function fetchEboks() { checkDocsReady(); }
+function fetchSkat()  { checkDocsReady(); }
+
+function checkDocsReady() {
+  const e = uploadedDocs.eboks.length > 0;
+  const s = uploadedDocs.skat.length > 0;
+  if (e || s) {
+    document.getElementById('docs-ready-hint').style.display = 'block';
+    document.getElementById('docsNextBtn').style.display = 'block';
+    docsReady = true;
+  }
+}
+
+function updatePackage() { /* live update when checkboxes change */ }
+
+// ── Bank selection ────────────────────────────────────────────────────────
+const BANKS = {
+  nykredit: 'Nykredit',
+  totalkredit: 'Totalkredit',
+  rd: 'Realkredit Danmark',
+  nordea: 'Nordea Kredit',
+  brf: 'BRFkredit'
+};
+
+const DOCS_META = [
+  {id:'ebd1', label:'Lønseddel sept.', group:'eboks'},
+  {id:'ebd2', label:'Lønseddel aug.', group:'eboks'},
+  {id:'ebd3', label:'Lønseddel juli', group:'eboks'},
+  {id:'ebd4', label:'Elregning sept.', group:'eboks'},
+  {id:'ebd5', label:'Elregning aug.', group:'eboks'},
+  {id:'ebd6', label:'Varmeregning sept.', group:'eboks'},
+  {id:'ebd7', label:'Varmeregning aug.', group:'eboks'},
+  {id:'skd1', label:'Årsopgørelse 2025', group:'skat'},
+  {id:'skd2', label:'Ejendomsoplysn.', group:'skat'},
+  {id:'skd3', label:'Kapitalindkomst', group:'skat'},
+];
+
+function toggleBank(id) {
+  const card = document.getElementById('bank-' + id);
+  if (selectedBanks.has(id)) {
+    selectedBanks.delete(id);
+    card.classList.remove('active');
+  } else {
+    selectedBanks.add(id);
+    card.classList.add('active');
+  }
+  renderBankerPanel();
+}
+
+function renderBankerPanel() {
+  const count = selectedBanks.size;
+  document.getElementById('sendCount').textContent = count;
+  document.getElementById('sendBtn').disabled = count === 0;
+
+  // Init access sets
+  selectedBanks.forEach(bid => {
+    if (!bankAccess[bid]) {
+      bankAccess[bid] = new Set(DOCS_META.map(d => d.id));
+    }
+  });
+
+  // Render access rows
+  const wrap = document.getElementById('accessRows');
+  wrap.innerHTML = '';
+  selectedBanks.forEach(bid => {
+    const row = document.createElement('div');
+    row.className = 'access-row';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'access-bank-name';
+    nameEl.textContent = BANKS[bid];
+    row.appendChild(nameEl);
+
+    const chips = document.createElement('div');
+    chips.className = 'access-docs';
+
+    // Group: lønsedler always on (simplified), SKAT docs toggleable
+    const skatDocs = DOCS_META.filter(d => d.group === 'skat');
+    // Show all-lønsedler chip + per-skat chips
+    const loenChip = document.createElement('div');
+    loenChip.className = 'access-chip on';
+    loenChip.innerHTML = '📄 Lønsedler (3)';
+    loenChip.title = 'Inkluderet — ikke valgfrit';
+    chips.appendChild(loenChip);
+
+    const regChip = document.createElement('div');
+    regChip.className = 'access-chip on';
+    regChip.innerHTML = '⚡ Forbrugsreg. (4)';
+    regChip.title = 'Inkluderet — ikke valgfrit';
+    chips.appendChild(regChip);
+
+    skatDocs.forEach(doc => {
+      const on = bankAccess[bid].has(doc.id);
+      const chip = document.createElement('div');
+      chip.className = 'access-chip ' + (on ? 'on' : 'off');
+      chip.innerHTML = (doc.group==='skat'?'📋 ':'') + doc.label;
+      chip.onclick = () => {
+        if (bankAccess[bid].has(doc.id)) bankAccess[bid].delete(doc.id);
+        else bankAccess[bid].add(doc.id);
+        renderBankerPanel();
+      };
+      chips.appendChild(chip);
+    });
+
+    row.appendChild(chips);
+    wrap.appendChild(row);
+  });
+
+  // Package summary
+  const lines = document.getElementById('pkgLines');
+  lines.innerHTML = '';
+  const addLine = (label, val) => {
+    lines.innerHTML += `<div class="pkg-line"><span>${label}</span><span>${val}</span></div>`;
+  };
+  addLine('Valgte banker', count + ' banker');
+  addLine('Lønsedler', '3 mdr.');
+  addLine('Forbrugsregninger', '4 dokumenter');
+  addLine('SKAT-dokumenter', '3 (styret per bank)');
+  addLine('Budget', 'Månedsoversigt inkl. rådighedsbeløb');
+  addLine('Låneoplysninger', 'Restgæld, LTV, nuværende rente');
+}
+
+// ── Send pakke ────────────────────────────────────────────────────────────
+function sendPakke() {
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sender…';
+
+  setTimeout(() => {
+    const names = [...selectedBanks].map(b => BANKS[b]).join(', ');
+    document.getElementById('sentToBanks').textContent = names;
+    document.querySelector('#panel-7 .card:first-child').style.display = 'none';
+    document.getElementById('successCard').style.display = 'block';
+  }, 1800);
+}
+
+// Initialize budget on load
+calcBudget();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PANEL 8 — OVERVÅGNINGSSERVICE
+// ═══════════════════════════════════════════════════════════════════════════
+
+let selectedPlan = 'maaned'; // 'maaned' | 'aarlig'
+
+function goToPanel8() {
+  // Hide phase2 header, show main content
+  document.getElementById('phase2-header').style.display = 'none';
+  document.querySelector('.stepper').style.display = 'none';
+  [1,2,3,4,5,6,7,8].forEach(n => {
+    const p = document.getElementById('panel-' + n);
+    if (p) p.classList.remove('active');
+  });
+  document.getElementById('panel-8').classList.add('active');
+  currentStep = 8;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function setPlan(plan) {
+  selectedPlan = plan;
+  document.getElementById('btnMaaned').classList.toggle('active', plan === 'maaned');
+  document.getElementById('btnAarlig').classList.toggle('active', plan === 'aarlig');
+  if (plan === 'maaned') {
+    document.getElementById('priceMain').textContent = '49 kr';
+    document.getElementById('priceSub').textContent = 'pr. måned · opsig når som helst';
+  } else {
+    document.getElementById('priceMain').textContent = '399 kr';
+    document.getElementById('priceSub').textContent = 'pr. år · spar 189 kr ift. månedlig';
+  }
+}
+
+function startSubscription() {
+  const email = document.getElementById('subEmail').value.trim();
+  if (!email || !email.includes('@')) {
+    document.getElementById('subEmail').focus();
+    document.getElementById('subEmail').style.borderColor = 'var(--danger)';
+    setTimeout(() => document.getElementById('subEmail').style.borderColor = '', 1500);
+    return;
+  }
+
+  // Register subscription intent in KV
+  fetch('/api/subscribe', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      email,
+      plan: selectedPlan,
+      adresse: document.getElementById('adresse')?.value || document.getElementById('adresseM')?.value || '',
+      restgaeld: document.getElementById('restgaeld')?.value || '',
+      rente: document.getElementById('rente')?.value || '',
+      ts: new Date().toISOString()
+    })
+  }).catch(() => {}); // fire-and-forget
+
+  // Show payment panel
+  document.getElementById('p8-plans').style.display = 'none';
+  document.getElementById('paySubtitle').textContent = selectedPlan === 'maaned' ? '49 kr/md' : '399 kr/år';
+  document.getElementById('p8-payment').style.display = 'block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function payCard() {
+  // Placeholder — integrer Stripe her
+  alert('Kortbetaling: Integrer Stripe Checkout her med price_id for valgt plan.');
+}
+</script>
+</body></html>

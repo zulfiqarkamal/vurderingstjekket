@@ -35,6 +35,25 @@ app.use((req, res, next) => {
 // Stripe webhook needs raw body for signature verification
 app.use("/api/stripe-webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
+
+// Product routing: Railway retains all assessment APIs and its Stripe webhook.
+app.get("/ejendomsvurdering", (_req, res) => {
+  res.set("Cache-Control", "no-cache").sendFile(path.join(__dirname, "public", "ejendomsvurdering.html"));
+});
+app.get("/boliglaanstjek", (_req, res) => {
+  // Navigate to the Worker origin, preserving its relative APIs, cookies and
+  // independently configured Stripe callbacks. Never proxy payment credentials.
+  const configured = process.env.BOLIGLAANSRADAR_URL;
+  if (configured) {
+    try {
+      const target = new URL(configured);
+      if (target.protocol === "https:" && !target.username && !target.password && target.pathname === "/" && !target.search && !target.hash) {
+        return res.set("Cache-Control", "no-store").redirect(302, target.href);
+      }
+    } catch { /* Missing/invalid configuration falls back to a clear preview. */ }
+  }
+  res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "boliglaanstjek-preview.html"));
+});
 // HTML må ikke caches, ellers ser folk en gammel version af siden efter en opdatering
 app.use(express.static(path.join(__dirname, "public"), {
   setHeaders: (res, filePath) => { if (filePath.endsWith(".html")) res.setHeader("Cache-Control", "no-cache"); },
