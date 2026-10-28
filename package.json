@@ -5,6 +5,7 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
+    "preview": "node scripts/local-preview.mjs",
     "test": "node --test",
     "start": "node server.js",
     "dev": "node --watch server.js"
