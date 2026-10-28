@@ -12,19 +12,24 @@ function fixture(extraEnv = {}) {
   const routes = new Map();
   const app = { use() {}, get(p, fn) { routes.set('GET ' + p, fn); },
     post(p, fn) { routes.set('POST ' + p, fn); }, listen() {} };
-  const express = Object.assign(() => app, { raw() {}, json() {}, static() {} });
+  let staticOptions;
+  const express = Object.assign(() => app, { raw() {}, json() {}, static(_directory, options) { staticOptions = options; } });
   let emails = 0;
   let generations = 0;
+  let checkoutOptions;
   class Stripe {
     static createFetchHttpClient() { return {}; }
-    checkout = { sessions: { create: async () => ({ id: 'cs_test_order', url: 'https://checkout.invalid' }) } };
+    checkout = { sessions: { create: async options => {
+      checkoutOptions = options;
+      return { id: 'cs_test_order', url: 'https://checkout.invalid' };
+    } } };
     webhooks = { constructEvent(body, signature) {
       if (signature !== 'test-signature') throw new Error('Invalid signature');
       return body;
     } };
   }
   const context = vm.createContext({ express, Stripe, path, fileURLToPath, crypto,
-    fs: { existsSync: () => false, writeFileSync() { throw new Error('Disk writes prohibited'); } },
+    fs: { existsSync: file => /[\\/]public[\\/]index\.html$/.test(file), writeFileSync() { throw new Error('Disk writes prohibited'); } },
     process: { env: { STRIPE_SECRET_KEY: 'synthetic-test-key', STRIPE_WEBHOOK_SECRET: 'synthetic-test-secret', ADMIN_KEY: 'synthetic-test-admin', NODE_ENV: 'production', ...extraEnv } },
     console: { log() {}, warn() {}, error() {} }, URL, URLSearchParams, AbortController, AbortSignal,
     setTimeout, clearTimeout, Buffer,
@@ -61,6 +66,9 @@ function fixture(extraEnv = {}) {
     } } },
   });
   return { checkout, report, mail, complete, request, get emails() { return emails; }, get generations() { return generations; },
+    get checkoutOptions() { return checkoutOptions; },
+    get staticOptions() { return staticOptions; },
+    hasRoute: key => routes.has(key),
     session: id => vm.runInContext(`SESSIONS.get(${JSON.stringify(id)})`, context) };
 }
 
@@ -163,7 +171,10 @@ test('admin test reports retain browser-bound access without authorizing public 
 test('product routes isolate Worker navigation from Railway APIs', async () => {
   const offline = fixture();
   assert.match((await offline.request('GET', '/ejendomsvurdering')).file, /ejendomsvurdering\.html$/);
-  assert.match((await offline.request('GET', '/boliglaanstjek')).file, /boliglaanstjek-preview\.html$/);
+  const liveEntry = await offline.request('GET', '/boliglaanstjek', { query: { session: 'private-order', email: 'private@example.invalid' } });
+  assert.equal(liveEntry.target, 'https://boliglansradar.gamma7th.workers.dev/');
+  assert.equal(liveEntry.headers['referrer-policy'], 'no-referrer');
+  assert.match((await offline.request('GET', '/boliglaanstjek/preview')).file, /boliglaanstjek-preview\.html$/);
   const worker = fixture({ BOLIGLAANSRADAR_URL: 'https://mortgage.example.invalid' });
   const response = await worker.request('GET', '/boliglaanstjek');
   assert.equal(response.statusCode, 302);
@@ -218,4 +229,45 @@ test('mortgage preview blocks network and preserves basic calculation behaviour'
   await assert.rejects(window.fetch('/api/subscribe'), /afkoblet/);
   await assert.rejects(window.fetch('/api/analyze-screenshot'), /afkoblet/);
   await assert.rejects(window.fetch('/api/dawa'), /afkoblet/);
+});
+
+test('new Railway checkouts return directly to the assessment product', async () => {
+  const f = fixture();
+  const response = await f.checkout();
+  assert.equal(response.statusCode, 200);
+  assert.equal(f.checkoutOptions.success_url, 'https://app.invalid/ejendomsvurdering?session=' + response.body.sessionId);
+  assert.equal(f.checkoutOptions.cancel_url, 'https://app.invalid/ejendomsvurdering?cancelled=1');
+  assert.equal(f.checkoutOptions.mode, 'payment');
+  assert.equal(f.checkoutOptions.line_items[0].price_data.currency, 'dkk');
+  assert.equal(f.checkoutOptions.line_items[0].price_data.unit_amount, 35000);
+  assert.ok(response.headers['set-cookie'].startsWith('report_access_' + response.body.sessionId + '='));
+  assert.equal(response.cookieOptions.path, '/api');
+  assert.equal(response.cookieOptions.httpOnly, true);
+});
+
+test('legacy callbacks render assessment on the original origin without JavaScript', async () => {
+  const f = fixture();
+  for (const query of [{ session: 'synthetic-order' }, { cancelled: '1' }, { test: 'synthetic-admin' }]) {
+    const response = await f.request('GET', '/', { query });
+    assert.match(response.file, /ejendomsvurdering\.html$/);
+    assert.equal(response.headers['cache-control'], 'no-store');
+    assert.equal(response.target, undefined);
+  }
+});
+
+test('normal homepage routing and independent API ownership are preserved', async () => {
+  const f = fixture();
+  assert.equal(f.staticOptions.index, false);
+  for (const query of [{}, { campaign: 'synthetic' }]) {
+    const response = await f.request('GET', '/', { query });
+    assert.match(response.file, /[\\/]public[\\/]index\.html$/);
+    assert.equal(response.headers['cache-control'], 'no-cache');
+  }
+  assert.equal(f.hasRoute('POST /api/stripe-webhook'), true);
+  assert.equal(f.hasRoute('POST /api/create-payment'), true);
+  for (const route of ['GET /api/dawa', 'POST /api/analyze-screenshot', 'POST /api/subscribe']) {
+    assert.equal(f.hasRoute(route), false, 'Worker API must not be added to Railway: ' + route);
+  }
+  const preview = await fixture({ BOLIGLAANSRADAR_URL: '' }).request('GET', '/boliglaanstjek');
+  assert.match(preview.file, /boliglaanstjek-preview\.html$/);
 });

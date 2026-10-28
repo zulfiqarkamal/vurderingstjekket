@@ -40,15 +40,18 @@ app.use(express.json());
 app.get("/ejendomsvurdering", (_req, res) => {
   res.set("Cache-Control", "no-cache").sendFile(path.join(__dirname, "public", "ejendomsvurdering.html"));
 });
+app.get("/boliglaanstjek/preview", (_req, res) => {
+  res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "boliglaanstjek-preview.html"));
+});
 app.get("/boliglaanstjek", (_req, res) => {
   // Navigate to the Worker origin, preserving its relative APIs, cookies and
   // independently configured Stripe callbacks. Never proxy payment credentials.
-  const configured = process.env.BOLIGLAANSRADAR_URL;
+  const configured = process.env.BOLIGLAANSRADAR_URL ?? "https://boliglansradar.gamma7th.workers.dev/";
   if (configured) {
     try {
       const target = new URL(configured);
       if (target.protocol === "https:" && !target.username && !target.password && target.pathname === "/" && !target.search && !target.hash) {
-        return res.set("Cache-Control", "no-store").redirect(302, target.href);
+        return res.set("Cache-Control", "no-store").set("Referrer-Policy", "no-referrer").redirect(302, target.href);
       }
     } catch { /* Missing/invalid configuration falls back to a clear preview. */ }
   }
@@ -56,11 +59,16 @@ app.get("/boliglaanstjek", (_req, res) => {
 });
 // HTML må ikke caches, ellers ser folk en gammel version af siden efter en opdatering
 app.use(express.static(path.join(__dirname, "public"), {
+  // Let the root handler recognize historical payment returns before serving home.
+  index: false,
   setHeaders: (res, filePath) => { if (filePath.endsWith(".html")) res.setHeader("Cache-Control", "no-cache"); },
 }));
 
 // Fallback: serve index.html from public/ or root
-app.get("/", (_req, res) => {
+app.get("/", (req, res) => {
+  if (["session", "cancelled", "test"].some(key => Object.prototype.hasOwnProperty.call(req.query, key))) {
+    return res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "ejendomsvurdering.html"));
+  }
   const pub  = path.join(__dirname, "public", "index.html");
   const root = path.join(__dirname, "index.html");
   const target = fs.existsSync(pub) ? pub : fs.existsSync(root) ? root : null;
@@ -1030,8 +1038,8 @@ app.post("/api/create-payment", async (req, res) => {
         quantity: 1,
       }],
       mode: "payment",
-      success_url: `${origin}/?session=${sessionId}`,
-      cancel_url:  `${origin}/?cancelled=1`,
+      success_url: `${origin}/ejendomsvurdering?session=${sessionId}`,
+      cancel_url:  `${origin}/ejendomsvurdering?cancelled=1`,
       metadata:    { sessionId },
     });
 
