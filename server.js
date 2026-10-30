@@ -34,7 +34,7 @@ app.use((req, res, next) => {
 
 // Stripe webhook needs raw body for signature verification
 app.use("/api/stripe-webhook", express.raw({ type: "application/json" }));
-app.use(express.json());
+app.use(express.json({ limit: "25mb" }));
 
 // Product routing: Railway retains all assessment APIs and its Stripe webhook.
 app.get("/ejendomsvurdering", (_req, res) => {
