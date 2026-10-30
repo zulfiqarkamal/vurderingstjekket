@@ -128,3 +128,71 @@ The older inspection below is retained as historical context; its statement that
 - Offline validation: with `BOLIGLAANSRADAR_REFERENCE` set to the external path, `npm.cmd test` runs 26 tests (16 existing, one real Express mock integration, nine Worker audit checks). AUDIT FINDING tests PASS when they reproduce unsafe current reference behaviour; passing does NOT mean those issues are fixed. Without the optional environment variable, the nine external-reference checks skip explicitly. The reference remains outside Git and the optional test contains no copied Worker source or actual credentials. Syntax checks cover server.js, local launcher and new test scripts; `git diff --check` passes. Real HMAC is exercised for the reference, but no Stripe SDK/Cloudflare runtime or live callback delivery is exercised.
 - Hosting/DNS: keep main domain and all assessment `/api/*` traffic on Railway; existing Worker hostname needs no new DNS record for the shared navigation. Keep Cloudflare's Stripe secrets, price IDs, HTML_KV and webhook registration separate. Future custom mortgage domain/same-origin proxy needs approved DNS/Worker routing, canonical callback origins, cookie behaviour and webhook review. No DNS, account settings, Worker KV, Stripe dashboard, deployment, push or production changes were made. The preview server is intentionally left running for the owner; restart with `npm.cmd run preview` if stopped.
 - Proposed local review title: "Add isolated local preview and document read-only mortgage Worker audit". Review/fix the blockers in an approved development copy; do not modify or commit the reference. No public PR is authorized.
+
+---
+
+## BoligLånsRadar results-screen redesign — 2026-10-30
+
+- **Agent:** Claude Code (claude-sonnet-4-6). **Branch:** `claude/resultat-redesign`. **Status:** implementation complete, PR pending (not yet pushed).
+- **Approved scope** (Zulfiqar approved in full, 2026-10-30):
+  - Full redesign of `public/boliglaanstjek-preview.html` panel-4 (results screen)
+  - Live market rates from Danmarks Nationalbank Statistics API (not hardcoded)
+  - Calculation bug fixes: bidragssats now included in new ydelse, correct modified-duration bond pricing, realistic opkonvertering nyRest
+  - 5/10/20-year scenario comparison (hold lån vs. konvertér)
+  - Friværdi badge gamification: Guld (<40% LTV), Sølv (<60%), Bronze (60–80%), Rød (>80%)
+  - Colored signal bar replacing old "trafiklys" — legally safe wording "vurdér med din bank" (NOT "anbefalet")
+  - Monitoring subscription: 49 kr/måned or 399 kr/år via Stripe checkout; users get monthly email + instant alert when conversion pays off
+  - Cost breakdown with ESTIMAT markers, break-even table
+  - Legal disclaimer: all results are indicative, not financial advice
+  - Desktop 2-column layout (≥700px)
+
+### Changed files
+
+**`server.js`** (two additions before the `notify-signup` endpoint):
+1. `fetchLiveRenter()` — async function that fetches `https://api.statbank.dk/v1/data/DNRENTM/JSONSTAT` (Danmarks Nationalbank free API, no auth) with 6-hour in-memory cache. Falls back to hardcoded values if API fails. Exposes `GET /api/markedsrenter`.
+2. `POST /api/laanovervagning/start` — creates a Stripe Checkout subscription session (monthly 49 kr / yearly 399 kr) with loan metadata stored for later monitoring alerts.
+
+**`public/boliglaanstjek-preview.html`** — extensive changes to the JS section and panel-4 HTML:
+- **CSS** (added in previous session): `.res-2col`, `.friv-badge`, `.friv-guld/soelv/bronze/rod`, `.friv-meter`, `.scene-table`, `.omk-row`, `.res-signal`, `.legal-note`, `.overvag-box`, `.alert-thresh` and responsive 2-col at 700px.
+- **JS calculation fixes:**
+  - `MARKEDSRENTER` constant → replaced with async `hentMarkedsrenter()` that calls `/api/markedsrenter`
+  - `mYdelse()` now takes `bidragPct` param so new ydelse correctly includes bidragssats
+  - `kurstabEstimat()` now uses proper Macaulay modified-duration formula instead of `loebetid * 0.6` approximation
+  - Opkonvertering `nyRest`: changed from arbitrary `rest * 0.5` floor to realistic `rest * 0.75` cap
+  - `beregn()` made `async` to await live rates
+  - Added `scenarieBeregning()` and `restgaeldEfter()` helpers for 5/10/20-year totals
+  - Added `renderResultat()` which dynamically writes panel-4 HTML
+  - Added `overvagToggle()` and `startOvervagning()` for the monitoring subscription flow
+- **Panel-4 HTML:** replaced static markup with `<!-- rendered by renderResultat() in JS -->`. The dynamic render produces: friværdi badge + meter, colored signal bar, nøgletal table with live rate source label, scenario comparison table, cost breakdown, monitoring subscription box (with toggle, alert thresholds, email), bankpakke button, and legal disclaimer.
+
+### Architecture notes for next agent
+
+- `beregn()` is now `async` — the `onclick="beregn()"` in step 3 still works (browser handles unhandled promise, no error).
+- `window._beregningState` stores the last calc state for `startOvervagning()` to reference.
+- `window._overvagPeriode` stores 'maaned' or 'aar' for the toggle.
+- The old gauge SVG animation (`animateGauge()`) remains in the JS but is no longer called — it can be removed in a cleanup pass.
+- Bidragssats tiers: LTV ≤40% → 0.40%, ≤60% → 0.55%, ≤80% → 0.85%, >80% → 1.50% (unchanged from prior implementation).
+- Live rates endpoint returns: `{ fastforrentet, F1, F3, F5, afdragsfri, updated, source }`. Source is "Danmarks Nationalbank" or "fallback".
+- The subscription webhook (handling `customer.subscription.created`, monthly email, instant alert) is NOT yet implemented — that is future work.
+
+### Validation performed
+- `node --check server.js` — passes
+- Manual code review of JS calculations
+- No live API call or browser test yet (no Playwright run done)
+
+### Security / deployment constraints (unchanged from project rules)
+- Do NOT deploy to production or merge to main without Zulfiqar's explicit approval
+- Do NOT activate Stripe live mode without approval
+- NEVER hardcode secrets — all in Railway env vars: `ADMIN_KEY`, `BBR_USER`, `BBR_PASS`, Stripe keys, `ANTHROPIC_API_KEY`
+- `ANTHROPIC_API_KEY` must be set as Railway env var (analyze-screenshot returns 503 if absent)
+
+### Pending / next actions
+1. **Push branch and open PR** — ready to push `claude/resultat-redesign` to GitHub and open PR for review.
+2. **Browser / Playwright test** — validate the panel-4 render end-to-end with sample loan data.
+3. **Subscription webhook** — implement the monitoring email logic: monthly status mail, instant alert when conversion threshold is crossed. Requires storing subscriber data and a cron/scheduled job.
+4. **GoCardless open banking** — discussed, not yet approved.
+5. **Remove dead gauge code** — `animateGauge()` is now unused, can be cleaned up.
+6. **Credential rotation** — exposed admin/BBR credential defaults still in Git history; rotate before production release.
+
+### Approved by Zulfiqar
+"ja til det hele, der skal være live opdatering af markedsrenter. bidragssats skal med, beregninger skal fixes...brugerne skal betale for overvågning af deres lån månedlig eller årlig og så får de en månedlig mail medmindre det kan betale sig at omlægge får de den mail med det samme...friværdierne skal med i overblikket...guldniveau under 40% sølv niveau under 60% bronze niveau over 60%..."

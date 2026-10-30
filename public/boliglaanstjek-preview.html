@@ -108,6 +108,95 @@ body::before{
 
 /* ── Main container ─────────────────────────────────────────────────────── */
 .main{max-width:520px;margin:0 auto;padding:24px 0 48px;}
+/* Resultat panel bruger bredere layout */
+#panel-4 .main-wide{max-width:900px;margin:0 auto;padding:24px 0 48px;}
+@media(min-width:700px){
+  #panel-4.active ~ * .main, #panel-4 .res-grid-2{
+    display:grid;grid-template-columns:1fr 1fr;gap:16px;
+  }
+}
+/* Friværdi badges */
+.friv-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  border-radius:30px;padding:6px 16px;font-size:.9rem;font-weight:700;
+  letter-spacing:.03em;
+}
+.friv-guld{background:linear-gradient(135deg,#F5C842,#E8A000);color:#4a3000;}
+.friv-soelv{background:linear-gradient(135deg,#C8D0DC,#9AACBD);color:#1e2d40;}
+.friv-bronze{background:linear-gradient(135deg,#D4905A,#B06030);color:#fff;}
+.friv-rod{background:var(--danger);color:#fff;}
+/* Friværdi meter */
+.friv-meter{position:relative;height:14px;border-radius:7px;overflow:hidden;background:var(--border);margin:8px 0;}
+.friv-meter-fill{height:100%;border-radius:7px;transition:width .8s cubic-bezier(.4,0,.2,1);}
+/* Scenarietabel */
+.scene-table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:10px;}
+.scene-table th{background:var(--navy);color:#fff;padding:9px 10px;text-align:left;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;}
+.scene-table th:not(:first-child){text-align:right;}
+.scene-table td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.scene-table td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums;}
+.scene-table tr:last-child td{border-bottom:none;}
+.scene-table .scene-now{background:var(--sky);}
+.scene-table .scene-conv{background:#e8f8ef;}
+:root[data-theme="dark"] .scene-table .scene-conv{background:#0d2a1c;}
+.scene-better{color:var(--success);font-weight:700;}
+.scene-worse{color:var(--danger);}
+/* Omkostnings-breakdown */
+.omk-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.85rem;}
+.omk-row:last-child{border-bottom:none;font-weight:700;}
+.omk-label{color:var(--muted);}
+.omk-est{font-size:.7rem;background:var(--warn);color:#fff;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle;}
+/* Resultat topbar med signal */
+.res-signal{
+  display:flex;align-items:center;gap:14px;
+  padding:18px 20px;border-radius:var(--radius);margin-bottom:16px;
+  border-left:5px solid;
+}
+.res-signal.groen{background:#e8f8ef;border-color:var(--success);}
+.res-signal.gul{background:#fff8e6;border-color:var(--warn);}
+.res-signal.rod{background:#fde8e8;border-color:var(--danger);}
+.res-signal.blaa{background:var(--sky);border-color:var(--accent);}
+:root[data-theme="dark"] .res-signal.groen{background:#0d2a1c;}
+:root[data-theme="dark"] .res-signal.gul{background:#2a1e00;}
+:root[data-theme="dark"] .res-signal.rod{background:#2a0d0d;}
+.sig-icon{font-size:2rem;flex-shrink:0;line-height:1;}
+.sig-title{font-weight:700;font-size:1rem;margin-bottom:3px;}
+.sig-detail{font-size:.82rem;color:var(--muted);line-height:1.5;}
+/* Legal disclaimer */
+.legal-note{
+  font-size:.74rem;color:var(--muted);
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;line-height:1.55;margin:12px 0;
+}
+/* Overvågnings-box */
+.overvag-box{
+  background:linear-gradient(135deg,#0e2a52 0%,#1a3d7a 100%);
+  color:#fff;border-radius:var(--radius);padding:22px 20px;margin-top:16px;
+}
+.overvag-title{font-weight:700;font-size:1.05rem;margin-bottom:4px;}
+.overvag-sub{font-size:.82rem;opacity:.75;margin-bottom:16px;line-height:1.5;}
+.overvag-price{font-size:1.8rem;font-weight:700;}
+.overvag-period{font-size:.8rem;opacity:.7;}
+.overvag-feature{display:flex;align-items:center;gap:8px;font-size:.82rem;margin-bottom:8px;opacity:.9;}
+.overvag-check{color:#5ddb9a;flex-shrink:0;}
+.overvag-btn{
+  display:block;width:100%;padding:13px;border:none;border-radius:10px;
+  background:#fff;color:var(--navy);font-family:inherit;font-size:.95rem;font-weight:700;
+  cursor:pointer;transition:.15s;margin-top:16px;
+}
+.overvag-btn:hover{background:#e8f0ff;}
+.overvag-toggle{display:flex;border:1.5px solid rgba(255,255,255,.25);border-radius:8px;overflow:hidden;margin-bottom:16px;}
+.overvag-t-btn{flex:1;padding:9px;border:none;background:transparent;color:rgba(255,255,255,.65);font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;}
+.overvag-t-btn.active{background:rgba(255,255,255,.2);color:#fff;}
+.alert-thresh{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.alert-field label{font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.65);display:block;margin-bottom:5px;}
+.alert-field input{width:100%;padding:9px 10px;border:1.5px solid rgba(255,255,255,.25);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;font-family:inherit;font-size:.9rem;}
+.alert-field input::placeholder{color:rgba(255,255,255,.4);}
+/* Desktop 2-col for panel-4 */
+@media(min-width:700px){
+  .res-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .res-col-full{grid-column:1/-1;}
+  #panel-4 .main{max-width:900px;}
+}
 
 /* ── Panel ──────────────────────────────────────────────────────────────── */
 .panel{display:none;}
@@ -852,101 +941,7 @@ body::before{
 
 <!-- ═══════════════════ STEP 4 — RESULTAT ════════════════════════════════ -->
 <div class="panel" id="panel-4">
-
-  <!-- LTV Gauge card -->
-  <div class="card">
-    <div class="gauge-wrap">
-      <svg viewBox="0 0 220 130" width="220" style="display:block;margin:0 auto 8px;" id="gaugeSvg">
-        <defs>
-          <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#1A8A54"/>
-            <stop offset="55%" stop-color="#C47A0A"/>
-            <stop offset="100%" stop-color="#C03030"/>
-          </linearGradient>
-          <clipPath id="gaugeClip">
-            <rect x="0" y="0" width="220" height="130"/>
-          </clipPath>
-        </defs>
-        <!-- Track -->
-        <path d="M20 110 A90 90 0 0 1 200 110" fill="none" stroke="var(--border)" stroke-width="14" stroke-linecap="round"/>
-        <!-- Fill (animated via JS) -->
-        <path id="gaugeFill" d="M20 110 A90 90 0 0 1 200 110" fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/>
-        <!-- Zone labels -->
-        <text x="16" y="125" font-size="9" fill="var(--success)" font-family="system-ui" font-weight="600">0%</text>
-        <text x="96" y="30" font-size="9" fill="var(--warn)" font-family="system-ui" font-weight="600" text-anchor="middle">60%</text>
-        <text x="188" y="72" font-size="9" fill="var(--warn)" font-family="system-ui" font-weight="600" text-anchor="end">80%</text>
-        <!-- Needle -->
-        <g id="gaugeNeedle" transform="rotate(-90 110 110)">
-          <line x1="110" y1="110" x2="110" y2="28" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="110" cy="110" r="6" fill="var(--surface)" stroke="var(--text)" stroke-width="2.5"/>
-        </g>
-      </svg>
-      <div class="gauge-num" id="ltvNum">–</div>
-      <div class="gauge-label">Belåningsgrad (LTV)</div>
-      <div id="ltvCat" class="ltv-cat" style="display:none;"></div>
-    </div>
-  </div>
-
-  <!-- Trafiklys anbefaling -->
-  <div class="trafiklys" id="trafiklysCard">
-    <div class="trafik-icon" id="trafiklysIcon">–</div>
-    <div>
-      <div class="trafik-title" id="trafiklysTitle">–</div>
-      <div class="trafik-detail" id="trafiklysDetail">–</div>
-    </div>
-  </div>
-
-  <!-- Savings highlight (kun hvis positiv) -->
-  <div class="savings-highlight" id="savingsHighlight" style="display:none;">
-    <div>
-      <div class="savings-label">Estimeret månedlig besparelse</div>
-      <div class="savings-amount" id="savingsAmt">–</div>
-      <div class="savings-period" id="savingsYear">– kr/år</div>
-    </div>
-    <div style="margin-left:auto;opacity:.6;">
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-        <circle cx="24" cy="24" r="22" stroke="white" stroke-width="1.5" fill="none"/>
-        <path d="M16 26l6 6 10-12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-  </div>
-
-  <!-- Nøgletal grid -->
-  <div class="result-grid">
-    <div class="stat-card">
-      <div class="stat-label">Nuværende rente</div>
-      <div class="stat-val" id="resNuvRente">–</div>
-      <div class="stat-sub" id="resLaantype">–</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Bidragssats</div>
-      <div class="stat-val" id="resBidrag">–</div>
-      <div class="stat-sub">Totalkredit estimat</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Nuværende ydelse</div>
-      <div class="stat-val" id="resNuvYdelse">–</div>
-      <div class="stat-sub">kr / måned</div>
-    </div>
-    <div class="stat-card" id="resNyYdelseCard" style="display:none;">
-      <div class="stat-label">Ny ydelse</div>
-      <div class="stat-val" id="resNyYdelse">–</div>
-      <div class="stat-sub" id="resNyRente">–</div>
-    </div>
-    <div class="stat-card full" id="resTbCard" style="display:none;">
-      <div class="stat-label">Tilbagebetalingstid for omk.</div>
-      <div class="stat-val" id="resTb">–</div>
-      <div class="stat-sub" id="resTbSub">–</div>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-  <div style="font-size:.78rem;color:var(--muted);line-height:1.55;margin-bottom:20px;padding:0 4px;">
-    ⚠️ Beregningerne er vejledende og baseret på aktuelle markedsrenter. Kontakt din bank eller Totalkredit for et konkret tilbud.
-  </div>
-
-  <button class="btn btn-primary" onclick="startBankpakke()">Start bankpakke →</button>
-  <button class="btn btn-ghost" onclick="goTo(1)">Beregn igen</button>
+  <!-- Rendered dynamically by renderResultat() in JS -->
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
@@ -1446,16 +1441,31 @@ zone.addEventListener('drop', e => {
   if (dt.files.length) handleScreenshotUpload({ files: dt.files });
 });
 
-// ── Markedsrenter ─────────────────────────────────────────────────────────
-const MARKEDSRENTER = {
-  fastforrentet: 4.50, F1: 3.20, F3: 3.50, F5: 3.75, afdragsfri: 4.00
-};
+// ── Markedsrenter — live fra /api/markedsrenter ───────────────────────────
+let _cachedRenter = null;
+const RENTE_FALLBACK = { fastforrentet: 4.50, F1: 3.20, F3: 3.50, F5: 3.75, afdragsfri: 4.25, source: 'fallback' };
+
+async function hentMarkedsrenter() {
+  if (_cachedRenter) return _cachedRenter;
+  try {
+    const res = await fetch('/api/markedsrenter');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    _cachedRenter = await res.json();
+    return _cachedRenter;
+  } catch (e) {
+    console.warn('[renter] Bruger fallback:', e.message);
+    return RENTE_FALLBACK;
+  }
+}
+
 const KONV_FAST_OMK = 15000;
 const KONV_VAR_PCT  = 0.005;
 
-function mYdelse(restgaeld, rentePct, loebetidAar, afdragsfri = false) {
-  if (afdragsfri || loebetidAar === 0) return restgaeld * (rentePct / 100) / 12;
-  const r = (rentePct / 100) / 12, n = loebetidAar * 12;
+// Beregn ydelse INKL. bidragssats
+function mYdelse(restgaeld, rentePct, loebetidAar, bidragPct = 0, afdragsfri = false) {
+  const samletRente = rentePct + bidragPct;
+  if (afdragsfri || loebetidAar === 0) return restgaeld * (samletRente / 100) / 12;
+  const r = (samletRente / 100) / 12, n = loebetidAar * 12;
   if (r === 0) return restgaeld / n;
   return restgaeld * r * Math.pow(1+r, n) / (Math.pow(1+r, n) - 1);
 }
@@ -1466,13 +1476,45 @@ function bidragssats(ltv) {
   return 1.50;
 }
 function konvOmk(restgaeld) { return KONV_FAST_OMK + KONV_VAR_PCT * restgaeld; }
+
+// Kurstab/-gevinst via modificeret varighed (Macaulay-approksimation)
 function kurstabEstimat(gRente, nRente, restgaeld, loebetid) {
-  const varighed = Math.min(loebetid * 0.6, 8);
-  return ((nRente - gRente) / 100) * varighed * restgaeld;
+  // Modificeret varighed for dansk annuitetslån: D* ≈ (1 - (1+r)^-n) / r * 1/(1+r)
+  const r = gRente / 100 / 12;
+  const n = loebetid * 12;
+  const varighed = r > 0 ? ((1 - Math.pow(1+r, -n)) / r) / (1 + r) / 12 : loebetid / 2;
+  const modVarighed = Math.min(varighed, 10); // kap ved 10 år
+  // Kursændring = -D* × ΔR / (1 + ny_rente)
+  const deltaR = (nRente - gRente) / 100;
+  return -modVarighed * deltaR / (1 + nRente / 100) * restgaeld;
 }
 
-// ── Main calculation ──────────────────────────────────────────────────────
-function beregn() {
+// 5/10/20-års scenarie-sammenligning
+function scenarieBeregning(rest, rente, bidr, loeb, nyRente, nyRest, nyBidr, nyLoeb) {
+  const aar = [5, 10, 20].map(h => {
+    const holdYdelse = mYdelse(rest, rente, loeb, bidr);
+    const konvYdelse = mYdelse(nyRest, nyRente, nyLoeb, nyBidr);
+    // Restgæld efter h år
+    const holdRest = restgaeldEfter(rest, rente + bidr, loeb, h);
+    const konvRest = restgaeldEfter(nyRest, nyRente + nyBidr, nyLoeb, h);
+    const holdTotal = holdYdelse * 12 * h + holdRest;
+    const konvTotal = konvYdelse * 12 * h + konvRest;
+    return { h, holdYdelse: Math.round(holdYdelse), konvYdelse: Math.round(konvYdelse), diff: Math.round(holdTotal - konvTotal) };
+  });
+  return aar;
+}
+
+function restgaeldEfter(rest, samletRentePct, loebAar, efter) {
+  const r = samletRentePct / 100 / 12;
+  const n = loebAar * 12;
+  const m = mYdelse(rest, samletRentePct, loebAar);
+  if (r === 0) return Math.max(0, rest - m * efter * 12);
+  const faktor = Math.pow(1 + r, efter * 12);
+  return Math.max(0, rest * faktor - m * (faktor - 1) / r);
+}
+
+// ── Main calculation (async pga. live renter) ────────────────────────────
+async function beregn() {
   const ejd   = +document.getElementById('ejendomsvaerdi').value;
   const rest  = +document.getElementById('restgaeld').value;
   const rente = +document.getElementById('rente').value;
@@ -1483,106 +1525,269 @@ function beregn() {
 
   if (!ejd || !rest || !rente || !loeb) return alert('Udfyld alle felter.');
 
+  const renter = await hentMarkedsrenter();
+  const mrente = renter[ltype] || renter.fastforrentet;
+
   const ltv       = (rest / ejd) * 100;
   const bidr      = bidragssats(ltv);
-  const nuv       = mYdl || mYdelse(rest, rente, loeb, afdrf);
-  const mrente    = MARKEDSRENTER[ltype] || MARKEDSRENTER.fastforrentet;
-  const rentediff = rente - mrente;        // pos = din rente > marked
+  // Nuværende ydelse: brug indskrevne ydelse hvis angivet, ellers beregn inkl. bidragssats
+  const nuv       = mYdl || mYdelse(rest, rente, loeb, bidr, afdrf);
+  const rentediff = rente - mrente;
   const omk       = konvOmk(rest);
   const kursDiff  = kurstabEstimat(rente, mrente, rest, loeb);
 
-  let sc = { type:'ingen', nyRente:rente, nyYdelse:nuv, besparelse:0, omk:0, tb:null, anbefalet:false, txt:'' };
+  // Friværdi
+  const frivaerdi = Math.max(0, ejd - rest);
+  const frivaerdiPct = (frivaerdi / ejd) * 100;
+
+  let sc = { type:'ingen', nyRente:mrente, nyYdelse:nuv, nyRest:rest, besparelse:0, omk:0, tb:null, anbefalet:false, txt:'', kurstab:0, kursgevinst:0 };
 
   if (Math.abs(rentediff) < 0.25) {
-    sc.txt = `Renteforskellen er kun ${Math.abs(rentediff).toFixed(2)} pp — konvertering kan ikke betale sig.`;
+    sc.txt = `Renteforskellen er kun ${Math.abs(rentediff).toFixed(2)} pct.point — konvertering kan ikke betale sig nu.`;
   } else if (rentediff > 0) {
-    // Nedkonvertering
+    // Nedkonvertering: ny rente er lavere
     const kurstab = Math.max(0, -kursDiff);
-    const ny      = mYdelse(rest, mrente, loeb);
+    const nyBidr  = bidragssats(ltv); // bidrag ændres ikke ved nedkonv (restgæld uændret)
+    const ny      = mYdelse(rest, mrente, loeb, nyBidr);
     const bespar  = nuv - ny;
     const tomk    = omk + kurstab;
     const tb      = bespar > 50 ? Math.round(tomk / bespar) : null;
     const anbef   = tb !== null && tb <= 48 && ltv <= 80;
-    sc = { type:'nedkonvertering', nyRente:mrente, nyYdelse:ny, besparelse:bespar,
-           omk:tomk, tb, anbefalet:anbef,
-           txt: tb ? `Din rente (${rente.toFixed(2)}%) er ${rentediff.toFixed(2)} pp højere end markedet (${mrente.toFixed(2)}%). Månedlig besparelse: ${fmt(bespar)} kr. Tilbagebetaling: ${tb} måneder.`
+    sc = { type:'nedkonvertering', nyRente:mrente, nyYdelse:ny, nyRest:rest, besparelse:bespar,
+           omk:tomk, tb, anbefalet:anbef, kurstab, kursgevinst:0,
+           txt: tb ? `Din rente (${rente.toFixed(2)}%) er ${rentediff.toFixed(2)} pp over markedet (${mrente.toFixed(2)}%). Månedlig besparelse: ${fmt(Math.round(bespar))} kr. Tilbagebetaling: ${tb} måneder.`
                    : `Din rente (${rente.toFixed(2)}%) er ${rentediff.toFixed(2)} pp over markedet — besparelsen er marginal.` };
   } else {
-    // Opkonvertering
+    // Opkonvertering: din rente er lavere end marked → kursgevinst ved at omlægge til lavere kurs
     const kursgevinst = Math.max(0, kursDiff);
-    const nyRest = Math.max(rest - kursgevinst, rest * 0.5);
-    const ny = mYdelse(nyRest, mrente, loeb);
+    // Ny restgæld = nuværende gæld minus kursgevinsten (obligationsvejen)
+    const nyRest = Math.max(rest - kursgevinst, rest * 0.75); // maks 25% reduktion som realistisk loft
+    const nyBidr = bidragssats((nyRest / ejd) * 100);
+    const ny = mYdelse(nyRest, mrente, loeb, nyBidr);
     const bespar = nuv - ny;
     const anbef = kursgevinst > omk * 1.5;
-    sc = { type:'opkonvertering', nyRente:mrente, nyYdelse:ny, besparelse:bespar,
-           omk, tb:null, anbefalet:anbef,
-           txt: anbef ? `Kursgevinst ved indfrielse: ${fmt(kursgevinst)} kr (${(kursgevinst/rest*100).toFixed(1)}% af restgæld). Ny gæld: ${fmt(nyRest)} kr.`
-                      : `Kursgevinsten (${fmt(kursgevinst)} kr) dækker knap omkostningerne (${fmt(omk)} kr) — overvej at vente på større rentestigninger.` };
+    sc = { type:'opkonvertering', nyRente:mrente, nyYdelse:ny, nyRest, besparelse:bespar,
+           omk, tb:null, anbefalet:anbef, kurstab:0, kursgevinst,
+           txt: anbef ? `Kursgevinst ved indfrielse: ~${fmt(Math.round(kursgevinst))} kr (${(kursgevinst/rest*100).toFixed(1)}% af restgæld). Ny gæld: ~${fmt(Math.round(nyRest))} kr.`
+                      : `Kursgevinsten (~${fmt(Math.round(kursgevinst))} kr) dækker knap omkostningerne (${fmt(Math.round(omk))} kr) — overvej at vente på større rentestigninger.` };
   }
 
-  // LTV category
-  let ltvKat, ltvCls;
-  if (ltv < 60)       { ltvKat = 'GUL ≥60%'; ltvCls = 'cat-green'; ltvKat = 'GRØN <60%'; }
-  else if (ltv <= 80) { ltvKat = 'GUL 60–80%'; ltvCls = 'cat-yellow'; }
-  else                { ltvKat = 'RØD >80%'; ltvCls = 'cat-red'; }
-  if (ltv < 60) ltvCls = 'cat-green';
+  // Scenarie-sammenligning (hold vs. konverter)
+  const nyBidr = sc.type !== 'ingen' ? bidragssats((sc.nyRest / ejd) * 100) : bidr;
+  const scener = scenarieBeregning(rest, rente, bidr, loeb, sc.nyRente, sc.nyRest, nyBidr, loeb);
 
-  // Trafiklys
-  let icon, titel, detalje;
-  if (ltv > 80) {
-    icon='🔴'; titel='Belåningsgraden er over 80%';
-    detalje=`Din LTV er ${ltv.toFixed(1)}%. Du er over 80%-grænsen for realkreditlån alene. Tal med din bank om en kombineret løsning.`;
-  } else if (!sc.anbefalet) {
-    icon='🟡'; titel='Konvertering er ikke oplagt nu';
-    detalje = sc.txt;
-  } else {
-    icon='🟢'; titel=`Konvertering anbefalet — spar ${fmt(sc.besparelse*12)} kr/år`;
-    detalje = sc.txt + ' Kontakt Totalkredit eller Nykredit for et konkret tilbud.';
-  }
-
-  // ── Render ──────────────────────────────────────────────────────────────
-  animateGauge(ltv);
-  document.getElementById('ltvNum').textContent = ltv.toFixed(1) + '%';
-  const catEl = document.getElementById('ltvCat');
-  catEl.style.display = 'inline-block';
-  catEl.className = `ltv-cat ${ltvCls}`;
-  catEl.textContent = ltvKat;
-
-  document.getElementById('trafiklysIcon').textContent = icon;
-  document.getElementById('trafiklysTitle').textContent = titel;
-  document.getElementById('trafiklysDetail').textContent = detalje;
-
-  // Savings highlight
-  if (sc.besparelse > 50 && sc.anbefalet) {
-    document.getElementById('savingsHighlight').style.display = 'flex';
-    document.getElementById('savingsAmt').textContent = fmt(sc.besparelse) + ' kr';
-    document.getElementById('savingsYear').textContent = fmt(sc.besparelse * 12) + ' kr/år';
-  } else {
-    document.getElementById('savingsHighlight').style.display = 'none';
-  }
-
-  // Grid stats
-  document.getElementById('resNuvRente').textContent = rente.toFixed(2) + '%';
-  document.getElementById('resLaantype').textContent = ltype;
-  document.getElementById('resBidrag').textContent = bidr.toFixed(2) + '%';
-  document.getElementById('resNuvYdelse').textContent = fmt(Math.round(nuv));
-
-  if (sc.type !== 'ingen') {
-    document.getElementById('resNyYdelseCard').style.display = '';
-    document.getElementById('resNyYdelse').textContent = fmt(Math.round(sc.nyYdelse));
-    document.getElementById('resNyRente').textContent = mrente.toFixed(2) + '% (marked)';
-  } else {
-    document.getElementById('resNyYdelseCard').style.display = 'none';
-  }
-  if (sc.tb) {
-    document.getElementById('resTbCard').style.display = '';
-    document.getElementById('resTb').textContent = sc.tb + ' måneder';
-    document.getElementById('resTbSub').textContent = sc.tb <= 24 ? '✅ Klart anbefalet' : sc.tb <= 48 ? '👍 Overvej det' : '⚠️ Lang tilbagebetalingstid';
-  } else {
-    document.getElementById('resTbCard').style.display = 'none';
-  }
-
+  // ── Render panel-4 ─────────────────────────────────────────────────────
+  renderResultat({ ejd, rest, rente, loeb, ltype, bidr, nuv, mrente, ltv, frivaerdi, frivaerdiPct, sc, scener, renter });
   goTo(4);
+}
+
+function renderResultat(d) {
+  const { ejd, rest, rente, loeb, ltype, bidr, nuv, mrente, ltv, frivaerdi, frivaerdiPct, sc, scener, renter } = d;
+
+  // LTV badge / friværdi
+  let badgeCls, badgeLabel;
+  if (ltv < 40)      { badgeCls = 'friv-guld';   badgeLabel = '🥇 Guld — under 40% LTV'; }
+  else if (ltv < 60) { badgeCls = 'friv-soelv';  badgeLabel = '🥈 Sølv — under 60% LTV'; }
+  else if (ltv <= 80){ badgeCls = 'friv-bronze';  badgeLabel = '🥉 Bronze — 60–80% LTV'; }
+  else               { badgeCls = 'friv-rod';     badgeLabel = '🔴 Over 80% LTV'; }
+
+  // Signal farve
+  let sigCls, sigIcon, sigTitel, sigDetalje;
+  if (ltv > 80) {
+    sigCls='rod'; sigIcon='⚠️'; sigTitel='Belåningsgrad over 80%';
+    sigDetalje=`Din LTV er ${ltv.toFixed(1)}%. Over 80% kræver oftest et banklån i tillæg til realkreditten — kontakt din bank.`;
+  } else if (!sc.anbefalet) {
+    sigCls='gul'; sigIcon='◉'; sigTitel='Konverteringsmulighed — vurdér med din bank';
+    sigDetalje = sc.txt + (sc.type==='ingen' ? '' : ' Dette er en vejledende beregning — tal med din bank om et konkret tilbud.');
+  } else {
+    sigCls='groen'; sigIcon='✓'; sigTitel='Konverteringsmulighed — vurdér med din bank';
+    sigDetalje = sc.txt + ' Beregningerne er vejledende. Din bank eller Totalkredit kan give dig et bindende tilbud.';
+  }
+
+  // Omk.-detaljer
+  const visOmk = sc.type !== 'ingen';
+  const kurstabTxt = sc.kurstab > 0 ? fmt(Math.round(sc.kurstab)) + ' kr (ESTIMAT)' : '—';
+  const kursgevTxt = sc.kursgevinst > 0 ? '+' + fmt(Math.round(sc.kursgevinst)) + ' kr (ESTIMAT)' : '—';
+  const stiftelseOmk = fmt(Math.round(KONV_FAST_OMK + KONV_VAR_PCT * rest));
+  const tbTxt = sc.tb ? `${sc.tb} måneder` : sc.type !== 'ingen' ? '> 48 mdr.' : '—';
+  const tbKls = sc.tb && sc.tb <= 24 ? 'scene-better' : sc.tb && sc.tb <= 48 ? '' : sc.type !== 'ingen' ? 'scene-worse' : '';
+
+  // Rentekildetekst
+  const renteKilde = renter.source === 'Danmarks Nationalbank'
+    ? `Live: Danmarks Nationalbank (opdateret ${renter.updated ? new Date(renter.updated).toLocaleDateString('da-DK') : '–'})`
+    : 'Vejledende estimat (ingen live-forbindelse)';
+
+  const p4 = document.getElementById('panel-4');
+  p4.innerHTML = `
+<div class="res-2col">
+
+  <!-- VENSTRE: friværdi + signal -->
+  <div class="res-col-left">
+
+    <!-- Friværdi badge -->
+    <div class="card">
+      <div class="friv-badge ${badgeCls}" id="frivBadge">${badgeLabel}</div>
+      <div style="display:flex;gap:14px;align-items:center;margin-top:12px;">
+        <div style="flex:1">
+          <div style="font-size:.72rem;color:var(--muted);margin-bottom:2px;">Friværdi (vejl.)</div>
+          <div style="font-size:1.45rem;font-weight:800;color:var(--navy);">${fmt(Math.round(frivaerdi/1000)*1000)} kr</div>
+          <div style="font-size:.8rem;color:var(--muted);">${frivaerdiPct.toFixed(1)}% af ejendomsværdi</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px;">Belåningsgrad</div>
+          <div class="friv-meter"><div class="friv-meter-fill" style="width:${Math.min(ltv,100).toFixed(1)}%;background:${ltv<40?'#1A8A54':ltv<60?'#3A7BD5':ltv<=80?'#C47A0A':'#C03030'}"></div></div>
+          <div style="font-size:.85rem;font-weight:700;margin-top:4px;">${ltv.toFixed(1)}%</div>
+        </div>
+      </div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:10px;">
+        Friværdi = ejendomsværdi − restgæld. Kan bruges til tillægslån, renovering eller som sikkerhed.
+      </div>
+    </div>
+
+    <!-- Signal bar -->
+    <div class="res-signal ${sigCls}">
+      <div class="sig-icon">${sigIcon}</div>
+      <div>
+        <div class="sig-title">${sigTitel}</div>
+        <div class="sig-detail">${sigDetalje}</div>
+      </div>
+    </div>
+
+    <!-- Nøgletal -->
+    <div class="card" style="padding:16px;">
+      <div style="font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;">Dine nøgletal</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.88rem;">
+        <tr><td style="padding:5px 0;color:var(--muted);">Rente</td><td style="text-align:right;font-weight:600;">${rente.toFixed(2)}%</td></tr>
+        <tr><td style="padding:5px 0;color:var(--muted);">Låntype</td><td style="text-align:right;font-weight:600;">${ltype}</td></tr>
+        <tr><td style="padding:5px 0;color:var(--muted);">Bidragssats</td><td style="text-align:right;font-weight:600;">${bidr.toFixed(2)}%</td></tr>
+        <tr><td style="padding:5px 0;color:var(--muted);">Nuv. ydelse</td><td style="text-align:right;font-weight:600;">${fmt(Math.round(nuv))} kr/md</td></tr>
+        ${sc.type!=='ingen'?`<tr><td style="padding:5px 0;color:var(--muted);">Markedsrente (${ltype})</td><td style="text-align:right;font-weight:600;">${mrente.toFixed(2)}% <span style="font-size:.72rem;color:var(--muted);">(live)</span></td></tr>
+        <tr><td style="padding:5px 0;color:var(--muted);">Ny ydelse (inkl. bidr.)</td><td style="text-align:right;font-weight:600;color:${sc.besparelse>0?'var(--success)':'var(--danger)'};">${fmt(Math.round(sc.nyYdelse))} kr/md</td></tr>
+        <tr><td style="padding:5px 0;color:var(--muted);">Cash-flow ændring</td><td style="text-align:right;font-weight:700;font-size:1rem;color:${sc.besparelse>0?'var(--success)':'var(--danger)'};">${sc.besparelse>0?'+':''}${fmt(Math.round(sc.besparelse))} kr/md</td></tr>`:''}
+      </table>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:8px;">Rentekilde: ${renteKilde}</div>
+    </div>
+
+  </div><!-- end left -->
+
+  <!-- HØJRE: scenarie + omkostninger + overvågning -->
+  <div class="res-col-right">
+
+    ${sc.type!=='ingen'?`
+    <!-- Scenarie-tabel -->
+    <div class="card" style="padding:16px;">
+      <div style="font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;">Hvad koster det over tid?</div>
+      <table class="scene-table">
+        <thead>
+          <tr><th>Horisont</th><th>Hold lån</th><th>Konvertér</th><th>Forskel</th></tr>
+        </thead>
+        <tbody>
+          ${scener.map(s=>`<tr>
+            <td>${s.h} år</td>
+            <td class="scene-now">${fmt(s.holdYdelse)} kr/md</td>
+            <td class="scene-conv">${fmt(s.konvYdelse)} kr/md</td>
+            <td class="${s.diff>0?'scene-better':'scene-worse'}">${s.diff>0?'+':''}${fmt(Math.round(s.diff/1000))}k kr</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:8px;">Forskel = totalt betalt inkl. restgæld. + = fordel ved konvertering. ESTIMAT.</div>
+    </div>
+
+    <!-- Omkostningsoverblik -->
+    <div class="card" style="padding:16px;">
+      <div style="font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">Konverteringsomkostninger</div>
+      <div class="omk-row"><span class="omk-label">Kursskæring + stiftelse</span><span class="omk-est">${stiftelseOmk} kr <span class="omk-est-tag">ESTIMAT</span></span></div>
+      ${sc.kurstab>0?`<div class="omk-row"><span class="omk-label">Kurstab ved indfrielse</span><span class="omk-est">${kurstabTxt}</span></div>`:''}
+      ${sc.kursgevinst>0?`<div class="omk-row"><span class="omk-label">Kursgevinst</span><span class="omk-est" style="color:var(--success);">${kursgevTxt}</span></div>`:''}
+      <div class="omk-row" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-weight:700;">
+        <span class="omk-label">Total omk. (netto)</span>
+        <span class="omk-est">${fmt(Math.round(sc.omk))} kr <span class="omk-est-tag">ESTIMAT</span></span>
+      </div>
+      <div class="omk-row"><span class="omk-label">Tilbagebetalingstid</span><span class="${tbKls}" style="font-weight:600;">${tbTxt}</span></div>
+    </div>
+    `:''}
+
+    <!-- Overvågning box -->
+    <div class="overvag-box">
+      <div class="overvag-title">BoligLånsRadar Overvågning</div>
+      <div class="overvag-sub">Få besked med det samme, hvis markedsrenten rykker sig nok til at konvertering kan betale sig.</div>
+      <div style="display:flex;gap:0;margin:14px 0 10px;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.25);">
+        <button class="overvag-t-btn active" id="ovBtn1" onclick="overvagToggle('maaned')">
+          <div class="overvag-price">49 kr</div><div class="overvag-period">/måned</div>
+        </button>
+        <button class="overvag-t-btn" id="ovBtn2" onclick="overvagToggle('aar')">
+          <div class="overvag-price">399 kr</div><div class="overvag-period">/år (spar 189 kr)</div>
+        </button>
+      </div>
+      <div style="margin-bottom:10px;">
+        <div class="overvag-feature"><span class="overvag-check">✓</span> Månedlig status-mail om dit lån</div>
+        <div class="overvag-feature"><span class="overvag-check">✓</span> Øjeblikkelig alert hvis konvertering kan betale sig</div>
+        <div class="overvag-feature"><span class="overvag-check">✓</span> Friværdi- og markedsoverblik</div>
+        <div class="overvag-feature"><span class="overvag-check">✓</span> Konkrete forhandlingstips + kontaktinfo</div>
+      </div>
+      <div class="alert-thresh" id="alertSection">
+        <div style="font-size:.78rem;font-weight:600;margin-bottom:8px;opacity:.9;">Alert-grænser (valgfrit)</div>
+        <div style="display:flex;gap:8px;">
+          <div class="alert-field" style="flex:1">
+            <label>Ydelsesændring</label>
+            <div style="display:flex;align-items:center;gap:4px;"><input type="number" id="alertYdelse" value="${Math.round(Math.abs(sc.besparelse)||1000)}" style="width:80px;padding:4px 6px;border-radius:5px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-size:.85rem;"> <span style="font-size:.78rem;opacity:.8;">kr/md</span></div>
+          </div>
+          <div class="alert-field" style="flex:1">
+            <label>Gældsreduktion</label>
+            <div style="display:flex;align-items:center;gap:4px;"><input type="number" id="alertRestgaeld" value="200000" style="width:80px;padding:4px 6px;border-radius:5px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-size:.85rem;"> <span style="font-size:.78rem;opacity:.8;">kr</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="margin:10px 0 6px;">
+        <input type="email" id="overvagEmail" placeholder="din@email.dk" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-size:.9rem;box-sizing:border-box;" autocomplete="email">
+      </div>
+      <button class="overvag-btn" onclick="startOvervagning()">Start overvågning →</button>
+    </div>
+
+    <!-- Bankpakke -->
+    <button class="btn btn-primary" onclick="startBankpakke()" style="margin-top:4px;">Hent bankpakke med beregninger →</button>
+    <button class="btn btn-ghost" onclick="goTo(1)">Beregn igen</button>
+
+  </div><!-- end right -->
+
+</div><!-- end 2col -->
+
+<div class="legal-note">
+  ⚠️ Alle beregninger er vejledende og er ikke finansiel rådgivning. Renter og kurser er estimerede og ændrer sig løbende. Kontakt din bank, Totalkredit eller Nykredit for et bindende tilbud.
+</div>
+`;
+
+  // Sæt state for toggle
+  window._overvagPeriode = 'maaned';
+  window._beregningState = d;
+}
+
+function overvagToggle(p) {
+  window._overvagPeriode = p;
+  document.getElementById('ovBtn1').classList.toggle('active', p === 'maaned');
+  document.getElementById('ovBtn2').classList.toggle('active', p === 'aar');
+}
+
+async function startOvervagning() {
+  const email = (document.getElementById('overvagEmail')||{}).value || '';
+  if (!email || !email.includes('@')) { alert('Angiv en gyldig e-mail adresse.'); return; }
+  const d = window._beregningState || {};
+  const alertYdelseKr   = +(document.getElementById('alertYdelse')||{}).value || 1000;
+  const alertRestgaeldKr= +(document.getElementById('alertRestgaeld')||{}).value || 200000;
+  try {
+    const res = await fetch('/api/laanovervagning/start', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        email, periode: window._overvagPeriode,
+        restgaeld: d.rest, rente: d.rente, loebetid: d.loeb,
+        laantype: d.ltype, alertYdelseKr, alertRestgaeldKr
+      })
+    });
+    const json = await res.json();
+    if (json.url) { window.location.href = json.url; }
+    else alert('Noget gik galt: ' + (json.error || 'Prøv igen'));
+  } catch(e) { alert('Netværksfejl — prøv igen.'); }
 }
 
 // ── Gauge animation ───────────────────────────────────────────────────────
