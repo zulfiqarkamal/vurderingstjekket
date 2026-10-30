@@ -758,15 +758,16 @@ body::before{
 .res4-fcast-bar{height:7px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:4px;}
 .res4-fcast-fill{height:100%;border-radius:4px;}
 
-/* Paywall gate */
-.res4-gate{position:relative;border-radius:14px;overflow:hidden;}
-.res4-gate-blur{filter:blur(5px);pointer-events:none;user-select:none;opacity:.55;}
-.res4-gate-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(248,250,255,.82);backdrop-filter:blur(1px);z-index:5;padding:28px 20px;text-align:center;}
-:root[data-theme="dark"] .res4-gate-overlay{background:rgba(12,16,36,.88);}
+/* Paywall gate — peek + card CTA pattern */
+.res4-gate-wrap{display:flex;flex-direction:column;gap:0;}
+.res4-gate-peek{position:relative;max-height:260px;overflow:hidden;border-radius:14px 14px 0 0;border:1px solid var(--border);border-bottom:none;}
+.res4-gate-peek-inner{filter:blur(4px);pointer-events:none;user-select:none;opacity:.5;padding:16px;}
+.res4-gate-peek::after{content:"";position:absolute;bottom:0;left:0;right:0;height:100px;background:linear-gradient(to bottom,transparent,var(--bg));pointer-events:none;}
+.res4-gate-cta{background:var(--surface);border:1px solid var(--border);border-radius:0 0 14px 14px;padding:28px 24px;text-align:center;box-shadow:var(--shadow);}
 .res4-gate-lock{font-size:2rem;margin-bottom:8px;}
 .res4-gate-h{font-size:1.1rem;font-weight:800;color:var(--text);margin-bottom:6px;text-wrap:balance;}
 .res4-gate-p{font-size:.8rem;color:var(--muted);line-height:1.6;max-width:360px;margin:0 auto 16px;}
-.res4-gate-feats{display:flex;flex-direction:column;gap:5px;margin-bottom:16px;text-align:left;width:100%;max-width:320px;}
+.res4-gate-feats{display:flex;flex-direction:column;gap:5px;margin-bottom:16px;text-align:left;width:100%;max-width:320px;margin-left:auto;margin-right:auto;}
 .res4-gate-feat{font-size:.77rem;color:var(--text);display:flex;align-items:flex-start;gap:8px;line-height:1.4;}
 .res4-gate-feat::before{content:"✓";color:var(--success);font-weight:700;flex-shrink:0;}
 .res4-gate-plans{display:flex;gap:8px;margin-bottom:14px;justify-content:center;}
@@ -1963,51 +1964,51 @@ function renderResultat(d) {
     </div>
   </div>
 
-  <!-- ── 3. Full analysis — GATED (blur overlay with inline CTA) ── -->
-  <div class="res4-gate">
-    <div class="res4-gate-blur">
-      <!-- blurred content: loans comparison -->
-      ${hasConv ? `
-      <div class="res4-loans-sec">
-        <div class="res4-loan-card">
-          <div class="res4-loan-head cur">📋 Nuværende lån</div>
-          <div class="res4-loan-body">
-            <div class="res4-loan-row"><span class="res4-loan-lbl">Rente</span><span class="res4-loan-val">${rente.toFixed(2)}%</span></div>
-            <div class="res4-loan-row"><span class="res4-loan-lbl">Type</span><span class="res4-loan-val">${ltype}</span></div>
-            <div class="res4-loan-row"><span class="res4-loan-lbl">Bidragssats</span><span class="res4-loan-val">${bidr.toFixed(2)}%</span></div>
-            <div class="res4-loan-row"><span class="res4-loan-lbl">Restgæld</span><span class="res4-loan-val">${fmt(Math.round(rest/1000)*1000)} kr</span></div>
-            <div class="res4-loan-row"><span class="res4-loan-lbl">Ydelse</span><span class="res4-loan-val">${fmt(Math.round(nuv))} kr/md</span></div>
+  <!-- ── 3. Full analysis — GATED (peek + CTA card) ── -->
+  <div class="res4-gate-wrap">
+    <!-- Blurred peek: shows top of content, fades out -->
+    <div class="res4-gate-peek">
+      <div class="res4-gate-peek-inner">
+        ${hasConv ? `
+        <div class="res4-loans-sec">
+          <div class="res4-loan-card">
+            <div class="res4-loan-head cur">📋 Nuværende lån</div>
+            <div class="res4-loan-body">
+              <div class="res4-loan-row"><span class="res4-loan-lbl">Rente</span><span class="res4-loan-val">${rente.toFixed(2)}%</span></div>
+              <div class="res4-loan-row"><span class="res4-loan-lbl">Type</span><span class="res4-loan-val">${ltype}</span></div>
+              <div class="res4-loan-row"><span class="res4-loan-lbl">Bidragssats</span><span class="res4-loan-val">${bidr.toFixed(2)}%</span></div>
+              <div class="res4-loan-row"><span class="res4-loan-lbl">Restgæld</span><span class="res4-loan-val">${fmt(Math.round(rest/1000)*1000)} kr</span></div>
+              <div class="res4-loan-row"><span class="res4-loan-lbl">Ydelse</span><span class="res4-loan-val">${fmt(Math.round(nuv))} kr/md</span></div>
+            </div>
           </div>
-        </div>
-        <div class="res4-loan-card">
-          <div class="res4-loan-head nw">✨ ${sc.type === 'nedkonvertering' ? 'Nedkonvertering' : 'Opkonvertering'}</div>
-          <div class="res4-loan-body">
-            <div class="res4-loan-row"><span class="res4-loan-lbl">Ny rente</span><span class="res4-loan-val hl">${(sc.nyRente || mrente).toFixed(2)}%</span></div>
-            <div class="res4-loan-row"><span class="res4-loan-lbl">Ny restgæld</span><span class="res4-loan-val">${sc.nyRest ? fmt(Math.round(sc.nyRest/1000)*1000) : '—'} kr</span></div>
-            <div class="res4-loan-row"><span class="res4-loan-lbl">Ny ydelse</span><span class="res4-loan-val hl">${fmt(Math.round(sc.nyYdelse))} kr/md</span></div>
-            <div class="res4-loan-row"><span class="res4-loan-lbl">Ændring</span><span class="res4-loan-val">${sc.besparelse>0?'+':''}${fmt(Math.round(sc.besparelse))} kr/md</span></div>
+          <div class="res4-loan-card">
+            <div class="res4-loan-head nw">✨ ${sc.type === 'nedkonvertering' ? 'Nedkonvertering' : 'Opkonvertering'}</div>
+            <div class="res4-loan-body">
+              <div class="res4-loan-row"><span class="res4-loan-lbl">Ny rente</span><span class="res4-loan-val hl">${(sc.nyRente || mrente).toFixed(2)}%</span></div>
+              <div class="res4-loan-row"><span class="res4-loan-lbl">Ny restgæld</span><span class="res4-loan-val">${sc.nyRest ? fmt(Math.round(sc.nyRest/1000)*1000) : '—'} kr</span></div>
+              <div class="res4-loan-row"><span class="res4-loan-lbl">Ny ydelse</span><span class="res4-loan-val hl">${fmt(Math.round(sc.nyYdelse))} kr/md</span></div>
+              <div class="res4-loan-row"><span class="res4-loan-lbl">Ændring</span><span class="res4-loan-val">${sc.besparelse>0?'+':''}${fmt(Math.round(sc.besparelse))} kr/md</span></div>
+            </div>
           </div>
-        </div>
-        <div class="res4-cmp-card">
-          <div class="res4-cmp-head">📊 Sammenligning over tid</div>
-          <div class="res4-cmp-body">
-            <table class="res4-table">
-              <thead><tr><th>Horisont</th><th>Hold</th><th>Konv.</th><th>Forskel</th></tr></thead>
-              <tbody>${scener.map(s=>`<tr><td>${s.h} år</td><td>${fmt(s.holdYdelse)}/md</td><td>${fmt(s.konvYdelse)}/md</td><td class="${s.diff>0?'pos':'neg'}">${s.diff>0?'+':''}${Math.round(s.diff/1000)}k</td></tr>`).join('')}</tbody>
-            </table>
+          <div class="res4-cmp-card">
+            <div class="res4-cmp-head">📊 Sammenligning over tid</div>
+            <div class="res4-cmp-body">
+              <table class="res4-table">
+                <thead><tr><th>Horisont</th><th>Hold</th><th>Konv.</th><th>Forskel</th></tr></thead>
+                <tbody>${(scener||[]).map(s=>`<tr><td>${s.h} år</td><td>${fmt(s.holdYdelse)}/md</td><td>${fmt(s.konvYdelse)}/md</td><td class="${s.diff>0?'pos':'neg'}">${s.diff>0?'+':''}${Math.round(s.diff/1000)}k</td></tr>`).join('')}</tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </div>` : ''}
-      <!-- blurred content: analysis -->
-      <div class="res4-analysis-sec" style="margin-top:14px;">
-        <div class="res4-chart-card"><div class="res4-analysis-head">📈 Ydelse over tid</div><div class="res4-analysis-body" style="height:160px;"></div></div>
-        <div class="res4-costs-card"><div class="res4-analysis-head">💰 Konverteringsomkostninger</div><div class="res4-analysis-body" style="height:160px;"></div></div>
-        <div class="res4-payback-card"><div class="res4-analysis-head">⏱ Tilbagebetalingstid</div><div class="res4-analysis-body" style="height:160px;"></div></div>
+        </div>` : `
+        <div class="res4-analysis-sec">
+          <div class="res4-chart-card"><div class="res4-analysis-head">📈 Ydelse over tid</div><div class="res4-analysis-body" style="height:120px;"></div></div>
+          <div class="res4-payback-card"><div class="res4-analysis-head">⏱ Tilbagebetalingstid</div><div class="res4-analysis-body" style="height:120px;"></div></div>
+        </div>`}
       </div>
     </div>
 
-    <!-- Gate overlay with inline CTA -->
-    <div class="res4-gate-overlay">
+    <!-- CTA card — always fully visible in normal flow -->
+    <div class="res4-gate-cta">
       <div class="res4-gate-lock">🔐</div>
       <div class="res4-gate-h">Din personlige låne&shy;dashboard venter</div>
       <div class="res4-gate-p">Fuld scenarieanalyse, tilbagebetalingstid og konverteringsomkostninger — plus månedlig opdatering når markedet ændrer sig.</div>
