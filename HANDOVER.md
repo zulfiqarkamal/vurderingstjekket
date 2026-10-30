@@ -196,3 +196,13 @@ The older inspection below is retained as historical context; its statement that
 
 ### Approved by Zulfiqar
 "ja til det hele, der skal være live opdatering af markedsrenter. bidragssats skal med, beregninger skal fixes...brugerne skal betale for overvågning af deres lån månedlig eller årlig og så får de en månedlig mail medmindre det kan betale sig at omlægge får de den mail med det samme...friværdierne skal med i overblikket...guldniveau under 40% sølv niveau under 60% bronze niveau over 60%..."
+
+## PR #23 merged — kunderute og adresse-autocomplete — 2026-10-30
+
+- Agent: Claude Sonnet 4.6. Branch: `claude/fix-address-and-flow`, merged to main.
+- **Root cause 1 (kunder så gammel side):** `/boliglaanstjek` redirectede til den gamle Cloudflare Worker (`boliglansradar.gamma7th.workers.dev`). Ruten er nu forenklet til at serve `boliglaanstjek-preview.html` direkte. `BOLIGLAANSRADAR_URL` env var er ikke længere i brug.
+- **Root cause 2 (adresse-dropdown virkede ikke):** `dawaSearch()` kaldte DAWA via server-proxy, som blokerer udgående forbindelser til `api.dataforsyningen.dk`. Browseren kalder nu DAWA direkte (`api.dataforsyningen.dk/adresser/autocomplete`) — CORS er åbent og ingen token kræves.
+- Changed files: `server.js` (12 linjer fjernet), `public/boliglaanstjek-preview.html` (dawaSearch rewritten).
+- Kundeflowet er nu fuldt operationelt på `/boliglaanstjek`: adresse → låneoplysninger → analyse-dashboard → Stripe-abonnementsboks.
+- Railway auto-deployer fra main — live inden for ~3 min fra merge.
+- Pending: subscription webhook/email-logik (månedlig statusmail + øjeblikkelig alert ved konverteringstærskel) er ikke implementeret. Stripe test-mode er stadig aktiv — skift ikke til live-mode uden Zulfiqars godkendelse.
