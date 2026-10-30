@@ -177,7 +177,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 </head>
 <body>
 
-<nav aria-label="Produktnavigation" style="padding:12px 20px;text-align:center;background:#fff"><a href="/">? Forside</a> ? <a href="/boliglaanstjek">Boligl?nstjek ?</a></nav><header>
+<nav aria-label="Produktnavigation" style="padding:12px 20px;text-align:center;background:#fff"><a href="/">⌂ Forside</a> · <a href="/boliglaanstjek">Boliglånstjek →</a></nav><header>
   <h1>Vurderingstjekket</h1>
   <p>Er din ejendomsvurdering for høj? Vi sammenligner gratis med faktiske tinglyste handler i dit område og viser, om din vurdering ser for høj ud.</p>
   <span class="badge">Gratis tjek · Du betaler kun, hvis der er en væsentlig afvigelse</span>
@@ -264,8 +264,12 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 
 <!-- ══ STEP 4: PAYMENT ══════════════════════════════════════════ -->
 <div class="card hidden" id="card-pay">
-  <h2>4. Få din klagepakke</h2>
-  <p class="sub" id="pay-sub">En færdig klage med dokumentationen fra de lokale handler. Du indsætter den direkte hos Skatteankestyrelsen.</p>
+  <h2>Hvad kan du gøre nu?</h2>
+  <p class="sub" id="pay-sub">Få en dokumenteret analyse med prisjusteringer og et klageudkast, hvis datagrundlaget understøtter det.</p>
+  <div class="note" style="margin:12px 0 16px;padding:12px 14px;">
+    <strong>Dette får du i rapporten</strong><br>
+    <span id="pay-report-desc">Sammenlignelige handler, beregningsgrundlag, vurdering af usikkerhed og et klageudkast, hvis der er tilstrækkeligt grundlag.</span>
+  </div>
 
   <p style="margin:14px 0 6px;font-weight:600;font-size:1.05rem;" id="pay-price">350 kr. Engangsbetaling.</p>
   <p class="note" style="margin:0 0 10px;font-size:0.9rem;">Bemærk: Skatteankestyrelsen opkræver selv et klagegebyr på 1.300 kr., når du sender klagen. Det er ikke med i prisen her.</p>
@@ -276,7 +280,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
   <p id="final-check-err" class="hidden" style="margin:0 0 10px;color:#b91c1c;font-size:0.9rem;">Sæt kryds, før du køber. Har du kun en foreløbig vurdering, kan du ikke klage endnu.</p>
 
   <button class="btn btn-pay" id="pay-btn">
-    Få min klagepakke →
+    Se rapport og pris →
   </button>
   <p style="margin:8px 0 0;font-size:0.85rem;color:var(--gray-600);">Leveres digitalt på få minutter. Ingen abonnement.</p>
   <button class="btn btn-secondary hidden" id="test-btn" style="margin-top:8px;">
@@ -645,7 +649,7 @@ async function runFreeCheck(confirmed) {
 
   const btn = document.getElementById("check-btn");
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Henter handler fra dit område…';
+  btn.innerHTML = '<span class="spinner"></span>Henter data fra dit område…';
 
   try {
     const r = await fetch("/api/free-check", {
@@ -690,7 +694,6 @@ function renderFreeResult(d, ev, m2) {
   // d.source = "lokal": vurderet mod tinglyste handler i postnummeret (afgør om der er en sag)
   // d.source = "landsdel": fallback til DST-gennemsnit, når lokale handler ikke kunne hentes
   const lokal = d.source === "lokal";
-  // Området, handlerne kommer fra: postnummeret, hvor de nærmeste handler vægtes højest
   const omraade = state.postnr ? escHtml(`${state.postnr} ${state.by}`.trim()) : "dit lokalområde";
   let tlColor, tag, headline, subtext;
   // Et nyt resultat nulstiller spørgsmålene fra et tidligere tjek
@@ -705,31 +708,29 @@ function renderFreeResult(d, ev, m2) {
     : Math.round(d.gap_pct);
   if (lokal && d.verdict === "SAG") {
     tlColor  = "tl-red";
-    tag      = "🔴 Stor afvigelse";
-    headline = `Vores estimat ligger ${pct}&nbsp;% under din vurdering`;
-    subtext  = `Vores beregning ud fra faktiske handler i ${omraade} viser en væsentlig forskel. En klage kan kun ændre vurderingen, hvis den skal ned med mere end 20 %. Det er en stærk indikation, men ingen garanti for, at en klage får medhold. Klagepakken undersøger din bolig nærmere og giver dig et begrundet klageudkast.`;
+    tag      = "MULIGT GRUNDLAG FOR NÆRMERE UNDERSØGELSE";
+    headline = `Din ejendomsvurdering kan være ${pct}&nbsp;% for høj`;
+    subtext  = `Vores foreløbige beregning indikerer, at din ejendom kan være vurderet højere end markedsniveauet. Datagrundlaget er dog begrænset, så resultatet skal undersøges nærmere, før en klage kan anbefales.`;
   } else if (lokal && d.verdict === "TÆT") {
     tlColor  = "tl-amber";
-    tag      = "🟠 Mulig afvigelse";
-    headline = `Vores estimat ligger ${pct}&nbsp;% under din vurdering`;
-    subtext  = d.gap_pct >= 20
-      ? `Afvigelsen er over 20 %, men der er for få handler med lignende huse i ${omraade}, eller priserne svinger for meget, til at vi kan kalde det en stor afvigelse ud fra handlerne alene. Særlige forhold ved boligen kan have betydning for, om der er grundlag for en klage. Sæt kryds ved det, der passer, nedenfor.`
-      : `Du ligger tæt på grænsen på 20 %. Særlige forhold ved boligen kan have betydning for, om der er grundlag for en klage. Sæt kryds ved det, der passer, nedenfor.`;
+    tag      = "MULIGT GRUNDLAG FOR NÆRMERE UNDERSØGELSE";
+    headline = `Din ejendomsvurdering kan være ${pct}&nbsp;% for høj`;
+    subtext  = `Vores foreløbige beregning indikerer, at din ejendom kan være vurderet højere end markedsniveauet. Datagrundlaget er dog begrænset, så resultatet skal undersøges nærmere, før en klage kan anbefales.`;
   } else if (lokal) {
     tlColor  = "tl-green";
-    tag      = "🟢 Mindre afvigelse";
-    headline = "Ingen væsentlig afvigelse fundet";
-    subtext  = `Den indledende beregning viser ikke en afvigelse, der i sig selv giver grundlag for en klage. Det udelukker ikke fejl i vurderingen, fx i grundværdien eller ved særlige forhold ved ejendommen.`;
+    tag      = "INGEN VÆSENTLIG AFVIGELSE FUNDET";
+    headline = "Din vurdering ser ud til at ligge på markedsniveau";
+    subtext  = `Den foreløbige beregning viser ikke en forskel, der i sig selv giver grundlag for en klage. Det udelukker ikke fejl i vurderingen, fx i grundværdien eller ved særlige forhold ved ejendommen.`;
   } else if (d.canBuy) {
     tlColor  = "tl-red";
-    tag      = "🔴 Stor afvigelse";
-    headline = `Estimatet ligger ca. ${pct}&nbsp;% under din vurdering`;
-    subtext  = `Ud fra gennemsnittet for ${escHtml(d.landsdelnavn)} ser din vurdering høj ud. Vi kunne ikke hente de lokale handler lige nu, så klagepakken tjekker dem, før klagen skrives.`;
+    tag      = "MULIGT GRUNDLAG FOR NÆRMERE UNDERSØGELSE";
+    headline = `Din ejendomsvurdering kan være ca. ${pct}&nbsp;% for høj`;
+    subtext  = `Vores foreløbige beregning indikerer, at din ejendom kan være vurderet højere end markedsniveauet. En nærmere analyse er nødvendig for at bekræfte grundlaget for en klage.`;
   } else {
     tlColor  = d.color === "green" ? "tl-green" : "tl-amber";
-    tag      = d.color === "green" ? "🟢 Mindre afvigelse" : "🟡 Usikkert resultat";
-    headline = "Ingen tydelig afvigelse ud fra gennemsnittet";
-    subtext  = `Ud fra gennemsnittet for ${escHtml(d.landsdelnavn)} kan vi ikke se en tydelig afvigelse. Vi kunne ikke hente de lokale handler lige nu, så prøv gerne igen senere.`;
+    tag      = d.color === "green" ? "INGEN VÆSENTLIG AFVIGELSE FUNDET" : "USIKKERT RESULTAT";
+    headline = "Ingen tydelig afvigelse fundet";
+    subtext  = `Den foreløbige beregning kan ikke bekræfte en væsentlig afvigelse. Prøv gerne igen senere, hvis du mener vurderingen ser forkert ud.`;
   }
 
   const savings = d.canBuy && d.savingsPerYear > 0
@@ -749,22 +750,19 @@ function renderFreeResult(d, ev, m2) {
     <div class="tl-wrap">
       <div class="tl-circle ${tlColor}"></div>
       <div>
-        <p class="tl-tag">${tag}</p>
-        <p class="tl-headline ${tlColor}">${headline}</p>
-        <p class="tl-subtext">${subtext}</p>
+        <p class="tl-tag" style="font-size:0.72rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;margin:0 0 6px;">${tag}</p>
+        <p class="tl-headline ${tlColor}" style="margin:0 0 8px;">${headline}</p>
+        <p class="tl-subtext" style="margin:0;">${subtext}</p>
       </div>
     </div>
 
-    <div class="data-grid">
-      <span class="k">Din ejendomsværdi:</span>
+    <div class="data-grid" style="margin-top:18px;">
+      <span class="k">Offentlig ejendomsvurdering</span>
       <span class="v">${fmtKr(ev)}</span>
-      <span class="k">${lokal ? "Vores estimat:" : "Ud fra landsdelens gennemsnit:"}</span>
+      <span class="k">Vores foreløbige estimat</span>
       <span class="v">${fmtEstimat(d.estimate)}</span>
-      ${lokal ? `<span class="k">Sammenlignet med:</span><span class="v">Handler i ${omraade}</span>` : ""}
-      <span class="k">Forskel:</span>
-      <span class="v">${d.estimate < ev ? `${pct}&nbsp;% af din vurdering` : "Ingen"}</span>
-      <span class="k">Boligareal:</span>
-      <span class="v">${m2} m²</span>
+      <span class="k" style="font-weight:700;">Beregnet afvigelse</span>
+      <span class="v" style="font-weight:700;">${d.estimate < ev ? `${pct} %` : "Ingen"}</span>
     </div>
 
     ${savings}
@@ -782,9 +780,9 @@ function renderFreeResult(d, ev, m2) {
 
   if (d.canBuy) {
     document.getElementById("pay-sub").textContent =
-      "En færdig klage med dokumentationen fra de lokale handler. Du indsætter den direkte hos Skatteankestyrelsen.";
+      "Få en dokumenteret analyse med prisjusteringer og et klageudkast, hvis datagrundlaget understøtter det.";
     document.getElementById("pay-price").textContent = `${d.price} kr. Engangsbetaling.`;
-    document.getElementById("pay-btn").textContent = `Få min klagepakke – ${d.price} kr →`;
+    document.getElementById("pay-btn").textContent = `Se rapport og pris – ${d.price} kr →`;
     document.getElementById("card-pay").classList.remove("hidden");
     document.getElementById("card-notify").classList.add("hidden");
     if (TEST_MODE) document.getElementById("test-btn").classList.remove("hidden");
@@ -806,9 +804,9 @@ function checkForhold() {
   document.getElementById("card-forhold").classList.add("hidden");
   if (state.forhold.length > 0) {
     document.getElementById("pay-sub").textContent =
-      "Din sag bygger på de lokale handler plus forholdene ved din bolig. Den er svagere end en klar sag, men kan være værd at prøve. Du får en færdig klage, hvor forholdene er med.";
+      "Få en dokumenteret analyse med prisjusteringer og et klageudkast, hvis datagrundlaget understøtter det.";
     document.getElementById("pay-price").textContent = `${d.price} kr. Engangsbetaling.`;
-    document.getElementById("pay-btn").textContent = `Få min klagepakke – ${d.price} kr →`;
+    document.getElementById("pay-btn").textContent = `Se rapport og pris – ${d.price} kr →`;
     document.getElementById("card-pay").classList.remove("hidden");
     if (TEST_MODE) document.getElementById("test-btn").classList.remove("hidden");
     track("pay_shown");
@@ -888,7 +886,7 @@ async function startPayment() {
     window.location.href = data.checkoutUrl;
   } catch(err) {
     btn.disabled = false;
-    btn.innerHTML = "Få min klagepakke →";
+    btn.innerHTML = "Se rapport og pris →";
     alert("Betalingsfejl: " + err.message);
   }
 }
