@@ -1,5 +1,12 @@
 # Shared AI development handover — Vurderingstjekket
 
+## BBR-opslag ved adressevalg på boliglaanstjek — 2026-10-30
+
+- Agent: Claude Sonnet 4.6. Branch: `claude/project-thread-gqql7g`.
+- **Problem:** `dawaPick()` gemte ikke `adresseId`/`husnummerId`/`kommunekode` fra DAWA-svaret, og kaldte aldrig `/api/bbr` efter adressevalg.
+- **Fix:** `dawaSearch()` udtrækker nu `adresseId`, `husnummerId`, `kommunekode` fra DAWA. `dawaPick()` kalder ny `lookupBBRForLoan()` der henter bygningsdata fra `/api/bbr` og viser et status-badge med boligtype og m².
+- Ændret fil: `public/boliglaanstjek-preview.html` (adresse-autocomplete-sektion + nyt `#bbrBadge` element).
+
 ## Stripe-betalingsflows + adresse-fix — 2026-10-30
 - Agent: Claude Code. Branch: `claude/stripe-products`, PR pending.
 - Objective: fix adresse-autocomplete i ejendomsvurdering.html; tilføj 3 rigtige Stripe-betalingsflows.
