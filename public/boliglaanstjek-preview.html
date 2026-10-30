@@ -1825,9 +1825,15 @@ function dawaSearch(q) {
   if (q.length < 2) { drop.style.display='none'; return; }
   dawaTimer = setTimeout(async () => {
     try {
-      const res = await fetch('/api/adresse?q=' + encodeURIComponent(q));
-      const data = await res.json();
-      dawaResults = data.suggestions || [];
+      // Call DAWA directly from the browser — no server proxy needed, CORS is open
+      const url = `https://api.dataforsyningen.dk/adresser/autocomplete?q=${encodeURIComponent(q)}&caretpos=${q.length}&per_side=8&fuzzy=`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const raw = await res.json();
+      dawaResults = Array.isArray(raw) ? raw.map(item => {
+        const adr = item.adresse || {};
+        return { label: item.tekst || '', postnr: adr.postnr || '', by: adr.postnrnavn || '' };
+      }) : [];
       dawaCursor = -1;
       if (!dawaResults.length) { drop.style.display='none'; return; }
       drop.innerHTML = dawaResults.map((d,i) => {

@@ -44,17 +44,6 @@ app.get("/boliglaanstjek/preview", (_req, res) => {
   res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "boliglaanstjek-preview.html"));
 });
 app.get("/boliglaanstjek", (_req, res) => {
-  // Navigate to the Worker origin, preserving its relative APIs, cookies and
-  // independently configured Stripe callbacks. Never proxy payment credentials.
-  const configured = process.env.BOLIGLAANSRADAR_URL ?? "https://boliglansradar.gamma7th.workers.dev/";
-  if (configured) {
-    try {
-      const target = new URL(configured);
-      if (target.protocol === "https:" && !target.username && !target.password && target.pathname === "/" && !target.search && !target.hash) {
-        return res.set("Cache-Control", "no-store").set("Referrer-Policy", "no-referrer").redirect(302, target.href);
-      }
-    } catch { /* Missing/invalid configuration falls back to a clear preview. */ }
-  }
   res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "boliglaanstjek-preview.html"));
 });
 // HTML må ikke caches, ellers ser folk en gammel version af siden efter en opdatering
