@@ -410,29 +410,65 @@ function wgs84TilUtm32(lat, lon) {
 // ─── Adressevælger + BBR ──────────────────────────────────────
 
 // GET /api/adresse?q=<text>  →  returns list of address suggestions
+// Primary: Dataforsyningen autocomplete (no token required, stable public API)
+// Fallback: Adressevælgeren
 app.get("/api/adresse", async (req, res) => {
   const q = (req.query.q || "").trim();
   if (q.length < 3) return res.json({ suggestions: [] });
 
+  // Try Dataforsyningen first (https://api.dataforsyningen.dk)
   try {
-       // Adressevælgeren – erstatter DAWA (lukket 1. oktober 2026)
+    const url = `https://api.dataforsyningen.dk/adresser/autocomplete?q=${encodeURIComponent(q)}&caretpos=${q.length}&per_side=8&fuzzy=`;
+    const r = await fetch(url, { headers: { "Accept": "application/json" } });
+    if (!r.ok) throw new Error(`Dataforsyningen HTTP ${r.status}`);
+    const raw = await r.json();
+
+    if (Array.isArray(raw) && raw.length > 0) {
+      const suggestions = raw.map(item => {
+        const adr = item.adresse || {};
+        return {
+          adresseId:   adr.id || null,
+          husnummerId: adr.adgangsadresseid || null,
+          label:       item.tekst || "",
+          postnr:      adr.postnr || "",
+          by:          adr.postnrnavn || "",
+          kommunekode: adr.kommunekode || "",
+          vejnavn:     adr.vejnavn || "",
+        };
+      });
+      return res.json({ suggestions });
+    }
+    throw new Error("Dataforsyningen returnerede tomt svar");
+  } catch (primaryErr) {
+    console.warn("[adresse] Dataforsyningen fejlede, prøver Adressevælgeren:", primaryErr.message);
+  }
+
+  // Fallback: Adressevælgeren
+  try {
     const url = `https://adressevaelger.dk/adresser/soeg?tekst=${encodeURIComponent(q)}&token=${ADR_TOKEN}&maksimum=8`;
     const r = await fetch(url, { headers: { "Accept": "application/json" } });
     if (!r.ok) throw new Error(`Adressevælgeren HTTP ${r.status}`);
     const raw = await r.json();
+    console.log("[adresse] Adressevælgeren raw keys:", Object.keys(raw).join(","), "first item:", JSON.stringify((raw.fund || raw.results || raw.adresser || [])[0] || {}).slice(0, 200));
 
-    const items = Array.isArray(raw.fund) ? raw.fund : [];
+    // Try common response keys
+    const items = Array.isArray(raw.fund) ? raw.fund
+      : Array.isArray(raw.results) ? raw.results
+      : Array.isArray(raw.adresser) ? raw.adresser
+      : Array.isArray(raw) ? raw : [];
+
     const suggestions = items
-      .filter(s => s.type === "adresse")
+      .filter(s => !s.type || s.type === "adresse" || s.type === "Adresse")
       .slice(0, 8)
       .map(s => {
-        const postnrMatch = (s.titel || "").match(/\b(\d{4})\b/);
+        const tekst = s.titel || s.tekst || s.label || s.adresse || "";
+        const postnrMatch = tekst.match(/\b(\d{4})\b/);
         const postnr = postnrMatch ? postnrMatch[1] : "";
-        const by = postnr ? (s.titel || "").replace(/^.*\b\d{4}\b\s*/, "").trim() : "";
+        const by = postnr ? tekst.replace(/^.*\b\d{4}\b\s*/, "").trim() : "";
         return {
-          adresseId:   s.id || null,
+          adresseId:   s.id || s.adresseId || null,
           husnummerId: s.husnummerId || null,
-          label:       s.titel || "",
+          label:       tekst,
           postnr,
           by,
           kommunekode: "",
@@ -440,8 +476,11 @@ app.get("/api/adresse", async (req, res) => {
         };
       });
 
-    res.json({ suggestions });
+    if (suggestions.length) return res.json({ suggestions });
+    console.warn("[adresse] Ingen suggestions fra hverken Dataforsyningen eller Adressevælgeren for:", q);
+    res.json({ suggestions: [] });
   } catch (err) {
+    console.error("[adresse] Begge adresse-API'er fejlede:", err.message);
     res.status(502).json({ error: "Adressesøgning fejlede: " + err.message });
   }
 });
