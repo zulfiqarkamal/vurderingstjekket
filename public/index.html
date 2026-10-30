@@ -3,1145 +3,492 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Vurderingstjekket — Tjek om du kan klage over din ejendomsvurdering</title>
+<title>Vurderingstjekket.dk — Boligøkonomi der virker</title>
+<meta name="description" content="Tjek om din ejendomsvurdering er for høj, og hold øje med hvornår det betaler sig at omlægge dit realkreditlån." />
 <style>
 :root{
-  --blue-900:#0b2447;--blue-700:#13497a;--blue-500:#1c6dc4;--blue-100:#e8f1fc;
-  --green-600:#1a8a4a;--green-100:#e6f6ec;
-  --red-600:#c0392b;--red-100:#fbeae8;
+  --blue-900:#0b2447;--blue-800:#0f3260;--blue-700:#13497a;--blue-600:#1559a0;
+  --blue-500:#1c6dc4;--blue-400:#3a85d8;--blue-100:#e8f1fc;--blue-50:#f0f6ff;
+  --green-600:#1a8a4a;--green-500:#2aa05a;--green-100:#e6f6ec;
   --amber-600:#b5780a;--amber-100:#fdf2e0;
-  --gray-900:#1a2130;--gray-600:#5b6474;--gray-300:#d9dee6;--gray-100:#f4f6f9;
-  --white:#fff;--radius:12px;
+  --gray-900:#1a2130;--gray-700:#2e3848;--gray-600:#5b6474;
+  --gray-300:#d9dee6;--gray-200:#e8ecf2;--gray-100:#f4f6f9;--gray-50:#f9fafb;
+  --white:#fff;--radius:14px;--radius-sm:8px;
+  --shadow:0 1px 4px rgba(10,20,40,.06),0 8px 32px rgba(10,20,40,.08);
+  --shadow-sm:0 1px 3px rgba(10,20,40,.06);
 }
-*{box-sizing:border-box;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
 body{
-  margin:0;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  background:var(--gray-100);color:var(--gray-900);line-height:1.5;
+  background:var(--gray-50);color:var(--gray-900);line-height:1.6;
 }
-header{
-  background:linear-gradient(135deg,var(--blue-900),var(--blue-700));
-  color:var(--white);padding:32px 20px 44px;text-align:center;
+
+/* ── Nav ────────────────────────────────── */
+nav{
+  background:var(--blue-900);position:sticky;top:0;z-index:100;
+  padding:0 24px;display:flex;align-items:center;justify-content:space-between;
+  height:60px;box-shadow:0 2px 8px rgba(0,0,0,.2);
 }
-header h1{margin:0 0 8px;font-size:1.7rem;letter-spacing:-0.02em;}
-header p{margin:6px auto 0;opacity:0.88;font-size:0.95rem;max-width:560px;}
-.badge{
-  display:inline-block;margin-top:14px;
-  background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.28);
-  border-radius:999px;padding:6px 16px;font-size:0.8rem;
+.nav-logo{
+  color:var(--white);font-weight:700;font-size:1rem;letter-spacing:-0.01em;
+  text-decoration:none;display:flex;align-items:center;gap:8px;
 }
-main{max-width:640px;margin:-22px auto 60px;padding:0 16px;}
-.card{
+.nav-logo span{opacity:.65;font-weight:400;}
+.nav-links{display:flex;gap:8px;align-items:center;}
+.nav-links a{
+  color:rgba(255,255,255,.8);text-decoration:none;font-size:0.875rem;
+  padding:6px 12px;border-radius:6px;transition:background .15s,color .15s;
+}
+.nav-links a:hover{background:rgba(255,255,255,.12);color:var(--white);}
+.nav-cta{
+  background:var(--blue-500);color:var(--white)!important;
+  font-weight:600!important;
+}
+.nav-cta:hover{background:var(--blue-400)!important;}
+@media(max-width:600px){
+  .nav-links a:not(.nav-cta){display:none;}
+}
+
+/* ── Hero ───────────────────────────────── */
+.hero{
+  background:linear-gradient(160deg,var(--blue-900) 0%,var(--blue-700) 60%,var(--blue-600) 100%);
+  color:var(--white);text-align:center;padding:80px 24px 100px;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 100%,rgba(28,109,196,.35),transparent);
+}
+.hero-inner{position:relative;max-width:680px;margin:0 auto;}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  border-radius:999px;padding:6px 16px;font-size:0.8rem;letter-spacing:.04em;
+  text-transform:uppercase;font-weight:600;
+}
+.hero h1{
+  font-size:clamp(2rem,5vw,3rem);font-weight:800;line-height:1.15;
+  letter-spacing:-0.03em;margin-bottom:20px;
+}
+.hero h1 em{
+  font-style:normal;
+  background:linear-gradient(90deg,#7ec8e3,#a8d8ea);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-sub{font-size:1.1rem;opacity:.85;max-width:520px;margin:0 auto 36px;line-height:1.6;}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.btn-hero-primary{
+  background:var(--white);color:var(--blue-900);font-weight:700;
+  padding:14px 28px;border-radius:var(--radius-sm);text-decoration:none;
+  font-size:1rem;transition:transform .12s,box-shadow .12s;
+  box-shadow:0 4px 16px rgba(0,0,0,.2);
+}
+.btn-hero-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.btn-hero-secondary{
+  background:rgba(255,255,255,.12);color:var(--white);font-weight:600;
+  padding:14px 28px;border-radius:var(--radius-sm);text-decoration:none;
+  font-size:1rem;border:1.5px solid rgba(255,255,255,.3);
+  transition:background .15s;
+}
+.btn-hero-secondary:hover{background:rgba(255,255,255,.2);}
+
+/* ── Trust strip ────────────────────────── */
+.trust-strip{
+  background:var(--white);border-bottom:1px solid var(--gray-200);
+  padding:14px 24px;display:flex;align-items:center;justify-content:center;
+  gap:32px;flex-wrap:wrap;
+}
+.trust-item{
+  display:flex;align-items:center;gap:8px;font-size:0.82rem;
+  color:var(--gray-600);font-weight:500;
+}
+.trust-item .ico{font-size:1rem;flex-shrink:0;}
+
+/* ── Section helpers ────────────────────── */
+section{padding:72px 24px;}
+.section-inner{max-width:1100px;margin:0 auto;}
+.section-label{
+  font-size:0.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--blue-500);margin-bottom:12px;
+}
+.section-title{font-size:clamp(1.6rem,3vw,2.2rem);font-weight:800;letter-spacing:-0.02em;line-height:1.2;margin-bottom:16px;}
+.section-sub{font-size:1rem;color:var(--gray-600);max-width:560px;line-height:1.7;}
+
+/* ── Product cards ──────────────────────── */
+.products{background:var(--gray-50);}
+.products-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:48px;
+}
+@media(max-width:800px){.products-grid{grid-template-columns:1fr;}}
+.product-card{
   background:var(--white);border-radius:var(--radius);
-  box-shadow:0 1px 3px rgba(10,20,40,.06),0 8px 24px rgba(10,20,40,.06);
-  padding:26px;margin-bottom:18px;border:1px solid var(--gray-300);
+  box-shadow:var(--shadow);border:1px solid var(--gray-200);
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:transform .18s,box-shadow .18s;
 }
-.card h2{margin:0 0 4px;font-size:1.1rem;}
-.card .sub{color:var(--gray-600);font-size:0.88rem;margin:0 0 20px;}
-label{display:block;font-size:0.85rem;font-weight:600;margin:14px 0 5px;}
-label .hint{display:block;font-weight:400;color:var(--gray-600);font-size:0.78rem;margin-top:2px;min-height:2.4em;}
-.field-wrap{position:relative;}
-input[type=text],input[type=number],select{
-  width:100%;padding:11px 12px;border:1px solid var(--gray-300);border-radius:8px;
-  font-size:0.95rem;background:var(--white);color:var(--gray-900);
+.product-card:hover{transform:translateY(-4px);box-shadow:0 4px 24px rgba(10,20,40,.12),0 16px 48px rgba(10,20,40,.1);}
+.product-card-header{
+  padding:28px 28px 20px;border-bottom:1px solid var(--gray-100);
 }
-input:focus,select:focus{outline:2px solid var(--blue-500);outline-offset:1px;border-color:var(--blue-500);}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-@media(max-width:520px){.row{grid-template-columns:1fr;}}
-
-/* Autocomplete dropdown */
-.dropdown{
-  position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:200;
-  background:var(--white);border:1px solid var(--gray-300);border-radius:10px;
-  box-shadow:0 8px 24px rgba(10,20,40,.12);overflow:hidden;
+.product-tag{
+  display:inline-block;font-size:0.72rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;padding:4px 10px;border-radius:999px;margin-bottom:14px;
 }
-.dropdown-item{
-  padding:10px 14px;font-size:0.9rem;cursor:pointer;border-bottom:1px solid var(--gray-100);
-  transition:background .1s;
+.tag-blue{background:var(--blue-100);color:var(--blue-700);}
+.tag-green{background:var(--green-100);color:var(--green-600);}
+.product-card h3{font-size:1.35rem;font-weight:800;letter-spacing:-0.02em;margin-bottom:6px;}
+.product-card .card-sub{font-size:0.9rem;color:var(--gray-600);line-height:1.6;}
+.product-card-body{padding:24px 28px;flex:1;}
+.feature-list{list-style:none;display:flex;flex-direction:column;gap:12px;}
+.feature-list li{
+  display:flex;align-items:flex-start;gap:10px;font-size:0.9rem;line-height:1.5;
 }
-.dropdown-item:last-child{border-bottom:none;}
-.dropdown-item:hover,.dropdown-item.focus{background:var(--blue-100);}
-.dropdown-item .main-text{font-weight:500;}
-.dropdown-item .sub-text{font-size:0.78rem;color:var(--gray-600);}
-
-/* BBR chip */
-.bbr-chip{
-  display:inline-flex;align-items:center;gap:8px;margin-top:12px;
-  background:var(--blue-100);border:1px solid var(--blue-500);border-radius:8px;
-  padding:9px 14px;font-size:0.87rem;
+.feature-list .check{
+  flex-shrink:0;width:20px;height:20px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.7rem;margin-top:1px;
 }
-.bbr-chip .ico{font-size:1.1rem;}
-.bbr-chip strong{color:var(--blue-700);}
-.bbr-chip .dim{color:var(--gray-600);font-size:0.8rem;}
-
-/* Buttons */
-.btn{
-  appearance:none;border:none;border-radius:8px;padding:13px 20px;
-  font-size:0.96rem;font-weight:600;cursor:pointer;width:100%;margin-top:18px;
-  transition:transform .05s;
+.check-blue{background:var(--blue-100);color:var(--blue-700);}
+.check-green{background:var(--green-100);color:var(--green-600);}
+.product-card-footer{
+  padding:20px 28px 26px;
 }
-.btn:active{transform:scale(0.99);}
-.btn:disabled{background:var(--gray-300);color:var(--gray-600);cursor:wait;}
-.btn-primary{background:var(--blue-500);color:var(--white);}
-.btn-primary:hover:not(:disabled){background:var(--blue-700);}
-.btn-pay{background:var(--green-600);color:var(--white);}
-.btn-pay:hover:not(:disabled){background:#136e3a;}
-.btn-secondary{background:var(--blue-100);color:var(--blue-700);border:1px solid var(--blue-500);}
-
-/* Result boxes */
-.result{border-radius:10px;padding:18px;margin-bottom:12px;}
-.result.ok   {background:var(--green-100);border:1px solid #bfe6cd;}
-.result.no   {background:var(--red-100);  border:1px solid #f1c6c0;}
-.result.warn {background:var(--amber-100);border:1px solid #f3dca6;}
-.result h3{margin:0 0 6px;font-size:1rem;}
-.result p {margin:0;font-size:0.88rem;}
-.result .big{font-size:1.5rem;font-weight:700;margin:4px 0;}
-.result.ok   .big{color:var(--green-600);}
-.result.no   .big{color:var(--red-600);}
-.result.warn .big{color:var(--amber-600);}
-.pill{
-  display:inline-block;font-size:0.72rem;font-weight:700;letter-spacing:.02em;
-  text-transform:uppercase;border-radius:999px;padding:3px 10px;margin-bottom:8px;
+.btn-product{
+  display:block;text-align:center;padding:13px 20px;border-radius:var(--radius-sm);
+  font-size:0.95rem;font-weight:700;text-decoration:none;transition:background .15s,transform .1s;
 }
-.pill.ok  {background:#c7ecd4;color:#0e5f30;}
-.pill.no  {background:#f6cfc9;color:#8a2a1f;}
-.pill.warn{background:#f6e3ad;color:#7a5107;}
-
-/* Data table */
-.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin:12px 0;font-size:0.85rem;}
-.data-grid .k{color:var(--gray-600);}
-.data-grid .v{font-weight:600;}
-
-/* Note / info box */
-.note{font-size:0.82rem;color:var(--gray-900);background:var(--blue-100);
-  border-radius:8px;padding:12px 14px;margin-top:14px;}
-.note a{color:var(--blue-700);}
-.warn-note{background:var(--amber-100);border:1px solid #f3dca6;border-radius:8px;padding:12px 14px;font-size:0.82rem;margin-top:14px;}
-
-/* Klage textarea */
-textarea{
-  width:100%;min-height:260px;border:1px solid var(--gray-300);border-radius:8px;
-  padding:12px;font-family:ui-monospace,Menlo,Consolas,monospace;
-  font-size:0.82rem;color:var(--gray-900);background:var(--gray-100);resize:vertical;
+.btn-blue{background:var(--blue-500);color:var(--white);}
+.btn-blue:hover{background:var(--blue-600);transform:translateY(-1px);}
+.btn-green{background:var(--green-500);color:var(--white);}
+.btn-green:hover{background:var(--green-600);transform:translateY(-1px);}
+.price-note{
+  font-size:0.78rem;color:var(--gray-600);text-align:center;margin-top:10px;
 }
-.copybtn{
-  background:var(--blue-100);color:var(--blue-700);border:1px solid var(--blue-500);
-  border-radius:6px;padding:8px 14px;font-size:0.82rem;font-weight:600;
-  cursor:pointer;margin-top:8px;
+
+/* ── How it works ───────────────────────── */
+.how{background:var(--white);}
+.steps-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:24px;margin-top:48px;
 }
-.copybtn:hover{background:var(--blue-500);color:var(--white);}
-
-/* Traffic light circles */
-.tl-wrap{display:flex;align-items:flex-start;gap:16px;margin-bottom:14px;}
-.tl-circle{flex-shrink:0;width:36px;height:36px;border-radius:50%;margin-top:2px;}
-.tl-circle.tl-green {background:#1a8a4a;box-shadow:0 0 12px rgba(26,138,74,0.45);}
-.tl-circle.tl-amber {background:#e8940c;box-shadow:0 0 12px rgba(232,148,12,0.45);}
-.tl-circle.tl-red   {background:#c0392b;box-shadow:0 0 12px rgba(192,57,43,0.45);}
-.tl-tag{font-size:0.85rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--gray-500);margin:0 0 4px;}
-.tl-headline{font-size:1.25rem;font-weight:700;margin:0 0 5px;line-height:1.3;}
-.tl-headline.tl-green{color:var(--green-600);}
-.tl-headline.tl-amber{color:#7a5107;}
-.tl-headline.tl-red  {color:var(--red-600);}
-.tl-subtext{font-size:0.88rem;color:var(--gray-600);margin:0;}
-.result-tag{display:inline-block;font-size:0.78rem;font-weight:700;letter-spacing:0.01em;
-  padding:3px 10px;border-radius:999px;margin-bottom:7px;}
-.result-tag.tl-green{background:#e4f6ec;color:#146c38;}
-.result-tag.tl-amber{background:#fdf0da;color:#7a5107;}
-.result-tag.tl-red  {background:#fbe6e3;color:var(--red-600);}
-
-/* Spinner */
-.spinner{
-  display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);
-  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;
-  vertical-align:-3px;margin-right:8px;
+.step{
+  background:var(--gray-50);border-radius:var(--radius);
+  padding:24px;border:1px solid var(--gray-200);
 }
-@keyframes spin{to{transform:rotate(360deg);}}
-.spinner-dark{border-color:rgba(0,0,0,.15);border-top-color:var(--blue-500);}
-
-.hidden{display:none !important;}
-footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
-
-/* Email send box */
-.email-box{
-  margin-top:18px;background:#f0f4ff;border:1px solid #b8d0f7;
-  border-radius:10px;padding:16px 18px;
+.step-num{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--blue-500);color:var(--white);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:0.9rem;margin-bottom:14px;
 }
-.email-box h4{margin:0 0 10px;font-size:.92rem;color:var(--blue-700);}
-.email-row{display:flex;gap:8px;align-items:center;}
-.email-row input{flex:1;padding:10px 12px;border:1px solid var(--gray-300);border-radius:8px;font-size:.9rem;}
-.email-row button{white-space:nowrap;padding:10px 16px;background:var(--blue-500);color:#fff;border:none;border-radius:8px;font-size:.88rem;font-weight:600;cursor:pointer;}
-.email-row button:hover{background:var(--blue-700);}
-.email-row button:disabled{background:var(--gray-300);cursor:wait;}
-#email-msg{margin-top:8px;font-size:.83rem;display:none;}
+.step h4{font-size:0.95rem;font-weight:700;margin-bottom:6px;}
+.step p{font-size:0.85rem;color:var(--gray-600);line-height:1.6;}
+
+/* ── Pricing ────────────────────────────── */
+.pricing{background:var(--blue-900);color:var(--white);}
+.pricing .section-label{color:#7ec8e3;}
+.pricing .section-sub{color:rgba(255,255,255,.7);}
+.pricing-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:24px;margin-top:48px;
+}
+.price-card{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);
+  border-radius:var(--radius);padding:28px;position:relative;
+  transition:background .15s;
+}
+.price-card:hover{background:rgba(255,255,255,.1);}
+.price-card.featured{
+  background:var(--white);color:var(--gray-900);border-color:var(--white);
+}
+.price-badge{
+  position:absolute;top:-12px;right:20px;
+  background:var(--blue-500);color:var(--white);
+  font-size:0.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:4px 12px;border-radius:999px;
+}
+.price-card h3{font-size:1rem;font-weight:700;margin-bottom:6px;}
+.price-card .price{font-size:2.2rem;font-weight:800;letter-spacing:-0.03em;margin:12px 0 4px;}
+.price-card .price sup{font-size:1rem;vertical-align:top;margin-top:8px;}
+.price-card .price-period{font-size:0.8rem;opacity:.6;margin-bottom:16px;}
+.price-card p{font-size:0.85rem;opacity:.75;line-height:1.6;}
+.price-card.featured p{opacity:.7;}
+.btn-price{
+  display:block;text-align:center;margin-top:20px;padding:12px;
+  border-radius:var(--radius-sm);font-size:0.9rem;font-weight:700;
+  text-decoration:none;transition:background .15s;
+}
+.btn-price-outline{
+  border:1.5px solid rgba(255,255,255,.3);color:var(--white);
+}
+.btn-price-outline:hover{background:rgba(255,255,255,.1);}
+.btn-price-solid{
+  background:var(--blue-500);color:var(--white);border:none;
+}
+.btn-price-solid:hover{background:var(--blue-600);}
+.btn-price-dark{
+  background:var(--blue-900);color:var(--white);border:none;
+}
+.btn-price-dark:hover{background:var(--blue-800);}
+
+/* ── FAQ ───────────────────────────────── */
+.faq{background:var(--gray-50);}
+.faq-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:48px;
+}
+@media(max-width:700px){.faq-grid{grid-template-columns:1fr;}}
+.faq-item{
+  background:var(--white);border-radius:var(--radius);padding:24px;
+  border:1px solid var(--gray-200);
+}
+.faq-item h4{font-size:0.95rem;font-weight:700;margin-bottom:8px;}
+.faq-item p{font-size:0.87rem;color:var(--gray-600);line-height:1.7;}
+
+/* ── CTA ────────────────────────────────── */
+.cta-section{
+  background:linear-gradient(135deg,var(--blue-900),var(--blue-700));
+  color:var(--white);text-align:center;padding:72px 24px;
+}
+.cta-section h2{font-size:clamp(1.6rem,3vw,2.2rem);font-weight:800;letter-spacing:-0.02em;margin-bottom:16px;}
+.cta-section p{opacity:.8;max-width:480px;margin:0 auto 32px;font-size:1rem;}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+/* ── Footer ─────────────────────────────── */
+footer{
+  background:var(--gray-900);color:rgba(255,255,255,.5);
+  padding:36px 24px;text-align:center;font-size:0.82rem;line-height:1.8;
+}
+footer a{color:rgba(255,255,255,.65);text-decoration:none;}
+footer a:hover{color:var(--white);}
+.footer-inner{max-width:700px;margin:0 auto;}
+.footer-nav{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;}
 </style>
 </head>
 <body>
 
-<header>
-  <h1>Vurderingstjekket</h1>
-  <p>Er din ejendomsvurdering for høj? Vi sammenligner gratis med faktiske tinglyste handler i dit område og viser, om din vurdering ser for høj ud.</p>
-  <span class="badge">Gratis tjek · Du betaler kun, hvis der er en væsentlig afvigelse</span>
-</header>
-
-<main>
-
-<!-- ══ STEP 1: ADDRESS SEARCH ══════════════════════════════════ -->
-<div class="card" id="card-adresse">
-  <h2>1. Søg din adresse</h2>
-  <p class="sub">Skriv din fulde adresse — vi slår automatisk BBR-data op (boligtype og m²).</p>
-
-  <label for="address-input">Adresse</label>
-  <div class="field-wrap">
-    <input type="text" id="address-input" placeholder="f.eks. Ishøj Store Torv 14, 2635 Ishøj"
-           autocomplete="off" />
-    <div class="dropdown hidden" id="adresse-dropdown"></div>
+<!-- ── Nav ─────────────────────────────────── -->
+<nav>
+  <a href="/" class="nav-logo">Vurderingstjekket<span>.dk</span></a>
+  <div class="nav-links">
+    <a href="/vurdering">Ejendomsvurdering</a>
+    <a href="#boliglaan">BoligLånsRadar</a>
+    <a href="/vurdering" class="nav-cta">Start gratis</a>
   </div>
-  <div id="manual-entry-box" class="hidden" style="margin-top:10px;border:1px dashed var(--gray-300);border-radius:8px;padding:14px;">
-    <p style="margin:0 0 10px;font-size:0.85rem;color:var(--gray-600);">Udfyld manuelt — bruges hvis adressesøgning ikke finder din bolig.</p>
-    <div class="row">
-      <div>
-        <label for="manual-m2">Boligareal (m²)</label>
-        <input type="number" id="manual-m2" placeholder="130" min="10" max="2000" />
+</nav>
+
+<!-- ── Hero ────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">🇩🇰 Specialister i dansk boligøkonomi</div>
+    <h1>Spar penge på<br><em>din bolig</em></h1>
+    <p class="hero-sub">Tjek om din ejendomsvurdering er for høj og klag direkte til Skatteankestyrelsen — eller hold øje med hvornår det betaler sig at omlægge dit realkreditlån.</p>
+    <div class="hero-btns">
+      <a href="/vurdering" class="btn-hero-primary">Tjek din vurdering →</a>
+      <a href="#boliglaan" class="btn-hero-secondary">BoligLånsRadar</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Trust strip ──────────────────────────── -->
+<div class="trust-strip">
+  <div class="trust-item"><span class="ico">🔒</span> Sikker betaling med Stripe</div>
+  <div class="trust-item"><span class="ico">📊</span> Baseret på faktiske handler fra Boligsiden</div>
+  <div class="trust-item"><span class="ico">🏠</span> Officielle BBR-data fra Dataforsyningen</div>
+  <div class="trust-item"><span class="ico">⚡</span> Svar på under 60 sekunder</div>
+</div>
+
+<!-- ── Products ─────────────────────────────── -->
+<section class="products" id="ydelser">
+  <div class="section-inner">
+    <div class="section-label">Vores ydelser</div>
+    <h2 class="section-title">To redskaber — ét formål:<br>din boligøkonomi</h2>
+    <p class="section-sub">Begge produkter er bygget til danske boligejere og baserer sig på officielle data, ikke tommelfingerregler.</p>
+
+    <div class="products-grid">
+
+      <!-- Vurderingstjekket -->
+      <div class="product-card">
+        <div class="product-card-header">
+          <span class="product-tag tag-blue">Engangsanalyse</span>
+          <h3>Vurderingstjekket</h3>
+          <p class="card-sub">Vi analyserer faktiske salg i dit postnummer og beregner en sandsynlig markedsværdi. Er din EV mere end 20 % for høj, hjælper vi dig med en klageskabelon.</p>
+        </div>
+        <div class="product-card-body">
+          <ul class="feature-list">
+            <li><span class="check check-blue">✓</span> Søger og vægter sammenlignelige handler automatisk</li>
+            <li><span class="check check-blue">✓</span> Henter BBR-data om boligens størrelse og type</li>
+            <li><span class="check check-blue">✓</span> Prisindekserer salg til 1.1.2022-niveau</li>
+            <li><span class="check check-blue">✓</span> Gratis indikation — betal kun ved klagebehov</li>
+            <li><span class="check check-blue">✓</span> Klar klageskabelon med alle nødvendige oplysninger</li>
+          </ul>
+        </div>
+        <div class="product-card-footer">
+          <a href="/vurdering" class="btn-product btn-blue">Tjek din ejendom gratis</a>
+          <p class="price-note">Klageskabelon: 350 kr. — ingen abonnement</p>
+        </div>
       </div>
-      <div>
-        <label for="manual-kv">Kommunekode <span class="hint">4 cifre, fx 0183 for Ishøj</span></label>
-        <input type="text" id="manual-kv" placeholder="0183" maxlength="4" />
+
+      <!-- BoligLånsRadar -->
+      <div class="product-card" id="boliglaan">
+        <div class="product-card-header">
+          <span class="product-tag tag-green">Abonnement</span>
+          <h3>BoligLånsRadar</h3>
+          <p class="card-sub">Hold løbende øje med obligationskurser og renteudvikling. Vi beregner præcist hvornår op- eller nedkonvertering giver mening for dit specifikke lån.</p>
+        </div>
+        <div class="product-card-body">
+          <ul class="feature-list">
+            <li><span class="check check-green">✓</span> Beregner ydelse, restgæld og break-even punkt</li>
+            <li><span class="check check-green">✓</span> Viser hvilke institutter der tilbyder de bedste kurser</li>
+            <li><span class="check check-green">✓</span> Månedlig e-mail med nyheder og vurdering</li>
+            <li><span class="check check-green">✓</span> Op- og nedkonverteringsscenarier side om side</li>
+            <li><span class="check check-green">✓</span> Husholdningsbudget med redigerbare poster</li>
+          </ul>
+        </div>
+        <div class="product-card-footer">
+          <a href="https://boliglansradar.gamma7th.workers.dev/" class="btn-product btn-green">Prøv BoligLånsRadar</a>
+          <p class="price-note">50 kr./md. eller 400 kr./år — opsig når som helst</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ─────────────────────────── -->
+<section class="how" id="saaledes">
+  <div class="section-inner">
+    <div class="section-label">Vurderingstjekket — sådan virker det</div>
+    <h2 class="section-title">Fra adresse til klageskabelon<br>på under ét minut</h2>
+
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h4>Indtast din adresse</h4>
+        <p>Vi slår automatisk din bolig op i BBR og henter areal, byggeår og boligtype.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h4>Angiv din EV-vurdering</h4>
+        <p>Find beløbet i din vurderingsmeddelelse fra Skatteforvaltningen.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h4>Se analysen gratis</h4>
+        <p>Vi finder og vægter sammenlignelige handler og viser dig en indikation — gratis.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h4>Hent klageskabelon</h4>
+        <p>Er EV mere end 20 % over markedsestimatet, giver vi dig en komplet klageskabelon for 350 kr.</p>
       </div>
     </div>
-    <button class="btn btn-secondary" style="margin-top:10px;">Fortsæt →</button>
   </div>
+</section>
 
-  <div id="bbr-status" class="hidden">
-    <div style="display:flex;align-items:center;gap:8px;margin-top:14px;color:var(--gray-600);font-size:0.87rem;">
-      <span class="spinner spinner-dark"></span> Slår BBR op…
+<!-- ── Pricing ───────────────────────────────── -->
+<section class="pricing" id="priser">
+  <div class="section-inner">
+    <div class="section-label">Priser</div>
+    <h2 class="section-title">Gennemsigtig prissætning</h2>
+    <p class="section-sub">Ingen skjulte gebyrer. Betal kun for det du bruger.</p>
+
+    <div class="pricing-grid">
+
+      <div class="price-card">
+        <h3>Vurderingsanalyse</h3>
+        <div class="price"><sup>kr. </sup>0</div>
+        <p class="price-period">Gratis indikation</p>
+        <p>Søg efter sammenlignelige handler og se om din EV ser ud til at være for høj — helt uden betaling.</p>
+        <a href="/vurdering" class="btn-price btn-price-outline">Start gratis</a>
+      </div>
+
+      <div class="price-card featured">
+        <span class="price-badge">Populær</span>
+        <h3>Klageskabelon</h3>
+        <div class="price"><sup>kr. </sup>350</div>
+        <p class="price-period">Engangsbetaling</p>
+        <p>Komplet klageskabelon med datadokumentation, prisindeksering og alle relevante oplysninger klar til indsendelse.</p>
+        <a href="/vurdering" class="btn-price btn-price-dark">Køb klageskabelon</a>
+      </div>
+
+      <div class="price-card">
+        <h3>BoligLånsRadar</h3>
+        <div class="price"><sup>kr. </sup>50</div>
+        <p class="price-period">per måned — eller 400 kr./år</p>
+        <p>Løbende overvågning af dine omlægningsmuligheder, månedlig nyhedsbrev og adgang til husholdningsbudget.</p>
+        <a href="https://boliglansradar.gamma7th.workers.dev/" class="btn-price btn-price-outline">Tilmeld dig</a>
+      </div>
+
     </div>
   </div>
+</section>
 
-  <div id="bbr-chip" class="hidden"></div>
-</div>
+<!-- ── FAQ ───────────────────────────────────── -->
+<section class="faq" id="faq">
+  <div class="section-inner">
+    <div class="section-label">Spørgsmål og svar</div>
+    <h2 class="section-title">Hvad vil du vide?</h2>
 
-<!-- ══ STEP 2: EV INPUT + CHECK ════════════════════════════════ -->
-<div class="card hidden" id="card-ev">
-  <h2>2. Hvad er din officielle ejendomsværdi?</h2>
+    <div class="faq-grid">
 
-  <div class="row">
-    <div>
-      <label for="ev-input">Ejendomsværdi (kr)
-        <span class="hint">Indsæt beløbet fra din vurderingsmeddelelse eller <a href="https://vurderingsportalen.dk" target="_blank" rel="noopener" style="color:var(--blue-500);">vurderingsportalen.dk</a></span>
-      </label>
-      <input type="number" id="ev-input" placeholder="Indtast beløb i kr" min="100000" step="1000" />
+      <div class="faq-item">
+        <h4>Hvornår kan jeg klage over min ejendomsvurdering?</h4>
+        <p>Du kan klage til Skatteankestyrelsen, men ejendomsværdien skal afvige med mere end 20 % fra markedsværdien, for at klagemyndigheden kan ændre den. Vi beregner dette for dig.</p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Hvad er data-grundlaget?</h4>
+        <p>Vi bruger faktiske handlede salgspriser fra Boligsiden og officielle BBR-data fra Dataforsyningen. Priserne indekseres til 1.1.2022-niveau med Danmarks Statistiks regionale indeks.</p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Hvornår giver det mening at omlægge mit lån?</h4>
+        <p>Det afhænger af kursen på det nye og det eksisterende obligationslån, refinansieringsomkostninger og din tidshorisont. BoligLånsRadar beregner break-even automatisk.</p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Erstatter dette en rådgiver?</h4>
+        <p>Nej — vores analyser er et kvalificeret udgangspunkt, ikke rådgivning. Vi anbefaler altid at drøfte konkrete beslutninger med din bank eller et uafhængigt realkreditinstitut.</p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Hvad sker der med mine data?</h4>
+        <p>Vi gemmer kun det der er nødvendigt for at levere ydelsen. Personoplysninger behandles i overensstemmelse med GDPR. Vi sælger aldrig data videre.</p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Kan jeg afmelde BoligLånsRadar?</h4>
+        <p>Ja — du kan altid opsige dit abonnement. Der er ingen binding, og vi refunderer resterende periode ved årsabonnement.</p>
+      </div>
+
     </div>
-    <div>
-      <label for="gv-input">Grundværdi (kr) <em style="font-weight:400;color:var(--gray-600);">valgfri</em>
-        <span class="hint">Kun relevant hvis du vil klage over grundværdien</span>
-      </label>
-      <input type="number" id="gv-input" placeholder="Indtast beløb i kr" min="0" step="1000" />
-    </div>
-    <div id="grund-wrap">
-      <label for="grund-input">Grundareal (m²) <em style="font-weight:400;color:var(--gray-600);">valgfri</em>
-        <span class="hint">Står på din vurdering. Gør sammenligningen mere præcis.</span>
-      </label>
-      <input type="number" id="grund-input" placeholder="fx 750" min="0" step="1" />
-    </div>
   </div>
+</section>
 
-  <div class="warn-note">
-    <strong>Husk klagefrist.</strong> Klagefristen er typisk 90 dage eller 3 måneder fra du modtog vurderingen. Den præcise frist står i klagevejledningen i din vurdering.
-    Tjek din præcise frist på <a href="https://vurderingsportalen.dk" target="_blank" rel="noopener">vurderingsportalen.dk</a> inden du handler.
+<!-- ── CTA ───────────────────────────────────── -->
+<section class="cta-section">
+  <h2>Kom i gang — det tager under ét minut</h2>
+  <p>Start med den gratis analyse og se med det samme, om der er grundlag for at klage.</p>
+  <div class="cta-btns">
+    <a href="/vurdering" class="btn-hero-primary">Tjek din ejendomsvurdering</a>
+    <a href="https://boliglansradar.gamma7th.workers.dev/" class="btn-hero-secondary">BoligLånsRadar →</a>
   </div>
+</section>
 
-  <button class="btn btn-primary" id="check-btn">
-    Tjek min ejendomsværdi →
-  </button>
-</div>
-
-<!-- ══ STEP 3: FREE RESULT ══════════════════════════════════════ -->
-<div class="card hidden" id="card-result">
-  <h2>3. Dit resultat</h2>
-  <div id="result-body"></div>
-  <button class="btn btn-secondary" style="margin-top:12px;">Tjek en anden ejendom</button>
-</div>
-
-<!-- ══ STEP 4: PAYMENT ══════════════════════════════════════════ -->
-<div class="card hidden" id="card-pay">
-  <h2>4. Få din klagepakke</h2>
-  <p class="sub" id="pay-sub">En færdig klage med dokumentationen fra de lokale handler. Du indsætter den direkte hos Skatteankestyrelsen.</p>
-
-  <p style="margin:14px 0 6px;font-weight:600;font-size:1.05rem;" id="pay-price">350 kr. Engangsbetaling.</p>
-  <p class="note" style="margin:0 0 10px;font-size:0.9rem;">Bemærk: Skatteankestyrelsen opkræver selv et klagegebyr på 1.300 kr., når du sender klagen. Det er ikke med i prisen her.</p>
-  <label style="display:flex;gap:8px;align-items:flex-start;margin:0 0 12px;font-size:0.95rem;cursor:pointer;">
-    <input type="checkbox" id="final-check" style="margin-top:3px;">
-    <span>Jeg har modtaget min <strong>endelige</strong> ejendomsvurdering med klagevejledning. En foreløbig vurdering kan ikke påklages.</span>
-  </label>
-  <p id="final-check-err" class="hidden" style="margin:0 0 10px;color:#b91c1c;font-size:0.9rem;">Sæt kryds, før du køber. Har du kun en foreløbig vurdering, kan du ikke klage endnu.</p>
-
-  <button class="btn btn-pay" id="pay-btn">
-    Få min klagepakke →
-  </button>
-  <p style="margin:8px 0 0;font-size:0.85rem;color:var(--gray-600);">Leveres digitalt på få minutter. Ingen abonnement.</p>
-  <button class="btn btn-secondary hidden" id="test-btn" style="margin-top:8px;">
-    🧪 Test: Generer analyse gratis (testmode)
-  </button>
-</div>
-
-<!-- ══ FORHOLD VED BOLIGEN (lige under grænsen) ═══════════════ -->
-<div class="card hidden" id="card-forhold">
-  <h2>Har din bolig nogle af disse forhold?</h2>
-  <p class="sub">Du ligger lige under klagegrænsen. Forhold, som vurderingen ikke kender, kan trække værdien så meget ned, at du alligevel har en sag. Sæt kryds ved det, der passer.</p>
-  <div id="forhold-list" style="display:flex;flex-direction:column;gap:10px;margin:12px 0;font-size:0.95rem;">
-    <label style="font-weight:400;"><input type="checkbox" value="renovering"> Boligen trænger til renovering (fx gammelt køkken, bad, tag eller vinduer)</label>
-    <label style="font-weight:400;"><input type="checkbox" value="skader"> Fugt, skimmel, sætningsskader eller andre skader</label>
-    <label style="font-weight:400;"><input type="checkbox" value="stoej"> Støj fra stærkt trafikeret vej, jernbane eller lignende</label>
-    <label style="font-weight:400;"><input type="checkbox" value="beliggenhed"> Ugunstig beliggenhed (fx indkig, nabo til erhverv, højspænding eller en vanskelig grund)</label>
-    <label style="font-weight:400;"><input type="checkbox" value="areal"> Kælder eller tagetage er talt med som fuld bolig, selvom den ikke er det</label>
-  </div>
-  <button class="btn btn-primary" id="forhold-btn">Se om jeg har en sag →</button>
-</div>
-
-<!-- ══ TILMELDING (ingen sag) ══════════════════════════════════ -->
-<div class="card hidden" id="card-notify">
-  <h2>Få besked ved næste vurdering</h2>
-  <p class="sub">Vi sender dig en mail, når der kommer en ny vurdering, så du kan tjekke den igen gratis.</p>
-  <div class="email-row">
-    <input type="email" id="notify-email" placeholder="din@email.dk" autocomplete="email" />
-    <button id="notify-btn">Giv mig besked</button>
-  </div>
-  <div id="notify-msg" style="margin-top:8px;font-size:0.9rem;"></div>
-  <p style="margin:8px 0 0;font-size:0.8rem;color:var(--gray-600);">Vi bruger kun din mail til denne besked. Du kan afmelde dig når som helst.</p>
-</div>
-
-<!-- ══ STEP 5: KLAGE ════════════════════════════════════════════ -->
-<div class="card hidden" id="card-klage">
-  <h2 id="klage-h2">5. Din klagetekst</h2>
-  <p class="sub" id="klage-sub">Kopiér teksten og indsæt den i <a href="https://skatteankestyrelsen.dk/send-en-klage/du-er-ved-at-oprette-en-klage-ejendom" target="_blank" rel="noopener">Skatteankestyrelsens klageformular</a>.</p>
-  <div id="klage-status" class="hidden" style="margin-bottom:12px;color:var(--gray-600);font-size:0.9rem;">
-    <span class="spinner spinner-dark"></span> Henter data og genererer analyse…
-  </div>
-
-  <div id="no-grounds-note" class="warn-note hidden" style="margin-bottom:14px;">
-    <strong>⚠️ Ingen tilstrækkeligt belæg for en klage.</strong><br>
-    Vi har analyseret de faktiske handler i dit postnummer (ikke kun landsdelsgennemsnittet),
-    og de understøtter ikke en påstand om at din ejendomsværdi er for høj. Du kan stadig
-    indsende en klage selv hvis du ønsker det — se dataene og begrundelsen nedenfor — men vi
-    genererer ikke en formel klagepåstand vi ikke kan stå inde for.
-  </div>
-
-  <textarea id="klage-text" readonly></textarea>
-  <button class="copybtn">📋 Kopiér tekst</button>
-
-  <div class="email-box">
-    <h4 id="email-box-h4">📧 Få klageteksten tilsendt på mail</h4>
-    <div class="email-row">
-      <input type="email" id="send-email" placeholder="din@email.dk" autocomplete="email" />
-      <button id="send-email-btn">Send til mig</button>
-    </div>
-    <div id="email-msg"></div>
-  </div>
-
-  <div class="note" id="klage-steps-note" style="margin-top:14px;">
-    <strong>Trin til indsendelse:</strong>
-    <ol style="margin:6px 0 0;padding-left:20px;font-size:0.85rem;">
-      <li>Gå til <a href="https://skatteankestyrelsen.dk/send-en-klage/du-er-ved-at-oprette-en-klage-ejendom" target="_blank" rel="noopener">skatteankestyrelsen.dk</a> og klik "Opret klage"</li>
-      <li>Log ind med MitID og vælg ejendommen</li>
-      <li>Kopiér teksten ovenfor og indsæt i klagebeskrivelsen</li>
-      <li>Vedhæft din vurderingsmeddelelse som bilag</li>
-      <li>Betal klagegebyret (1.300 kr) direkte til Skatteankestyrelsen</li>
-    </ol>
-  </div>
-</div>
-
-</main>
-
+<!-- ── Footer ────────────────────────────────── -->
 <footer>
-  Vurderingstjekket — uafhængig analyse baseret på officielle BBR-data og offentligt tilgængeligt datagrundlag.
-  Ikke juridisk rådgivning. Kontrollér altid frister og tal inden indsendelse.
+  <div class="footer-inner">
+    <nav class="footer-nav">
+      <a href="/vurdering">Ejendomsvurdering</a>
+      <a href="https://boliglansradar.gamma7th.workers.dev/">BoligLånsRadar</a>
+      <a href="#priser">Priser</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <p>© 2024 Vurderingstjekket.dk — Uafhængig analyse af dansk boligøkonomi</p>
+    <p style="margin-top:6px;">Analysen er vejledende og erstatter ikke professionel rådgivning. BBR-data: Dataforsyningen. Salgspriser: Boligsiden.</p>
+  </div>
 </footer>
-
-<script>
-// ─── Test mode (URL: /?test=1) ───────────────────────────────
-// Testmode: ?test=ADMIN_KEY (serveren afviser testklager uden nøglen)
-const TEST_KEY = new URLSearchParams(location.search).get("test");
-const TEST_MODE = !!TEST_KEY;
-
-// ─── State ───────────────────────────────────────────────────
-let state = {
-  adresseId:    null,
-  husnummerId:  null,
-  label:        "",
-  postnr:       "",
-  by:           "",
-  kommunekode:  "",
-  // BBR
-  m2:           null,
-  anvKode:      null,
-  boligtypeLabel: "",
-  isEnfamilie:  false,
-  isEjerlejlighed: false,
-  landsdel:     null,
-  landsdelnavn: "",
-  // Free check
-  freeResult:   null,
-  // Session
-  sessionId:    null,
-};
-
-// ─── Manual address entry ─────────────────────────────────────
-function showManualEntry() {
-  document.getElementById("manual-entry-box").classList.remove("hidden");
-}
-
-function proceedManual() {
-  const addrText = document.getElementById("address-input").value.trim();
-  const m2 = parseFloat(document.getElementById("manual-m2").value);
-  const kv = (document.getElementById("manual-kv").value || "").trim().padStart(4, "0");
-
-  if (!addrText || addrText.length < 5) { alert("Skriv venligst din fulde adresse i adressefeltet ovenfor."); return; }
-  if (!m2 || m2 < 10) { alert("Angiv boligareal i m²."); return; }
-  if (!kv || kv.length !== 4 || isNaN(kv)) { alert("Angiv kommunekode (4 cifre), fx 0183 for Ishøj."); return; }
-
-  state.label = addrText;
-  state.postnr = "";
-  state.by = "";
-  state.kommunekode = kv;
-  state.m2 = m2;
-  state.anvKode = "120";
-  state.boligtypeLabel = "Fritliggende enfamilieshus";
-  state.isEnfamilie = true;
-  state.landsdel = null;
-  state.landsdelnavn = "Kommunekode " + kv;
-
-  const chip = document.getElementById("bbr-chip");
-  chip.innerHTML = `<div class="bbr-chip"><span class="ico">📝</span><div>
-    <strong>Manuel indtastning</strong> · <strong>${m2} m²</strong>
-    <div class="dim">Kommunekode ${kv}</div></div></div>`;
-  chip.classList.remove("hidden");
-  document.getElementById("manual-entry-box").classList.add("hidden");
-  document.getElementById("card-ev").classList.remove("hidden");
-}
-
-// ─── Autocomplete ─────────────────────────────────────────────
-let debounceTimer = null;
-let currentSuggestions = [];
-let focusIndex = -1;
-
-function onAdresseInput(e) {
-  clearTimeout(debounceTimer);
-  const q = e.target.value.trim();
-  if (q.length < 3) { hideDropdown(); return; }
-  debounceTimer = setTimeout(() => fetchSuggestions(q), 260);
-}
-
-function onAdresseKey(e) {
-  const dd = document.getElementById("adresse-dropdown");
-  const items = dd.querySelectorAll(".dropdown-item");
-  if (e.key === "ArrowDown") {
-    e.preventDefault();
-    focusIndex = Math.min(focusIndex + 1, items.length - 1);
-    updateFocus(items);
-  } else if (e.key === "ArrowUp") {
-    e.preventDefault();
-    focusIndex = Math.max(focusIndex - 1, 0);
-    updateFocus(items);
-  } else if (e.key === "Enter" && focusIndex >= 0 && currentSuggestions[focusIndex]) {
-    e.preventDefault();
-    selectSuggestion(currentSuggestions[focusIndex]);
-  } else if (e.key === "Escape") {
-    hideDropdown();
-  }
-}
-
-function updateFocus(items) {
-  items.forEach((el, i) => el.classList.toggle("focus", i === focusIndex));
-  if (items[focusIndex]) items[focusIndex].scrollIntoView({ block: "nearest" });
-}
-
-async function fetchSuggestions(q) {
-  try {
-    const r = await fetch("/api/adresse?q=" + encodeURIComponent(q));
-    const data = await r.json();
-    currentSuggestions = data.suggestions || [];
-    focusIndex = -1;
-    renderDropdown(currentSuggestions);
-  } catch(err) {
-    hideDropdown();
-  }
-}
-
-function renderDropdown(suggestions) {
-  const dd = document.getElementById("adresse-dropdown");
-  if (!suggestions.length) { hideDropdown(); return; }
-
-  dd.innerHTML = suggestions.map((s, i) =>
-    `<div class="dropdown-item" data-idx="${i}">
-       <div class="main-text">${escHtml(s.label)}</div>
-       <div class="sub-text">${escHtml(s.postnr)} ${escHtml(s.by)}</div>
-     </div>`
-  ).join("");
-  dd.querySelectorAll(".dropdown-item").forEach(function(el){
-    el.addEventListener("mousedown", function(){
-      selectSuggestion(currentSuggestions[+this.dataset.idx]);
-    });
-  });
-  dd.classList.remove("hidden");
-}
-
-function hideDropdown() {
-  document.getElementById("adresse-dropdown").classList.add("hidden");
-  currentSuggestions = [];
-  focusIndex = -1;
-}
-
-document.addEventListener("click", e => {
-  if (!e.target.closest(".field-wrap")) hideDropdown();
-});
-
-async function selectSuggestion(s) {
-  hideDropdown();
-  document.getElementById("address-input").value = s.label;
-
-  // Store adresse data
-  state.adresseId   = s.adresseId;
-  state.husnummerId = s.husnummerId;
-  state.label       = s.label;
-  state.postnr      = s.postnr;
-  state.by          = s.by;
-  state.kommunekode = s.kommunekode;
-
-  // BBR lookup
-  if (s.husnummerId) {
-    await lookupBBR(s.husnummerId, s.adresseId, s.kommunekode);
-  } else {
-    showBBRManual();
-  }
-}
-
-async function lookupBBR(husnummerId, adresseId, kommunekode) {
-  document.getElementById("bbr-status").classList.remove("hidden");
-  document.getElementById("bbr-chip").classList.add("hidden");
-  document.getElementById("card-ev").classList.add("hidden");
-
-  try {
-    const params = new URLSearchParams({ husnummerId, kommunekode });
-    if (adresseId) params.set("adresseId", adresseId);
-    const r = await fetch("/api/bbr?" + params);
-    const data = await r.json();
-
-    document.getElementById("bbr-status").classList.add("hidden");
-
-    if (data.found && data.m2 > 0) {
-      state.m2             = data.m2;
-      state.anvKode        = data.anvKode;
-      state.boligtypeLabel = data.boligtypeLabel;
-      state.isEnfamilie    = data.isEnfamilie;
-      state.isEjerlejlighed = data.isEjerlejlighed;
-      state.landsdel       = data.landsdel;
-      state.landsdelnavn   = data.landsdelnavn;
-      state.kommunekode    = data.kommunekode || state.kommunekode;
-      state.opfoeretAar    = data.opfoeretAar || "";
-      // Grundareal giver kun mening for huse
-      document.getElementById("grund-wrap").classList.toggle("hidden", !!data.isEjerlejlighed);
-
-      renderBBRChip(data);
-      document.getElementById("card-ev").classList.remove("hidden");
-      // Et manuelt areal fra en tidligere adresse må ikke overstyre den nye BBR-værdi
-      const oldM2 = document.getElementById("m2-manual");
-      if (oldM2) oldM2.closest("div").remove();
-      if (data.areaUncertain) {
-        // BBR gav kun bygningens samlede areal: bed brugeren tjekke boligens eget areal
-        injectManualM2Field("BBR viser hele bygningens areal. Ret til din boligs eget areal, hvis det er forkert.");
-        document.getElementById("m2-manual").value = data.m2;
-      }
-    } else {
-      // Even without a BBR building match, the kommunekode/landsdel may
-      // still have been resolved from the address itself — keep it.
-      if (data.kommunekode) state.kommunekode = data.kommunekode;
-      if (data.landsdel) {
-        state.landsdel = data.landsdel;
-        state.landsdelnavn = data.landsdelnavn;
-      }
-      showBBRManual(data.message || "BBR fandt ingen bygningsdata for adressen.");
-    }
-  } catch(err) {
-    document.getElementById("bbr-status").classList.add("hidden");
-    showBBRManual("BBR-opslag mislykkedes: " + err.message);
-  }
-}
-
-function renderBBRChip(data) {
-  const chip = document.getElementById("bbr-chip");
-  chip.innerHTML = `
-    <div class="bbr-chip">
-      <span class="ico">🏠</span>
-      <div>
-        <strong>${escHtml(data.boligtypeLabel)}</strong>
-        <span> · </span>
-        <strong>${data.m2} m²</strong>
-        <div class="dim">BBR-data · ${escHtml(data.landsdelnavn)} · opført ${data.opfoeretAar || "?"}</div>
-      </div>
-    </div>`;
-  chip.classList.remove("hidden");
-}
-
-function showBBRManual(msg) {
-  const chip = document.getElementById("bbr-chip");
-  chip.innerHTML = `<div class="warn-note" style="margin-top:12px;">
-    ⚠️ ${escHtml(msg || "Kunne ikke slå BBR op.")}<br>
-    <small>Du kan stadig fortsætte — indtast dine tal manuelt nedenfor.</small>
-  </div>`;
-  chip.classList.remove("hidden");
-  // Show EV card anyway with manual m2 field
-  document.getElementById("card-ev").classList.remove("hidden");
-  injectManualM2Field();
-}
-
-function injectManualM2Field(hint) {
-  if (document.getElementById("m2-manual")) return; // already injected
-  const evCard = document.getElementById("card-ev");
-  const firstRow = evCard.querySelector(".row");
-  const wrap = document.createElement("div");
-  wrap.innerHTML = `
-    <label for="m2-manual">Boligareal (m²)
-      <span class="hint">${hint || "Fra din BBR-meddelelse eller vurderingsmeddelelse."}</span>
-    </label>
-    <input type="number" id="m2-manual" placeholder="136" min="10" max="2000" />`;
-  wrap.style.marginBottom = "8px";
-  evCard.insertBefore(wrap, firstRow);
-
-  if (!state.kommunekode && !document.getElementById("kv-manual")) {
-    const kvWrap = document.createElement("div");
-    kvWrap.innerHTML = `
-      <label for="kv-manual">Kommunekode
-        <span class="hint">4 cifre — vi kunne ikke slå den automatisk op. Find den på <a href="https://ois.dk" target="_blank" rel="noopener">ois.dk</a> eller din vurderingsmeddelelse.</span>
-      </label>
-      <input type="text" id="kv-manual" placeholder="f.eks. 0183" maxlength="4" />`;
-    kvWrap.style.marginBottom = "8px";
-    evCard.insertBefore(kvWrap, firstRow);
-  }
-}
-
-// ─── Free eligibility check ───────────────────────────────────
-async function runFreeCheck(confirmed) {
-  const ev = parseFloat(document.getElementById("ev-input").value);
-  if (!ev || ev < 100000) { alert("Angiv en gyldig ejendomsværdi (mindst 100.000 kr)."); return; }
-
-  // Use manual m2 if no BBR
-  const m2 = parseFloat((document.getElementById("m2-manual") || {}).value) || state.m2;
-  if (!m2 || m2 < 10) { alert("Vi kunne ikke finde boligens m² fra BBR. Indtast arealet manuelt."); return; }
-
-  // Use manual kommunekode if BBR lookup never resolved one
-  if (!state.kommunekode) {
-    const kvInput = document.getElementById("kv-manual");
-    const kv = (kvInput ? kvInput.value : "").trim().padStart(4, "0");
-    if (!kvInput || kv.length !== 4 || isNaN(kv)) {
-      alert("Vi kunne ikke slå kommunekode automatisk op for adressen. Angiv kommunekode (4 cifre) i feltet ovenfor.");
-      return;
-    }
-    state.kommunekode = kv;
-  }
-
-  state.m2  = m2;
-  const gv  = parseFloat(document.getElementById("gv-input").value) || null;
-  state.grundareal = parseInt(document.getElementById("grund-input").value) || null;
-
-  const btn = document.getElementById("check-btn");
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Henter handler fra dit område…';
-
-  try {
-    const r = await fetch("/api/free-check", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        m2:          state.m2,
-        kommunekode: state.kommunekode,
-        anvKode:     state.anvKode,
-        ev, gv,
-        address:     state.label || "",
-        postnr:      state.postnr || "",
-        opfoeretAar: state.opfoeretAar || "",
-        grundareal:  state.grundareal || null,
-        adresseId:   state.adresseId || null,
-        confirmed:   confirmed === true,
-      }),
-    });
-    const data = await r.json();
-    if (r.status === 422 && data.needsConfirm) {
-      // Tallene ser forkerte ud: lad brugeren rette dem eller bekræfte
-      const ok = confirm(data.warnings.join("\n\n") + "\n\nTryk OK hvis tallene er rigtige, eller Annuller for at rette dem.");
-      if (ok) return await runFreeCheck(true);
-      return;
-    }
-    if (!r.ok) throw new Error(data.error || "Ukendt fejl");
-
-    state.freeResult = data;
-    state.ev = ev;
-    state.gv = gv;
-
-    renderFreeResult(data, ev, m2);
-  } catch(err) {
-    alert("Fejl ved tjek: " + err.message);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = "Tjek min ejendomsværdi →";
-  }
-}
-
-function renderFreeResult(d, ev, m2) {
-  // d.source = "lokal": vurderet mod tinglyste handler i postnummeret (afgør om der er en sag)
-  // d.source = "landsdel": fallback til DST-gennemsnit, når lokale handler ikke kunne hentes
-  const lokal = d.source === "lokal";
-  // Området, handlerne kommer fra: postnummeret, hvor de nærmeste handler vægtes højest
-  const omraade = state.postnr ? escHtml(`${state.postnr} ${state.by}`.trim()) : "dit lokalområde";
-  let tlColor, tag, headline, subtext;
-  // Et nyt resultat nulstiller spørgsmålene fra et tidligere tjek
-  state.forhold = [];
-  document.querySelectorAll("#forhold-list input").forEach(i => { i.checked = false; });
-  document.getElementById("card-forhold").classList.add("hidden");
-
-  // Procenten måles altid i forhold til den offentlige vurdering, fordi 20 %-grænsen regnes sådan
-  // Tæt på grænsen vises én decimal, så 20,4 % ikke ligner præcis 20 %
-  const pct = d.gap_pct >= 19 && d.gap_pct < 21
-    ? d.gap_pct.toLocaleString("da-DK", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-    : Math.round(d.gap_pct);
-  if (lokal && d.verdict === "SAG") {
-    tlColor  = "tl-red";
-    tag      = "🔴 Stor afvigelse";
-    headline = `Vores estimat ligger ${pct}&nbsp;% under din vurdering`;
-    subtext  = `Vores beregning ud fra faktiske handler i ${omraade} viser en væsentlig forskel. En klage kan kun ændre vurderingen, hvis den skal ned med mere end 20 %. Det er en stærk indikation, men ingen garanti for, at en klage får medhold. Klagepakken undersøger din bolig nærmere og giver dig et begrundet klageudkast.`;
-  } else if (lokal && d.verdict === "TÆT") {
-    tlColor  = "tl-amber";
-    tag      = "🟠 Mulig afvigelse";
-    headline = `Vores estimat ligger ${pct}&nbsp;% under din vurdering`;
-    subtext  = d.gap_pct >= 20
-      ? `Afvigelsen er over 20 %, men der er for få handler med lignende huse i ${omraade}, eller priserne svinger for meget, til at vi kan kalde det en stor afvigelse ud fra handlerne alene. Særlige forhold ved boligen kan have betydning for, om der er grundlag for en klage. Sæt kryds ved det, der passer, nedenfor.`
-      : `Du ligger tæt på grænsen på 20 %. Særlige forhold ved boligen kan have betydning for, om der er grundlag for en klage. Sæt kryds ved det, der passer, nedenfor.`;
-  } else if (lokal) {
-    tlColor  = "tl-green";
-    tag      = "🟢 Mindre afvigelse";
-    headline = "Ingen væsentlig afvigelse fundet";
-    subtext  = `Den indledende beregning viser ikke en afvigelse, der i sig selv giver grundlag for en klage. Det udelukker ikke fejl i vurderingen, fx i grundværdien eller ved særlige forhold ved ejendommen.`;
-  } else if (d.canBuy) {
-    tlColor  = "tl-red";
-    tag      = "🔴 Stor afvigelse";
-    headline = `Estimatet ligger ca. ${pct}&nbsp;% under din vurdering`;
-    subtext  = `Ud fra gennemsnittet for ${escHtml(d.landsdelnavn)} ser din vurdering høj ud. Vi kunne ikke hente de lokale handler lige nu, så klagepakken tjekker dem, før klagen skrives.`;
-  } else {
-    tlColor  = d.color === "green" ? "tl-green" : "tl-amber";
-    tag      = d.color === "green" ? "🟢 Mindre afvigelse" : "🟡 Usikkert resultat";
-    headline = "Ingen tydelig afvigelse ud fra gennemsnittet";
-    subtext  = `Ud fra gennemsnittet for ${escHtml(d.landsdelnavn)} kan vi ikke se en tydelig afvigelse. Vi kunne ikke hente de lokale handler lige nu, så prøv gerne igen senere.`;
-  }
-
-  const savings = d.canBuy && d.savingsPerYear > 0
-    ? `<div class="note" style="margin-top:12px;font-size:1rem;">💰 Illustrativ skattevirkning: op til ca. <strong>${fmtKr(d.savingsPerYear)} om året</strong> i ejendomsværdiskat, hvis vurderingen nedsættes til ${fmtEstimat(d.estimate)}. Din faktiske besparelse kan være lavere eller nul, fx på grund af skatterabat eller hvornår du købte boligen.</div>`
-    : "";
-
-  const deadlineNote = d.canBuy
-    ? `<div class="note" style="margin-top:8px;">⏰ <strong>Klagefrist:</strong> Klagefristen er typisk 90 dage eller 3 måneder fra du modtog vurderingen. Den præcise frist står i klagevejledningen i din vurdering.</div>`
-    : "";
-
-  const method = lokal
-    ? `Estimatet bygger på faktiske tinglyste handler med lignende boliger i ${omraade} fra før vurderingstidspunktet. De nærmeste handler tæller mest. Det er en statistisk indikation, ikke en individuel vurdering af netop din bolig.`
-    : `Estimatet bygger på Danmarks Statistiks gennemsnitspris for ${d.propertyType === "ejerlejlighed" ? "ejerlejligheder" : "enfamiliehuse"} i ${escHtml(d.landsdelnavn)} fra 2020–2022 (${fmtKr(d.krPerM2)}/m²). Det er et groft gennemsnit, ikke en vurdering af netop din bolig.`;
-
-  const body = document.getElementById("result-body");
-  body.innerHTML = `
-    <div class="tl-wrap">
-      <div class="tl-circle ${tlColor}"></div>
-      <div>
-        <p class="tl-tag">${tag}</p>
-        <p class="tl-headline ${tlColor}">${headline}</p>
-        <p class="tl-subtext">${subtext}</p>
-      </div>
-    </div>
-
-    <div class="data-grid">
-      <span class="k">Din ejendomsværdi:</span>
-      <span class="v">${fmtKr(ev)}</span>
-      <span class="k">${lokal ? "Vores estimat:" : "Ud fra landsdelens gennemsnit:"}</span>
-      <span class="v">${fmtEstimat(d.estimate)}</span>
-      ${lokal ? `<span class="k">Sammenlignet med:</span><span class="v">Handler i ${omraade}</span>` : ""}
-      <span class="k">Forskel:</span>
-      <span class="v">${d.estimate < ev ? `${pct}&nbsp;% af din vurdering` : "Ingen"}</span>
-      <span class="k">Boligareal:</span>
-      <span class="v">${m2} m²</span>
-    </div>
-
-    ${savings}
-    ${deadlineNote}
-
-    <details style="margin-top:12px;font-size:0.85rem;color:var(--gray-600);">
-      <summary style="cursor:pointer;">Sådan har vi regnet</summary>
-      <p style="margin:8px 0 0;">${method}</p>
-      <p style="margin:8px 0 0;">Procenten er forskellen mellem din vurdering og estimatet, målt i forhold til din vurdering. Det er sådan grænsen regnes: En klage kan kun ændre vurderingen, hvis ændringen er over 20 % af vurderingen (skatteforvaltningsloven § 35 h, stk. 2).</p>
-      <p style="margin:8px 0 0;">Skattevirkningen er et regneeksempel med 5,1 ‰ ejendomsværdiskat af 80 % af værdien, uden grundskyld, skatterabat og andre forhold. Ikke juridisk rådgivning.</p>
-    </details>`;
-
-  document.getElementById("card-result").classList.remove("hidden");
-  document.getElementById("card-result").scrollIntoView({ behavior: "smooth", block: "start" });
-
-  if (d.canBuy) {
-    document.getElementById("pay-sub").textContent =
-      "En færdig klage med dokumentationen fra de lokale handler. Du indsætter den direkte hos Skatteankestyrelsen.";
-    document.getElementById("pay-price").textContent = `${d.price} kr. Engangsbetaling.`;
-    document.getElementById("pay-btn").textContent = `Få min klagepakke – ${d.price} kr →`;
-    document.getElementById("card-pay").classList.remove("hidden");
-    document.getElementById("card-notify").classList.add("hidden");
-    if (TEST_MODE) document.getElementById("test-btn").classList.remove("hidden");
-    track("pay_shown");
-  } else if (lokal && d.verdict === "TÆT") {
-    // Lige under grænsen: spørg til forhold ved boligen, før vi siger ja eller nej
-    document.getElementById("card-pay").classList.add("hidden");
-    document.getElementById("card-notify").classList.add("hidden");
-    document.getElementById("card-forhold").classList.remove("hidden");
-  } else {
-    document.getElementById("card-pay").classList.add("hidden");
-    document.getElementById("card-notify").classList.remove("hidden");
-  }
-}
-
-function checkForhold() {
-  const d = state.freeResult;
-  state.forhold = [...document.querySelectorAll("#forhold-list input:checked")].map(i => i.value);
-  document.getElementById("card-forhold").classList.add("hidden");
-  if (state.forhold.length > 0) {
-    document.getElementById("pay-sub").textContent =
-      "Din sag bygger på de lokale handler plus forholdene ved din bolig. Den er svagere end en klar sag, men kan være værd at prøve. Du får en færdig klage, hvor forholdene er med.";
-    document.getElementById("pay-price").textContent = `${d.price} kr. Engangsbetaling.`;
-    document.getElementById("pay-btn").textContent = `Få min klagepakke – ${d.price} kr →`;
-    document.getElementById("card-pay").classList.remove("hidden");
-    if (TEST_MODE) document.getElementById("test-btn").classList.remove("hidden");
-    track("pay_shown");
-    document.getElementById("card-pay").scrollIntoView({ behavior: "smooth", block: "start" });
-  } else {
-    document.getElementById("card-notify").classList.remove("hidden");
-    document.getElementById("card-notify").scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-}
-
-async function signupNotify() {
-  const email = document.getElementById("notify-email").value.trim();
-  const msg = document.getElementById("notify-msg");
-  try {
-    const r = await fetch("/api/notify-signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, address: state.label || "", verdict: state.freeResult?.verdict || null }),
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || "Ukendt fejl");
-    msg.textContent = "✅ Tak! Vi giver dig besked.";
-    msg.style.color = "var(--green-600)";
-  } catch (err) {
-    msg.textContent = "⚠️ " + err.message;
-    msg.style.color = "var(--red-600)";
-  }
-}
-
-// Måler kun hvor langt kunden kommer (ingen adresse eller tal), så admin kan se hvor salget stopper
-function track(event, extra) {
-  try {
-    fetch("/api/track", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ event, verdict: state.freeResult?.verdict || null, ...(extra || {}) }) }).catch(() => {});
-  } catch (e) {}
-}
-
-// ─── Payment ──────────────────────────────────────────────────
-async function startPayment() {
-  const btn = document.getElementById("pay-btn");
-  track("buy_click", { blocked: !document.getElementById("final-check").checked });
-  if (!document.getElementById("final-check").checked) {
-    document.getElementById("final-check-err").classList.remove("hidden");
-    return;
-  }
-  document.getElementById("final-check-err").classList.add("hidden");
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Opretter betaling…';
-
-  try {
-    const r = await fetch("/api/create-payment", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        address:       state.label,
-        postnr:        state.postnr,
-        label:         `${state.label} · ${state.postnr} ${state.by}`,
-        m2:            state.m2,
-        kommunekode:   state.kommunekode,
-        anvKode:       state.anvKode,
-        boligtypeLabel:state.boligtypeLabel,
-        ev:            state.ev,
-        gv:            state.gv,
-        landsdel:      state.landsdel,
-        opfoeretAar:   state.opfoeretAar || "",
-        grundareal:    state.grundareal || null,
-        adresseId:     state.adresseId || null,
-        freeResult:    state.freeResult,
-        forhold:       state.forhold || [],
-      }),
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || "Stripe fejl");
-
-    state.sessionId = data.sessionId;
-    // Redirect to Stripe Checkout
-    window.location.href = data.checkoutUrl;
-  } catch(err) {
-    btn.disabled = false;
-    btn.innerHTML = "Få min klagepakke →";
-    alert("Betalingsfejl: " + err.message);
-  }
-}
-
-// ─── Toggle UI between "klage" and "ingen belæg" result modes ─
-function applyKlageResultMode(hasGrounds) {
-  const noGroundsNote = document.getElementById("no-grounds-note");
-  const stepsNote     = document.getElementById("klage-steps-note");
-  const h2            = document.getElementById("klage-h2");
-  const sub           = document.getElementById("klage-sub");
-  const emailH4       = document.getElementById("email-box-h4");
-
-  if (hasGrounds === false) {
-    noGroundsNote.classList.remove("hidden");
-    stepsNote.classList.add("hidden");
-    h2.textContent = "5. Dit analyseresultat";
-    sub.textContent = "Her er den fulde analyse af de konkrete handler i dit postnummer.";
-    emailH4.textContent = "📧 Få analysen tilsendt på mail";
-  } else {
-    noGroundsNote.classList.add("hidden");
-    stepsNote.classList.remove("hidden");
-    h2.textContent = "5. Din klagetekst";
-    sub.innerHTML = 'Kopiér teksten og indsæt den i <a href="https://skatteankestyrelsen.dk/send-en-klage/du-er-ved-at-oprette-en-klage-ejendom" target="_blank" rel="noopener">Skatteankestyrelsens klageformular</a>.';
-    emailH4.textContent = "📧 Få klageteksten tilsendt på mail";
-  }
-}
-
-// ─── Post-payment: poll for klage ────────────────────────────
-async function pollKlage(sessionId) {
-  document.getElementById("card-klage").classList.remove("hidden");
-  document.getElementById("klage-status").classList.remove("hidden");
-  document.getElementById("card-klage").scrollIntoView({ behavior: "smooth", block: "start" });
-
-  let attempts = 0;
-  const MAX_ATTEMPTS = 60; // 2 min at 2s interval
-  const interval = setInterval(async () => {
-    attempts++;
-    if (attempts > MAX_ATTEMPTS) {
-      clearInterval(interval);
-      document.getElementById("klage-status").textContent =
-        "Timeout — serveren tog for lang tid. Prøv at genindlæse siden.";
-      return;
-    }
-    try {
-      const r = await fetch("/api/klage/" + sessionId);
-      const data = await r.json();
-
-      if (data.status === "done" && data.klageTekst) {
-        clearInterval(interval);
-        document.getElementById("klage-status").classList.add("hidden");
-        document.getElementById("klage-text").value = data.klageTekst;
-        applyKlageResultMode(data.hasGrounds);
-        state.sessionId = sessionId; // ensure state is set for email send
-      } else if (data.status === "error") {
-        clearInterval(interval);
-        document.getElementById("klage-status").innerHTML =
-          `<span style="color:var(--red-600)">Fejl: ${escHtml(data.error || "Ukendt fejl")}</span>`;
-      }
-      // status "generating" or "pending_payment" → keep polling
-    } catch(err) {
-      // Network error → keep trying
-    }
-  }, 2000);
-}
-
-// ─── Test mode: generate without payment ─────────────────────
-async function startTest() {
-  const testBtn = document.getElementById("test-btn");
-  testBtn.disabled = true;
-  testBtn.innerHTML = '<span class="spinner spinner-dark"></span>Genererer testklage…';
-
-  document.getElementById("card-klage").classList.remove("hidden");
-  document.getElementById("klage-status").classList.remove("hidden");
-  document.getElementById("card-klage").scrollIntoView({ behavior: "smooth", block: "start" });
-
-  try {
-    const params = new URLSearchParams({
-      key:         TEST_KEY,
-      address:     state.label      || "Testvej 1, 2635 Ishøj",
-      ev:          state.ev         || 4000000,
-      m2:          state.m2         || 130,
-      kommunekode: state.kommunekode || "0183",
-    });
-    if (state.postnr) params.set("postnr", state.postnr);
-    if (state.forhold && state.forhold.length) params.set("forhold", state.forhold.join(","));
-    const r = await fetch("/api/test-klage?" + params);
-    const data = await r.json();
-    if (data.error) throw new Error(data.error);
-    document.getElementById("klage-status").classList.add("hidden");
-    document.getElementById("klage-text").value = data.klageTekst || "(ingen tekst)";
-    state.sessionId = data.sessionId; // needed so "Send til mig" (e-mail) works in testmode too
-    applyKlageResultMode(data.hasGrounds);
-  } catch(err) {
-    document.getElementById("klage-status").innerHTML =
-      `<span style="color:var(--red-600)">Fejl: ${escHtml(err.message)}</span>`;
-  } finally {
-    testBtn.disabled = false;
-    testBtn.innerHTML = "🧪 Test: Generer klagetekst gratis (testmode)";
-  }
-}
-
-// ─── Copy klage ───────────────────────────────────────────────
-function copyKlage(e) {
-  const ta = document.getElementById("klage-text");
-  ta.select();
-  navigator.clipboard?.writeText(ta.value).catch(() => {});
-  const btn = (e && e.target) || document.querySelector(".copybtn");
-  btn.textContent = "✅ Kopieret!";
-  setTimeout(() => btn.textContent = "📋 Kopiér klagetekst", 2500);
-}
-
-// ─── Reset ───────────────────────────────────────────────────
-function resetApp() {
-  state = { adresseId:null,husnummerId:null,label:"",postnr:"",by:"",
-            kommunekode:"",m2:null,anvKode:null,boligtypeLabel:"",
-            isEnfamilie:false,isEjerlejlighed:false,landsdel:null,
-            landsdelnavn:"",freeResult:null,sessionId:null };
-
-  document.getElementById("address-input").value = "";
-  document.getElementById("ev-input").value = "";
-  document.getElementById("gv-input").value = "";
-  document.getElementById("grund-input").value = "";
-  document.getElementById("final-check").checked = false;
-  document.getElementById("bbr-chip").classList.add("hidden");
-  document.getElementById("card-ev").classList.add("hidden");
-  document.getElementById("card-result").classList.add("hidden");
-  document.getElementById("card-pay").classList.add("hidden");
-  document.getElementById("card-notify").classList.add("hidden");
-  document.getElementById("card-forhold").classList.add("hidden");
-  document.querySelectorAll("#forhold-list input").forEach(i => { i.checked = false; });
-  document.getElementById("card-klage").classList.add("hidden");
-  document.getElementById("result-body").innerHTML = "";
-  document.getElementById("klage-text").value = "";
-  document.getElementById("send-email").value = "";
-  document.getElementById("email-msg").style.display = "none";
-
-  const m2manual = document.getElementById("m2-manual");
-  if (m2manual) m2manual.closest("div").remove();
-  const kvManual = document.getElementById("kv-manual");
-  if (kvManual) kvManual.closest("div").remove();
-
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-// ─── Helpers ──────────────────────────────────────────────────
-function fmtKr(n) {
-  return Math.round(n).toLocaleString("da-DK") + " kr";
-}
-
-// Estimater vises afrundet, fx "ca. 4,45 mio. kr", så de ikke ser mere præcise ud, end de er
-function fmtEstimat(n) {
-  return n >= 1000000
-    ? "ca. " + (Math.round(n / 10000) / 100).toLocaleString("da-DK") + " mio. kr"
-    : "ca. " + (Math.round(n / 10000) * 10000).toLocaleString("da-DK") + " kr";
-}
-
-function escHtml(s) {
-  return String(s||"")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;");
-}
-
-// ─── Send klage by e-mail (on-demand) ────────────────────────
-async function sendKlageByEmail() {
-  const email = (document.getElementById("send-email").value || "").trim();
-  const msgEl = document.getElementById("email-msg");
-  const btn   = document.getElementById("send-email-btn");
-
-  if (!email || !email.includes("@")) {
-    msgEl.style.display = "block";
-    msgEl.style.color   = "var(--red-600)";
-    msgEl.textContent   = "Angiv en gyldig e-mailadresse.";
-    return;
-  }
-  if (!state.sessionId) {
-    msgEl.style.display = "block";
-    msgEl.style.color   = "var(--red-600)";
-    msgEl.textContent   = "Ingen aktiv session — genindlæs siden og prøv igen.";
-    return;
-  }
-
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Sender…';
-  msgEl.style.display = "none";
-
-  try {
-    const r = await fetch("/api/send-klage-mail", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId: state.sessionId, email }),
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || "Ukendt fejl");
-
-    msgEl.style.display = "block";
-    msgEl.style.color   = "var(--green-600)";
-    msgEl.textContent   = `✅ Klageteksten er sendt til ${email}. Tjek evt. dit spam-filter.`;
-    btn.disabled = false;
-    btn.textContent = "Send igen";
-  } catch(err) {
-    msgEl.style.display = "block";
-    msgEl.style.color   = "var(--red-600)";
-    msgEl.textContent   = "Fejl: " + err.message;
-    btn.disabled = false;
-    btn.textContent = "Send til mig";
-  }
-}
-
-// ─── Check for returning payment ──────────────────────────────
-(function onLoad() {
-  const params = new URLSearchParams(location.search);
-  const sessionId = params.get("session");
-  const cancelled = params.get("cancelled");
-
-  if (cancelled) {
-    // Clean URL, show cancelled note
-    history.replaceState({}, "", "/");
-    alert("Betalingen blev annulleret. Du kan prøve igen.");
-    return;
-  }
-
-  if (sessionId) {
-    // Clean URL
-    history.replaceState({}, "", "/");
-    state.sessionId = sessionId;
-    pollKlage(sessionId);
-  }
-})();
-
-(function(){
-  var inp = document.getElementById("address-input");
-  if(inp){
-    inp.addEventListener("input", onAdresseInput);
-    inp.addEventListener("keydown", onAdresseKey);
-  }
-  function wire(id, fn){ var el=document.getElementById(id); if(el) el.addEventListener("click",fn); }
-  wire("check-btn", runFreeCheck);
-  wire("notify-btn", signupNotify);
-  wire("forhold-btn", checkForhold);
-  wire("pay-btn", startPayment);
-  wire("test-btn", startTest);
-  wire("send-email-btn", sendKlageByEmail);
-  document.querySelectorAll(".btn-secondary").forEach(function(btn){
-    if(btn.textContent.includes("Forts")) btn.addEventListener("click", proceedManual);
-    if(btn.textContent.includes("anden")) btn.addEventListener("click", resetApp);
-  });
-  document.querySelectorAll(".copybtn").forEach(function(btn){
-    btn.addEventListener("click", copyKlage);
-  });
-})();
-</script>
 
 </body>
 </html>
