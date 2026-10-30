@@ -9,7 +9,7 @@
  *   STRIPE_SECRET_KEY        e.g. sk_live_...
  *   STRIPE_WEBHOOK_SECRET    e.g. whsec_...
  *   APIFY_TOKEN              your Apify API token
- *   BBR_USER                 (optional, defaults to IUXUCSLFZW)
+ *   BBR_USER                 (required — set in Railway environment variables)
  *   BBR_PASS                 (optional, defaults to Ghulab.4u)
  */
 
