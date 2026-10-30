@@ -206,3 +206,9 @@ The older inspection below is retained as historical context; its statement that
 - Kundeflowet er nu fuldt operationelt på `/boliglaanstjek`: adresse → låneoplysninger → analyse-dashboard → Stripe-abonnementsboks.
 - Railway auto-deployer fra main — live inden for ~3 min fra merge.
 - Pending: subscription webhook/email-logik (månedlig statusmail + øjeblikkelig alert ved konverteringstærskel) er ikke implementeret. Stripe test-mode er stadig aktiv — skift ikke til live-mode uden Zulfiqars godkendelse.
+
+## PR #25 åben — fjern dev-banner — 2026-10-30
+
+- Agent: Claude Sonnet 4.6. Branch: `claude/fix-dev-banner`.
+- Fjerner hardkodet "Lokal forhåndsvisning"-banner fra toppen af `boliglaanstjek-preview.html`.
+- **KRITISK:** `www.vurderingstjekket.dk` peger stadig DNS-mæssigt på den gamle Cloudflare Worker, ikke Railway. Alle Railway-rettelser er usynlige for kunder. Kræver Zulfiqars godkendelse til DNS-skift. Afventer Railway-appens URL fra Zulfiqar.
