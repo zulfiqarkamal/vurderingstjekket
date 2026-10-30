@@ -1236,8 +1236,13 @@ body::before{
       <div id="pkgLines"></div>
     </div>
 
-    <button class="btn btn-primary" id="sendBtn" onclick="sendPakke()" style="margin-top:20px">
-      <span id="sendBtnTxt">Send til <span id="sendCount">0</span> banker</span>
+    <div style="margin-top:20px">
+      <label for="pakkeEmail" style="display:block;font-size:.85rem;font-weight:600;margin-bottom:6px">Din e-mail (til kvittering)</label>
+      <input type="email" id="pakkeEmail" placeholder="navn@eksempel.dk" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:.95rem;box-sizing:border-box;">
+    </div>
+
+    <button class="btn btn-primary" id="sendBtn" onclick="sendPakke()" style="margin-top:14px">
+      <span id="sendBtnTxt">Betal &amp; send til <span id="sendCount">0</span> banker — 89 kr</span>
     </button>
     <button class="btn btn-ghost" onclick="goToPhase2(6)">← Tilbage til dokumenter</button>
   </div>
@@ -1355,6 +1360,15 @@ body::before{
     </div>
   </div>
 
+  <!-- Success state after Stripe return -->
+  <div class="card" id="p8-success" style="display:none">
+    <div style="text-align:center;padding:12px 0 20px">
+      <div style="font-size:3rem;margin-bottom:12px">🎉</div>
+      <div class="card-title" style="margin-bottom:8px">Overvågning aktiveret!</div>
+      <div class="card-sub">Du modtager besked, når din lånerente eller restgæld ændrer sig markant. Tjek din e-mail for kvittering.</div>
+    </div>
+  </div>
+
   <!-- Payment panel (hidden until email entered) -->
   <div class="card" id="p8-payment" style="display:none">
     <div style="text-align:center;padding:12px 0 20px">
@@ -1362,8 +1376,6 @@ body::before{
       <div class="card-title" style="margin-bottom:6px">Betal med MobilePay</div>
       <div class="card-sub" id="paySubtitle">49 kr/md</div>
     </div>
-    <p>Betaling er afkoblet i denne forh?ndsvisning.</p>
-    <div style="text-align:center;margin:16px 0;color:var(--muted);font-size:.85rem">— eller —</div>
     <button class="btn btn-primary" style="width:100%;background:#5851EA" onclick="payCard()">💳 Betal med kort</button>
     <div style="text-align:center;margin-top:12px">
       <button class="btn btn-ghost" onclick="document.getElementById('p8-payment').style.display='none';document.getElementById('p8-plans').style.display='block'">← Tilbage</button>
@@ -2159,17 +2171,34 @@ function renderBankerPanel() {
 }
 
 // ── Send pakke ────────────────────────────────────────────────────────────
-function sendPakke() {
+async function sendPakke() {
+  const email = (document.getElementById('pakkeEmail')?.value || '').trim();
+  if (!email || !email.includes('@')) {
+    const inp = document.getElementById('pakkeEmail');
+    if (inp) { inp.style.borderColor = 'var(--danger)'; setTimeout(() => inp.style.borderColor = '', 1500); inp.focus(); }
+    return;
+  }
+  if (!selectedBanks.size) { alert('Vælg mindst én bank.'); return; }
+
   const btn = document.getElementById('sendBtn');
   btn.disabled = true;
-  btn.textContent = 'Sender…';
+  btn.textContent = 'Opretter betaling…';
 
-  setTimeout(() => {
-    const names = [...selectedBanks].map(b => BANKS[b]).join(', ');
-    document.getElementById('sentToBanks').textContent = names;
-    document.querySelector('#panel-7 .card:first-child').style.display = 'none';
-    document.getElementById('successCard').style.display = 'block';
-  }, 1800);
+  try {
+    const adresse = document.getElementById('adresse')?.value || document.getElementById('adresseM')?.value || '';
+    const r = await fetch('/api/bankpakke/start', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, banker: [...selectedBanks], adresse })
+    });
+    const data = await r.json();
+    if (data.url) { window.location.href = data.url; return; }
+    throw new Error(data.error || 'Fejl');
+  } catch (err) {
+    btn.disabled = false;
+    btn.innerHTML = '<span id="sendBtnTxt">Betal &amp; send til <span id="sendCount">' + selectedBanks.size + '</span> banker — 299 kr</span>';
+    alert('Kunne ikke oprette betaling: ' + err.message);
+  }
 }
 
 // Initialize budget on load
@@ -2237,9 +2266,67 @@ function startSubscription() {
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function payCard() {
-  // Placeholder — integrer Stripe her
-  alert('Kortbetaling: Integrer Stripe Checkout her med price_id for valgt plan.');
+async function payCard() {
+  const email = (document.getElementById('subEmail')?.value || '').trim();
+  const btn = document.querySelector('#p8-payment .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Opretter betaling…'; }
+
+  try {
+    const adresse = document.getElementById('adresse')?.value || document.getElementById('adresseM')?.value || '';
+    const restgaeld = document.getElementById('restgaeld')?.value || '';
+    const rente = document.getElementById('rente')?.value || '';
+    const r = await fetch('/api/laanovervagning/start', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, periode: selectedPlan === 'aarlig' ? 'aar' : 'maaned', adresse, restgaeld, rente })
+    });
+    const data = await r.json();
+    if (data.url) { window.location.href = data.url; return; }
+    throw new Error(data.error || 'Fejl');
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.textContent = '💳 Betal med kort'; }
+    alert('Kunne ikke oprette betaling: ' + err.message);
+  }
 }
+
+// ── Handle Stripe return URLs ─────────────────────────────────────────────
+(function handleReturnParams() {
+  const p = new URLSearchParams(window.location.search);
+  if (p.get('bankpakke') === 'ok') {
+    window.addEventListener('DOMContentLoaded', function() {
+      [1,2,3,4,5,6,7,8].forEach(function(n) {
+        const el = document.getElementById('panel-' + n);
+        if (el) el.classList.remove('active');
+      });
+      const p7 = document.getElementById('panel-7');
+      if (p7) {
+        p7.classList.add('active');
+        const firstCard = p7.querySelector('.card:first-child');
+        if (firstCard) firstCard.style.display = 'none';
+        const success = document.getElementById('successCard');
+        if (success) success.style.display = 'block';
+      }
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+  } else if (p.get('overvagning') === 'ok') {
+    window.addEventListener('DOMContentLoaded', function() {
+      [1,2,3,4,5,6,7,8].forEach(function(n) {
+        const el = document.getElementById('panel-' + n);
+        if (el) el.classList.remove('active');
+      });
+      const p8 = document.getElementById('panel-8');
+      if (p8) {
+        p8.classList.add('active');
+        const plans = document.getElementById('p8-plans');
+        if (plans) plans.style.display = 'none';
+        const pay = document.getElementById('p8-payment');
+        if (pay) pay.style.display = 'none';
+        const success = document.getElementById('p8-success');
+        if (success) success.style.display = 'block';
+      }
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+  }
+})();
 </script>
 </body></html>

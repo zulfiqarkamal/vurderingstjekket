@@ -1801,6 +1801,45 @@ app.post("/api/laanovervagning/start", async (req, res) => {
   }
 });
 
+// ─── Bankpakke betaling ────────────────────────────────────────
+// 299 kr engangsbetaling for dokumentpakke sendt til udvalgte banker.
+app.post("/api/bankpakke/start", async (req, res) => {
+  if (!stripe) return res.status(503).json({ error: "Betaling ikke konfigureret" });
+  const { email, banker, adresse } = req.body || {};
+  if (!email || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(String(email).trim()))
+    return res.status(400).json({ error: "Ugyldig e-mailadresse" });
+  if (!banker || !banker.length)
+    return res.status(400).json({ error: "Vælg mindst én bank" });
+
+  const BANKPAKKE_PRICE = parseInt(process.env.BANKPAKKE_PRICE_DKK || "89");
+  const origin = req.headers.origin || `https://${req.headers.host}`;
+  const bankerStr = banker.slice(0, 8).join("|");
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      line_items: [{ price_data: {
+        currency: "dkk",
+        product_data: {
+          name: "BankPakke — Dokumentation til realkreditinstitutter",
+          description: `Sendes til: ${banker.slice(0, 5).join(", ")}`,
+        },
+        unit_amount: BANKPAKKE_PRICE * 100,
+      }, quantity: 1 }],
+      customer_email: String(email).trim(),
+      metadata: { type: "bankpakke", banker: bankerStr, adresse: adresse || "", email: String(email).trim() },
+      success_url: `${origin}/boliglaanstjek/preview?bankpakke=ok&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `${origin}/boliglaanstjek/preview?bankpakke=annulleret`,
+    });
+    logEvent("bankpakke_checkout", { email: String(email).trim(), banker: bankerStr, adresse: adresse || "" });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error("[bankpakke]", err.message);
+    res.status(500).json({ error: "Kunne ikke oprette betaling" });
+  }
+});
+
 app.post("/api/notify-signup", (req, res) => {
   const { email, address, verdict } = req.body || {};
   if (!email || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(String(email).trim())) return res.status(400).json({ error: "Ugyldig e-mailadresse" });
