@@ -1695,6 +1695,123 @@ app.post("/api/analyze-screenshot", async (req, res) => {
   }
 });
 
+// ─── Live markedsrenter (Danmarks Nationalbank + fallback) ────
+// Fetches Danish mortgage reference rates from DNB statistics API.
+// Cache TTL: 6 hours. Falls back to hardcoded rates if fetch fails.
+let _renteCache = null;
+let _renteCacheTs = 0;
+const RENTE_FALLBACK = { fastforrentet: 4.50, F1: 3.20, F3: 3.50, F5: 3.75, afdragsfri: 4.25, updated: null, source: "fallback" };
+
+async function fetchLiveRenter() {
+  const now = Date.now();
+  if (_renteCache && now - _renteCacheTs < 6 * 3600 * 1000) return _renteCache;
+
+  // Danmarks Nationalbank Statistics API — series DNRENTEDK (realkreditrenter)
+  // Table: DNRENTM gives monthly avg mortgage rates by type.
+  // We use the most recent observation for each series.
+  try {
+    const url = "https://api.statbank.dk/v1/data/DNRENTM/JSONSTAT?lang=da&RENTETYPE=REALKM&REALKM=*&Tid=latest";
+    const r = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error(`DNB HTTP ${r.status}`);
+    const json = await r.json();
+    // Extract values — DNB JSONSTAT has dataset.value array and dimension labels
+    const dim = json?.dataset?.dimension;
+    const vals = json?.dataset?.value;
+    if (!dim || !vals) throw new Error("Uventet format fra DNB");
+    // Series labels from REALKM dimension
+    const renteLabels = dim?.REALKM?.category?.label || {};
+    const renteIds = Object.keys(renteLabels);
+    // Map DNB series to our loan types (heuristic — adjust if DNB changes IDs)
+    const mapped = {};
+    for (let i = 0; i < renteIds.length; i++) {
+      const lbl = (renteLabels[renteIds[i]] || "").toLowerCase();
+      const val = vals[i];
+      if (val === null || val === undefined) continue;
+      if (lbl.includes("fastforrentet") || lbl.includes("fast rente")) mapped.fastforrentet = val;
+      else if (lbl.includes("f1") || lbl.includes("1-årig")) mapped.F1 = val;
+      else if (lbl.includes("f3") || lbl.includes("3-årig")) mapped.F3 = val;
+      else if (lbl.includes("f5") || lbl.includes("5-årig")) mapped.F5 = val;
+      else if (lbl.includes("afdragsfri")) mapped.afdragsfri = val;
+    }
+    if (!mapped.fastforrentet) throw new Error("Ingen fastforrentet-rente fra DNB");
+    // Fill missing with interpolation
+    if (!mapped.afdragsfri) mapped.afdragsfri = mapped.fastforrentet;
+    if (!mapped.F1) mapped.F1 = Math.max(1.5, mapped.fastforrentet - 1.3);
+    if (!mapped.F3) mapped.F3 = Math.max(1.8, mapped.fastforrentet - 1.0);
+    if (!mapped.F5) mapped.F5 = Math.max(2.0, mapped.fastforrentet - 0.75);
+    _renteCache = { ...mapped, updated: new Date().toISOString(), source: "Danmarks Nationalbank" };
+    _renteCacheTs = now;
+    console.log("[renter] Hentet fra DNB:", JSON.stringify(mapped));
+    return _renteCache;
+  } catch (err) {
+    console.warn("[renter] DNB fejlede, bruger fallback:", err.message);
+    // Try Nordnet unofficial endpoint as second source
+    try {
+      const r2 = await fetch("https://www.nordnet.dk/api/2/fund-list?assetType=BOND&isinCountry=DK&currency=DKK&name=realkredit&offset=0&limit=5", {
+        headers: { Accept: "application/json", "client-id": "NEXT" }, signal: AbortSignal.timeout(5000)
+      });
+      if (r2.ok) {
+        const d2 = await r2.json();
+        const bonds = d2?.results || [];
+        // Very rough: find 4% coupon bond yield as proxy for fastforrentet
+        const ff = bonds.find(b => b?.coupon_rate >= 3.5 && b?.coupon_rate <= 5.5);
+        if (ff?.yield_to_maturity) {
+          const ffRate = ff.yield_to_maturity;
+          const res = { fastforrentet: ffRate, F1: Math.max(1.5, ffRate - 1.3), F3: Math.max(1.8, ffRate - 1.0), F5: Math.max(2.0, ffRate - 0.75), afdragsfri: ffRate, updated: new Date().toISOString(), source: "Nordnet estimat" };
+          _renteCache = res; _renteCacheTs = now;
+          return res;
+        }
+      }
+    } catch { /* ignore */ }
+    return { ...RENTE_FALLBACK, updated: new Date().toISOString() };
+  }
+}
+
+app.get("/api/markedsrenter", async (_req, res) => {
+  try {
+    const renter = await fetchLiveRenter();
+    res.set("Cache-Control", "public, max-age=3600").json(renter);
+  } catch (err) {
+    console.error("[renter]", err);
+    res.json({ ...RENTE_FALLBACK, updated: null });
+  }
+});
+
+// ─── Lån overvågning abonnement ───────────────────────────────
+// Gemmer kundens låndetaljer + alert-grænser til overvågning.
+// Opretter Stripe Checkout session for 49 kr/md eller 399 kr/år.
+app.post("/api/laanovervagning/start", async (req, res) => {
+  if (!stripe) return res.status(503).json({ error: "Betaling ikke konfigureret" });
+  const { email, restgaeld, rente, loebetid, laantype, alertYdelseKr, alertRestgaeldKr, periode } = req.body || {};
+  if (!email || !restgaeld || !rente) return res.status(400).json({ error: "Mangler data" });
+
+  const pris = periode === "aar" ? 39900 : 4900; // øre
+  const label = periode === "aar" ? "BoligLånsRadar Overvågning — 1 år" : "BoligLånsRadar Overvågning — månedlig";
+  const origin = req.headers.origin || `https://${req.headers.host}`;
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "subscription",
+      line_items: [{ price_data: {
+        currency: "dkk", unit_amount: pris,
+        product_data: { name: label },
+        ...(periode === "aar"
+          ? { recurring: { interval: "year" } }
+          : { recurring: { interval: "month" } })
+      }, quantity: 1 }],
+      customer_email: email,
+      metadata: { restgaeld: String(restgaeld), rente: String(rente), loebetid: String(loebetid || 25), laantype: laantype || "fastforrentet", alertYdelseKr: String(alertYdelseKr || 2000), alertRestgaeldKr: String(alertRestgaeldKr || 200000), type: "laanovervagning" },
+      success_url: `${origin}/boliglaanstjek/preview?overvagning=ok&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `${origin}/boliglaanstjek/preview?overvagning=annulleret`,
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error("[overvagning]", err.message);
+    res.status(500).json({ error: "Kunne ikke oprette betaling" });
+  }
+});
+
 app.post("/api/notify-signup", (req, res) => {
   const { email, address, verdict } = req.body || {};
   if (!email || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(String(email).trim())) return res.status(400).json({ error: "Ugyldig e-mailadresse" });
