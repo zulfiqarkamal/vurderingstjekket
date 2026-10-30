@@ -1583,6 +1583,79 @@ Data er vejledende og ikke juridisk rådgivning.
 
 // ─── Tilmelding: besked ved næste vurdering ───────────────────
 // POST /api/notify-signup  body: { email, address, verdict }
+// ─── Boliglån screenshot OCR ──────────────────────────────────
+// Accepts { image: base64string, mediaType: "image/jpeg"|"image/png" }
+// Returns { restgaeld, maanedligYdelse, rente, loebetid, laantype }
+app.post("/api/analyze-screenshot", async (req, res) => {
+  const { image, mediaType } = req.body || {};
+  if (!image || typeof image !== "string") return res.status(400).json({ error: "Mangler billede" });
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: "OCR ikke konfigureret" });
+
+  try {
+    const safeMediaType = ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mediaType)
+      ? mediaType
+      : "image/jpeg";
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5",
+        max_tokens: 512,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: { type: "base64", media_type: safeMediaType, data: image },
+              },
+              {
+                type: "text",
+                text: `Du er en dansk bank-OCR. Analysér dette skærmbillede fra en dansk netbank eller låneapp og udtræk oplysninger om ét boliglån. Svar KUN med JSON uden markdown-kodeblok:\n{"restgaeld": <heltal kr uden punktum>, "maanedligYdelse": <heltal kr>, "rente": <decimal f.eks. 3.5>, "loebetid": <heltal år>, "laantype": <"fastforrentet"|"variabel"|"rentetilpasning"|"">}\nHvis en værdi ikke kan aflæses, brug null for tal og "" for tekst.`,
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("Anthropic API error:", response.status, err);
+      return res.status(502).json({ error: "Analyse mislykkedes" });
+    }
+
+    const data = await response.json();
+    const text = data?.content?.[0]?.text?.trim() || "{}";
+
+    let parsed = {};
+    try {
+      // strip potential markdown fences if model disobeys
+      const clean = text.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "").trim();
+      parsed = JSON.parse(clean);
+    } catch {
+      console.error("Failed to parse OCR JSON:", text);
+    }
+
+    res.json({
+      restgaeld: parsed.restgaeld ?? null,
+      maanedligYdelse: parsed.maanedligYdelse ?? null,
+      rente: parsed.rente ?? null,
+      loebetid: parsed.loebetid ?? null,
+      laantype: parsed.laantype ?? "",
+    });
+  } catch (err) {
+    console.error("analyze-screenshot error:", err);
+    res.status(500).json({ error: "Serverfejl ved billedanalyse" });
+  }
+});
+
 app.post("/api/notify-signup", (req, res) => {
   const { email, address, verdict } = req.body || {};
   if (!email || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(String(email).trim())) return res.status(400).json({ error: "Ugyldig e-mailadresse" });
