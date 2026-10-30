@@ -80,8 +80,8 @@ app.get("/", (req, res) => {
 const APIFY_TOKEN           = process.env.APIFY_TOKEN;
 const STRIPE_SECRET         = process.env.STRIPE_SECRET_KEY;
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
-const BBR_USER              = process.env.BBR_USER || "IUXUCSLFZW";
-const BBR_PASS              = process.env.BBR_PASS || "Ghulab.4u";
+const BBR_USER              = process.env.BBR_USER;
+const BBR_PASS              = process.env.BBR_PASS;
 const ADR_TOKEN             = "adressevaelger123"; // official free-tier token
 const RESEND_API_KEY        = process.env.RESEND_API_KEY;
 const RESEND_FROM           = process.env.RESEND_FROM || "Vurderingstjekket <onboarding@resend.dev>";
@@ -779,23 +779,41 @@ function logEvent(type, data) {
 }
 
 // ─── Admin dashboard ──────────────────────────────────────────
-const ADMIN_KEY = process.env.ADMIN_KEY || "admin1234";
+const ADMIN_KEY = process.env.ADMIN_KEY;
+if (!ADMIN_KEY) {
+  console.error("FATAL: ADMIN_KEY env var is not set. Admin routes are disabled.");
+}
 
-app.get("/admin", (req, res) => {
-  if (req.query.key !== ADMIN_KEY) {
-    return res.status(401).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Admin</title>
+const ADMIN_LOGIN_HTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Admin login</title>
 <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f4f6f9}
 .box{background:#fff;padding:32px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1);max-width:320px;width:100%;text-align:center}
 input{width:100%;padding:10px;margin:12px 0;border:1px solid #d1d5db;border-radius:8px;font-size:1rem}
 button{width:100%;padding:11px;background:#1c6dc4;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;font-weight:600}
+.err{color:#b91c1c;font-size:0.9rem;margin-top:8px}
 </style></head><body>
 <div class="box"><h2>🔐 Admin login</h2>
-<form method="get" action="/admin">
+<form method="post" action="/admin/login">
 <input type="password" name="key" placeholder="Admin-nøgle" autofocus>
 <button type="submit">Log ind</button>
-</form></div></body></html>`);
-  }
+</form></div></body></html>`;
 
+function requireAdminCookie(req, res, next) {
+  if (!ADMIN_KEY) return res.status(503).send("Admin ikke konfigureret (mangler ADMIN_KEY)");
+  const cookie = (req.headers.cookie || "").split(";").map(c => c.trim()).find(c => c.startsWith("admin_session="));
+  if (cookie && cookie.split("=")[1] === ADMIN_KEY) return next();
+  return res.status(401).send(ADMIN_LOGIN_HTML);
+}
+
+app.post("/admin/login", express.urlencoded({ extended: false }), (req, res) => {
+  if (!ADMIN_KEY) return res.status(503).send("Admin ikke konfigureret");
+  if (req.body.key === ADMIN_KEY) {
+    res.setHeader("Set-Cookie", `admin_session=${ADMIN_KEY}; HttpOnly; SameSite=Strict; Path=/admin; Max-Age=43200`);
+    return res.redirect(303, "/admin");
+  }
+  return res.status(401).send(ADMIN_LOGIN_HTML);
+});
+
+app.get("/admin", requireAdminCookie, (req, res) => {
   const search = (req.query.q || "").toLowerCase();
   const typeFilter = req.query.type || "";
   const page = Math.max(1, parseInt(req.query.page || "1"));
@@ -901,7 +919,7 @@ ${raekker.map(r => `<tr><td><strong>${r.navn}</strong><div class="hint">${r.fork
   }).join("");
 
   const pagerHtml = pages > 1 ? Array.from({length:pages},(_,i)=>
-    `<a href="/admin?key=${ADMIN_KEY}&q=${encodeURIComponent(search)}&type=${typeFilter}&page=${i+1}"
+    `<a href="/admin?q=${encodeURIComponent(search)}&type=${typeFilter}&page=${i+1}"
       style="padding:4px 10px;border-radius:6px;background:${i+1===page?"#1c6dc4":"#e8f1fc"};color:${i+1===page?"#fff":"#1c6dc4"};text-decoration:none;font-size:0.85rem;font-weight:600">${i+1}</a>`
   ).join(" ") : "";
 
@@ -945,7 +963,7 @@ tr:hover td{background:#f8fafc}
 </style></head><body>
 <header>
   <h1>Vurderingstjekket · Salg</h1>
-  <a href="/admin?key=${ADMIN_KEY}">← Alle poster</a>
+  <a href="/admin">← Alle poster</a>
 </header>
 
 <div class="kpis">
@@ -966,7 +984,6 @@ ${advarsel}
 <h2 class="evh">Alle hændelser</h2>
 <div class="bar">
   <form method="get" action="/admin">
-    <input type="hidden" name="key" value="${ADMIN_KEY}">
     <input type="text" name="q" placeholder="Søg adresse eller session-ID..." value="${(req.query.q||"").replace(/"/g,"&quot;")}">
     <select name="type">
       <option value="">Alle typer</option>
@@ -1627,8 +1644,7 @@ app.post("/api/send-klage-mail", async (req, res) => {
 
 // ─── Test: generer klagetekst uden betaling ───────────────────
 // Brug: /api/test-klage?key=ADMIN_KEY&address=Din+Adresse&ev=3500000
-app.get("/api/test-klage", async (req, res) => {
-  if (req.query.key !== ADMIN_KEY) return res.status(403).json({ error: "Ingen adgang" });
+app.get("/api/test-klage", requireAdminCookie, async (req, res) => {
   const addressQuery = (req.query.address || "").trim();
   const evOverride   = req.query.ev ? parseInt(req.query.ev) : null;
 
@@ -1684,8 +1700,7 @@ app.get("/api/test-klage", async (req, res) => {
 });
 
 // ─── Test UI ──────────────────────────────────────────────────
-app.get("/test", (req, res) => {
-  if (req.query.key !== ADMIN_KEY) return res.status(403).send("Ingen adgang");
+app.get("/test", requireAdminCookie, (req, res) => {
   res.send(`<!DOCTYPE html>
 <html lang="da">
 <head>
