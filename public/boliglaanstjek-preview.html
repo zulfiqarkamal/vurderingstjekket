@@ -741,6 +741,10 @@ body::before{
       <input type="text" id="adresseM" placeholder="Begynd at skrive din adresse..." autocomplete="off" oninput="dawaSearch(this.value)" onkeydown="dawaKey(event)">
       <div id="dawaDrop" class="dawa-drop" style="display:none"></div>
     </div>
+    <div id="bbrBadge" style="display:none;margin-top:8px;padding:8px 12px;background:var(--surface);border:1px solid rgba(255,255,255,.12);border-radius:8px;font-size:.82rem;color:var(--muted);align-items:center;gap:8px;">
+      <span id="bbrBadgeIcon">🏠</span>
+      <span id="bbrBadgeText"></span>
+    </div>
     <div class="field-row">
       <div class="field">
         <label>Ejendomsværdi</label>
@@ -1829,7 +1833,7 @@ function animateGauge(ltv) {
   requestAnimationFrame(step);
 }
 
-// ── Address autocomplete (via /api/adresse) ──────────────────────────────────
+// ── Address autocomplete ───────────────────────────────────────────────────────
 let dawaTimer = null;
 let dawaCursor = -1;
 let dawaResults = [];
@@ -1847,7 +1851,14 @@ function dawaSearch(q) {
       const raw = await res.json();
       dawaResults = Array.isArray(raw) ? raw.map(item => {
         const adr = item.adresse || {};
-        return { label: item.tekst || '', postnr: adr.postnr || '', by: adr.postnrnavn || '' };
+        return {
+          label: item.tekst || '',
+          postnr: adr.postnr || '',
+          by: adr.postnrnavn || '',
+          adresseId: adr.id || null,
+          husnummerId: adr.adgangsadresseid || null,
+          kommunekode: adr.kommunekode || ''
+        };
       }) : [];
       dawaCursor = -1;
       if (!dawaResults.length) { drop.style.display='none'; return; }
@@ -1868,6 +1879,32 @@ function dawaPick(i) {
   document.getElementById('adresseM').value = d.label;
   document.getElementById('dawaDrop').style.display = 'none';
   dawaCursor = -1;
+  if (d.husnummerId) {
+    lookupBBRForLoan(d.husnummerId, d.adresseId, d.kommunekode);
+  }
+}
+
+async function lookupBBRForLoan(husnummerId, adresseId, kommunekode) {
+  const badge = document.getElementById('bbrBadge');
+  const badgeText = document.getElementById('bbrBadgeText');
+  badge.style.display = 'flex';
+  badgeText.textContent = 'Henter bygningsdata fra BBR…';
+  document.getElementById('bbrBadgeIcon').textContent = '⏳';
+  try {
+    const params = new URLSearchParams({ husnummerId, kommunekode });
+    if (adresseId) params.set('adresseId', adresseId);
+    const r = await fetch('/api/bbr?' + params);
+    const data = await r.json();
+    if (data.found && data.m2 > 0) {
+      document.getElementById('bbrBadgeIcon').textContent = '🏠';
+      badgeText.textContent = `${data.boligtypeLabel} · ${data.m2} m² · Kommunekode ${data.kommunekode || kommunekode}`;
+    } else {
+      document.getElementById('bbrBadgeIcon').textContent = 'ℹ️';
+      badgeText.textContent = 'Ingen bygningsdata fundet i BBR — udfyld tallene manuelt';
+    }
+  } catch(e) {
+    badge.style.display = 'none';
+  }
 }
 
 function dawaKey(e) {
