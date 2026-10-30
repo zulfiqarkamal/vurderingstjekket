@@ -1411,6 +1411,9 @@ function handleScreenshotUpload(input) {
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ image: base64, mediaType: mType })
         });
+        if (!resp.ok && resp.status === 413) throw new Error('Billedet er for stort — komprimer det eller brug et mindre screenshot');
+        const ct = resp.headers.get('content-type') || '';
+        if (!ct.includes('json')) throw new Error('Server-fejl (' + resp.status + ') — prøv igen');
         const data = await resp.json();
         analyzing.style.display = 'none';
         document.getElementById('uploadZone').style.display = '';
