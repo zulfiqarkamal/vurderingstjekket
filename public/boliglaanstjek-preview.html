@@ -625,6 +625,142 @@ body::before{
 .mp-logo{font-size:1.1rem;font-weight:700;color:#5851EA;margin-bottom:8px}
 .mp-number{font-size:2rem;font-weight:700;color:var(--text);letter-spacing:.05em}
 .mp-hint{font-size:.8rem;color:var(--muted);margin-top:8px}
+
+/* ── Redesigned panel-4 results ─────────────────────────────────────────── */
+.res4-prop-bar{
+  background:var(--sky);border:1px solid var(--border);border-radius:12px;
+  padding:12px 16px;display:flex;align-items:center;gap:16px;
+  flex-wrap:wrap;margin-bottom:16px;
+}
+/* ── Results v2 layout ───────────────────────────────────────────────────── */
+.res4-wrap{max-width:1020px;margin:0 auto;padding:20px 0 32px;display:flex;flex-direction:column;gap:16px;}
+
+/* Verdict hero */
+.res4-vh{border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(21,43,78,.12);border:1px solid #fcd34d;background:#fff8e6;}
+.res4-vh.green{border-color:#6ee7b7;background:#e8f8ef;}
+.res4-vh.rod{border-color:#fca5a5;background:#fde8e8;}
+:root[data-theme="dark"] .res4-vh{background:#2a1e00;border-color:#5a3e00;}
+:root[data-theme="dark"] .res4-vh.green{background:#0d2a1c;border-color:#1a5c35;}
+:root[data-theme="dark"] .res4-vh.rod{background:#2a0d0d;border-color:#5a1a1a;}
+.res4-vh-top{display:grid;grid-template-columns:1fr auto;}
+.res4-vh-left{padding:22px 24px;}
+.res4-vh-eyebrow{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.res4-vh.green .res4-vh-eyebrow{color:var(--success);}
+.res4-vh.rod .res4-vh-eyebrow{color:var(--danger);}
+.res4-vh-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);flex-shrink:0;}
+.res4-vh.green .res4-vh-dot{background:var(--success);}
+.res4-vh.rod .res4-vh-dot{background:var(--danger);}
+.res4-vh-h{font-size:1.4rem;font-weight:800;line-height:1.2;letter-spacing:-.4px;margin-bottom:10px;text-wrap:balance;max-width:480px;}
+.res4-vh-p{font-size:.83rem;color:var(--muted);line-height:1.6;max-width:480px;}
+.res4-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:18px;border:1px solid rgba(0,0,0,.08);border-radius:10px;overflow:hidden;background:var(--surface);}
+.res4-tile{flex:1;padding:12px 14px;border-right:1px solid var(--border);}
+.res4-tile:last-child{border-right:none;}
+.res4-tile-label{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:3px;}
+.res4-tile-val{font-size:1.2rem;font-weight:800;letter-spacing:-.3px;}
+.res4-tile-val.green{color:var(--success);}
+.res4-tile-val.amber{color:var(--warn);}
+.res4-tile-val.blue{color:var(--accent);}
+.res4-tile-val.red{color:var(--danger);}
+.res4-tile-sub{font-size:.7rem;color:var(--muted);margin-top:2px;}
+.res4-vh-right{background:var(--navy);padding:20px;display:flex;flex-direction:column;justify-content:space-between;min-width:220px;max-width:260px;}
+.res4-vh-right-title{color:#fff;font-weight:700;font-size:.9rem;margin-bottom:14px;}
+.res4-prop-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.1);font-size:.8rem;}
+.res4-prop-row:last-child{border-bottom:none;}
+.res4-prop-lbl{color:rgba(255,255,255,.6);}
+.res4-prop-val{color:#fff;font-weight:600;text-align:right;}
+.res4-prop-badge{display:inline-block;padding:3px 10px;border-radius:100px;background:var(--success);color:#fff;font-size:.68rem;font-weight:700;letter-spacing:.03em;margin-left:4px;}
+
+/* Loans 3-col */
+.res4-loans-sec{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.res4-loan-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);}
+.res4-loan-head{padding:11px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+.res4-loan-head.cur{background:var(--sky);color:var(--accent);}
+.res4-loan-head.nw{background:#e8f8ef;color:var(--success);}
+:root[data-theme="dark"] .res4-loan-head.nw{background:#0d2a1c;}
+.res4-loan-body{padding:12px 14px;}
+.res4-loan-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;font-size:.82rem;border-bottom:1px solid var(--border);}
+.res4-loan-row:last-child{border-bottom:none;}
+.res4-loan-lbl{color:var(--muted);}
+.res4-loan-val{font-weight:600;color:var(--text);}
+.res4-loan-val.hl{color:var(--success);}
+.res4-cmp-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);}
+.res4-cmp-head{padding:11px 14px;background:var(--sky);border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);}
+.res4-cmp-body{padding:0 14px 12px;}
+.res4-table{width:100%;border-collapse:collapse;font-size:.8rem;}
+.res4-table th{padding:8px 4px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--border);text-align:right;}
+.res4-table th:first-child{text-align:left;}
+.res4-table td{padding:7px 4px;border-bottom:1px solid var(--border);text-align:right;vertical-align:middle;}
+.res4-table td:first-child{text-align:left;color:var(--muted);}
+.res4-table tr:last-child td{border-bottom:none;}
+.res4-table td.pos{color:var(--success);font-weight:700;}
+.res4-table td.neg{color:var(--danger);font-weight:700;}
+
+/* Analysis 3-col */
+.res4-analysis-sec{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.res4-chart-card,.res4-costs-card,.res4-payback-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);}
+.res4-analysis-head{padding:11px 14px;background:var(--sky);border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);}
+.res4-analysis-body{padding:14px;}
+.res4-chart-tabs{display:flex;gap:4px;margin-bottom:14px;}
+.res4-chart-tab{padding:5px 11px;border-radius:6px;font-size:.74rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:none;color:var(--muted);font-family:inherit;transition:.15s;}
+.res4-chart-tab.active{border-color:var(--accent);background:var(--accent);color:#fff;}
+.res4-chart-note{background:#e8f8ef;border:1px solid #a7e8c4;border-radius:7px;padding:8px 10px;font-size:.76rem;color:var(--success);font-weight:600;margin-top:10px;}
+:root[data-theme="dark"] .res4-chart-note{background:#0d2a1c;border-color:#1a5c35;}
+.res4-cost-row{display:flex;justify-content:space-between;font-size:.8rem;padding:6px 0;border-bottom:1px solid var(--border);}
+.res4-cost-row:last-child{border-bottom:none;}
+.res4-cost-name{color:var(--muted);}
+.res4-cost-amt{font-weight:600;}
+.res4-cost-total{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--sky);border-radius:8px;font-size:.84rem;font-weight:700;margin-top:10px;color:var(--accent);}
+.res4-payback-bar{position:relative;height:7px;background:var(--border);border-radius:4px;margin:10px 0 4px;overflow:visible;}
+.res4-payback-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--warn),var(--success));}
+.res4-payback-marker{position:absolute;top:-5px;width:16px;height:16px;background:var(--success);border:2px solid var(--surface);border-radius:50%;margin-left:-8px;}
+.res4-payback-labels{display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted);}
+.res4-payback-hl{background:#e8f8ef;border-left:3px solid var(--success);padding:9px 12px;border-radius:0 8px 8px 0;margin-top:10px;font-size:.82rem;color:var(--success);font-weight:600;}
+:root[data-theme="dark"] .res4-payback-hl{background:#0d2a1c;}
+
+/* CTA + Actions row */
+.res4-cta-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.res4-cta-card{background:linear-gradient(135deg,var(--navy) 0%,#1e4080 100%);border-radius:14px;padding:22px;color:#fff;box-shadow:0 4px 20px rgba(21,43,78,.12);}
+.res4-cta-bell{width:36px;height:36px;background:rgba(255,255,255,.12);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:12px;}
+.res4-cta-title{font-size:1.05rem;font-weight:700;margin-bottom:6px;}
+.res4-cta-sub{font-size:.78rem;color:rgba(255,255,255,.65);line-height:1.6;margin-bottom:14px;}
+.res4-cta-features{display:flex;flex-direction:column;gap:7px;margin-bottom:16px;}
+.res4-cta-feat{font-size:.78rem;color:rgba(255,255,255,.85);display:flex;align-items:flex-start;gap:8px;line-height:1.4;}
+.res4-cta-feat::before{content:"✓";color:#6ee7b7;font-weight:700;flex-shrink:0;}
+.res4-cta-plans-row{display:flex;gap:10px;margin-bottom:12px;}
+.res4-cta-plan{flex:1;border:2px solid rgba(255,255,255,.2);border-radius:9px;padding:11px 12px;cursor:pointer;transition:.15s;text-align:center;}
+.res4-cta-plan.sel{border-color:#fff;background:rgba(255,255,255,.12);}
+.res4-cta-plan-label{font-size:.65rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:4px;}
+.res4-cta-plan-price{font-size:1.3rem;font-weight:800;}
+.res4-cta-plan-period{font-size:.7rem;color:rgba(255,255,255,.6);margin-top:2px;}
+.res4-cta-plan-badge{display:inline-block;background:#fbbf24;color:#1a1f2e;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;margin-top:5px;}
+.res4-cta-btn{width:100%;padding:13px;border:none;border-radius:9px;background:#fff;color:var(--navy);font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;transition:.15s;}
+.res4-cta-btn:hover{background:#e8f0ff;}
+.res4-actions-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);}
+.res4-actions-head{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:14px;}
+.res4-action-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:10px;cursor:pointer;transition:.15s;background:var(--bg);}
+.res4-action-item:last-child{margin-bottom:0;}
+.res4-action-item:hover{border-color:var(--accent);background:var(--sky);}
+.res4-action-icon-box{width:38px;height:38px;border-radius:9px;background:var(--sky);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.res4-action-body{flex:1;min-width:0;}
+.res4-action-title{font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:2px;}
+.res4-action-sub{font-size:.72rem;color:var(--muted);line-height:1.4;}
+.res4-action-chev{color:var(--muted);font-size:.9rem;flex-shrink:0;}
+
+/* Responsive */
+@media(max-width:700px){
+  .res4-vh-top{grid-template-columns:1fr;}
+  .res4-vh-right{display:none;}
+  .res4-loans-sec{grid-template-columns:1fr;}
+  .res4-analysis-sec{grid-template-columns:1fr;}
+  .res4-cta-row{grid-template-columns:1fr;}
+  .res4-tiles{display:grid;grid-template-columns:1fr;}
+  .res4-tile{border-right:none;border-bottom:1px solid var(--border);}
+  .res4-tile:last-child{border-bottom:none;}
+}
+@media(max-width:900px){
+  .res4-loans-sec{grid-template-columns:1fr 1fr;}
+  .res4-analysis-sec{grid-template-columns:1fr 1fr;}
+}
 </style></head><body>
 
 <!-- ── App header ─────────────────────────────────────────────────────────── -->
@@ -1603,182 +1739,299 @@ async function beregn() {
 function renderResultat(d) {
   const { ejd, rest, rente, loeb, ltype, bidr, nuv, mrente, ltv, frivaerdi, frivaerdiPct, sc, scener, renter } = d;
 
-  // LTV badge / friværdi
-  let badgeCls, badgeLabel;
-  if (ltv < 40)      { badgeCls = 'friv-guld';   badgeLabel = '🥇 Guld — under 40% LTV'; }
-  else if (ltv < 60) { badgeCls = 'friv-soelv';  badgeLabel = '🥈 Sølv — under 60% LTV'; }
-  else if (ltv <= 80){ badgeCls = 'friv-bronze';  badgeLabel = '🥉 Bronze — 60–80% LTV'; }
-  else               { badgeCls = 'friv-rod';     badgeLabel = '🔴 Over 80% LTV'; }
-
-  // Signal farve
-  let sigCls, sigIcon, sigTitel, sigDetalje;
+  // ── Verdict logic ──
+  let vhCls, eyebrow, vh_h, vh_p;
   if (ltv > 80) {
-    sigCls='rod'; sigIcon='⚠️'; sigTitel='Belåningsgrad over 80%';
-    sigDetalje=`Din LTV er ${ltv.toFixed(1)}%. Over 80% kræver oftest et banklån i tillæg til realkreditten — kontakt din bank.`;
-  } else if (!sc.anbefalet) {
-    sigCls='gul'; sigIcon='◉'; sigTitel='Konverteringsmulighed — vurdér med din bank';
-    sigDetalje = sc.txt + (sc.type==='ingen' ? '' : ' Dette er en vejledende beregning — tal med din bank om et konkret tilbud.');
+    vhCls = 'rod'; eyebrow = '⚠ Advarsel';
+    vh_h = 'Belåningsgrad over 80% — kræver banklån';
+    vh_p = `Din LTV er ${ltv.toFixed(1)}%. Over 80% kræver oftest et banklån i tillæg til realkreditten. Kontakt din bank for at afklare mulighederne.`;
+  } else if (sc.type === 'ingen' || !sc.anbefalet) {
+    vhCls = ''; eyebrow = '◉ Analyse klar';
+    vh_h = 'Konvertering anbefales ikke på nuværende tidspunkt';
+    vh_p = sc.txt + (sc.type !== 'ingen' ? ' Overvåg markedet — renterne kan ændre sig.' : ' Dit lån er vurderet til at være konkurrencedygtigt.');
   } else {
-    sigCls='groen'; sigIcon='✓'; sigTitel='Konverteringsmulighed — vurdér med din bank';
-    sigDetalje = sc.txt + ' Beregningerne er vejledende. Din bank eller Totalkredit kan give dig et bindende tilbud.';
+    vhCls = 'green'; eyebrow = '✓ Mulighed fundet';
+    vh_h = `Konvertér til ${mrente.toFixed(2)}% — spar ${fmt(Math.round(sc.besparelse))} kr/md`;
+    vh_p = sc.txt + ' Beregningerne er vejledende. Din bank eller Totalkredit kan give dig et bindende tilbud.';
   }
 
-  // Omk.-detaljer
-  const visOmk = sc.type !== 'ingen';
-  const kurstabTxt = sc.kurstab > 0 ? fmt(Math.round(sc.kurstab)) + ' kr (ESTIMAT)' : '—';
-  const kursgevTxt = sc.kursgevinst > 0 ? '+' + fmt(Math.round(sc.kursgevinst)) + ' kr (ESTIMAT)' : '—';
-  const stiftelseOmk = fmt(Math.round(KONV_FAST_OMK + KONV_VAR_PCT * rest));
-  const tbTxt = sc.tb ? `${sc.tb} måneder` : sc.type !== 'ingen' ? '> 48 mdr.' : '—';
-  const tbKls = sc.tb && sc.tb <= 24 ? 'scene-better' : sc.tb && sc.tb <= 48 ? '' : sc.type !== 'ingen' ? 'scene-worse' : '';
+  // ── Tile values ──
+  const hasConv = sc.type !== 'ingen';
+  const tile1Cls = sc.besparelse > 0 ? 'green' : sc.besparelse < 0 ? 'red' : 'amber';
+  const tile1Val = hasConv ? ((sc.besparelse > 0 ? '+' : '') + fmt(Math.round(sc.besparelse)) + ' kr/md') : '—';
+  const tile3Cls = ltv < 60 ? 'green' : ltv <= 80 ? 'amber' : 'red';
 
-  // Rentekildetekst
+  // ── Cost strings ──
+  const stiftelseOmk = fmt(Math.round(KONV_FAST_OMK + KONV_VAR_PCT * rest));
+  const tbTxt = sc.tb ? `${sc.tb} måneder` : hasConv ? '> 48 mdr.' : '—';
+  const tbPct = sc.tb ? Math.min(100, (sc.tb / 48) * 100) : 100;
+  const totalOmkTxt = fmt(Math.round(sc.omk || 0));
+
+  // ── Rente kilde ──
   const renteKilde = renter.source === 'Danmarks Nationalbank'
-    ? `Live: Danmarks Nationalbank (opdateret ${renter.updated ? new Date(renter.updated).toLocaleDateString('da-DK') : '–'})`
-    : 'Vejledende estimat (ingen live-forbindelse)';
+    ? `Live: Danmarks Nationalbank (${renter.updated ? new Date(renter.updated).toLocaleDateString('da-DK') : '–'})`
+    : 'Vejledende estimat';
+
+  // ── Chart helpers ──
+  window._chartData = scener;
+
+  window.renderRes4Chart = function(h) {
+    const scene = (scener || []).find(s => s.h === h) || (scener && scener[0]);
+    if (!scene) return;
+    const wrap = document.getElementById('res4ChartWrap');
+    if (!wrap) return;
+    const maxVal = Math.max(scene.holdYdelse, scene.konvYdelse) * 1.2;
+    const bars = [
+      { v: scene.holdYdelse, color: '#3A7BD5', lbl: 'Hold lån' },
+      { v: scene.konvYdelse, color: '#1A8A54', lbl: 'Konvertér' }
+    ];
+    wrap.innerHTML = `<div style="display:flex;align-items:flex-end;gap:16px;height:110px;padding:0 8px;">${
+      bars.map(b => {
+        const hPct = (b.v / maxVal * 100).toFixed(1);
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">
+          <div style="font-size:.68rem;font-weight:700;color:${b.color};">${fmt(b.v)} kr/md</div>
+          <div style="flex:1;width:100%;display:flex;align-items:flex-end;">
+            <div style="width:100%;height:${hPct}%;background:${b.color};border-radius:5px 5px 0 0;min-height:8px;opacity:.85;"></div>
+          </div>
+          <div style="font-size:.7rem;color:var(--muted);">${b.lbl}</div>
+        </div>`;
+      }).join('')
+    }</div>`;
+  };
+
+  window.setRes4Tab = function(h) {
+    document.querySelectorAll('.res4-chart-tab').forEach(t => t.classList.remove('active'));
+    const tab = document.querySelector(`.res4-chart-tab[data-h="${h}"]`);
+    if (tab) tab.classList.add('active');
+    window.renderRes4Chart(h);
+    const scene = (scener || []).find(s => s.h === h);
+    const note = document.getElementById('res4ChartNote');
+    if (note && scene) {
+      const diff = Math.round(scene.diff / 1000);
+      note.textContent = diff > 0
+        ? `Over ${h} år sparer du samlet ca. ${diff}.000 kr ved at konvertere.`
+        : diff < 0
+        ? `Over ${h} år er konvertering ca. ${Math.abs(diff)}.000 kr dyrere samlet.`
+        : `Over ${h} år er der ingen forskel i samlet udgift.`;
+      note.style.color = diff > 0 ? 'var(--success)' : diff < 0 ? 'var(--danger)' : 'var(--muted)';
+      note.style.borderColor = diff > 0 ? '#a7e8c4' : diff < 0 ? '#fca5a5' : 'var(--border)';
+      note.style.background = diff > 0 ? '#e8f8ef' : diff < 0 ? '#fde8e8' : 'var(--surface)';
+    }
+  };
+
+  window.pickRes4Plan = function(plan) {
+    window._overvagPeriode = plan;
+    document.querySelectorAll('.res4-cta-plan').forEach(el => el.classList.remove('sel'));
+    const sel = document.querySelector(`.res4-cta-plan[data-plan="${plan}"]`);
+    if (sel) sel.classList.add('sel');
+    const b1 = document.getElementById('ovBtn1');
+    const b2 = document.getElementById('ovBtn2');
+    if (b1) b1.classList.toggle('active', plan === 'maaned');
+    if (b2) b2.classList.toggle('active', plan === 'aar');
+  };
 
   const p4 = document.getElementById('panel-4');
   p4.innerHTML = `
-<div class="res-2col">
+<div class="res4-wrap">
 
-  <!-- VENSTRE: friværdi + signal -->
-  <div class="res-col-left">
-
-    <!-- Friværdi badge -->
-    <div class="card">
-      <div class="friv-badge ${badgeCls}" id="frivBadge">${badgeLabel}</div>
-      <div style="display:flex;gap:14px;align-items:center;margin-top:12px;">
-        <div style="flex:1">
-          <div style="font-size:.72rem;color:var(--muted);margin-bottom:2px;">Friværdi (vejl.)</div>
-          <div style="font-size:1.45rem;font-weight:800;color:var(--navy);">${fmt(Math.round(frivaerdi/1000)*1000)} kr</div>
-          <div style="font-size:.8rem;color:var(--muted);">${frivaerdiPct.toFixed(1)}% af ejendomsværdi</div>
-        </div>
-        <div style="flex:1">
-          <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px;">Belåningsgrad</div>
-          <div class="friv-meter"><div class="friv-meter-fill" style="width:${Math.min(ltv,100).toFixed(1)}%;background:${ltv<40?'#1A8A54':ltv<60?'#3A7BD5':ltv<=80?'#C47A0A':'#C03030'}"></div></div>
-          <div style="font-size:.85rem;font-weight:700;margin-top:4px;">${ltv.toFixed(1)}%</div>
-        </div>
-      </div>
-      <div style="font-size:.72rem;color:var(--muted);margin-top:10px;">
-        Friværdi = ejendomsværdi − restgæld. Kan bruges til tillægslån, renovering eller som sikkerhed.
-      </div>
-    </div>
-
-    <!-- Signal bar -->
-    <div class="res-signal ${sigCls}">
-      <div class="sig-icon">${sigIcon}</div>
-      <div>
-        <div class="sig-title">${sigTitel}</div>
-        <div class="sig-detail">${sigDetalje}</div>
-      </div>
-    </div>
-
-    <!-- Nøgletal -->
-    <div class="card" style="padding:16px;">
-      <div style="font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;">Dine nøgletal</div>
-      <table style="width:100%;border-collapse:collapse;font-size:.88rem;">
-        <tr><td style="padding:5px 0;color:var(--muted);">Rente</td><td style="text-align:right;font-weight:600;">${rente.toFixed(2)}%</td></tr>
-        <tr><td style="padding:5px 0;color:var(--muted);">Låntype</td><td style="text-align:right;font-weight:600;">${ltype}</td></tr>
-        <tr><td style="padding:5px 0;color:var(--muted);">Bidragssats</td><td style="text-align:right;font-weight:600;">${bidr.toFixed(2)}%</td></tr>
-        <tr><td style="padding:5px 0;color:var(--muted);">Nuv. ydelse</td><td style="text-align:right;font-weight:600;">${fmt(Math.round(nuv))} kr/md</td></tr>
-        ${sc.type!=='ingen'?`<tr><td style="padding:5px 0;color:var(--muted);">Markedsrente (${ltype})</td><td style="text-align:right;font-weight:600;">${mrente.toFixed(2)}% <span style="font-size:.72rem;color:var(--muted);">(live)</span></td></tr>
-        <tr><td style="padding:5px 0;color:var(--muted);">Ny ydelse (inkl. bidr.)</td><td style="text-align:right;font-weight:600;color:${sc.besparelse>0?'var(--success)':'var(--danger)'};">${fmt(Math.round(sc.nyYdelse))} kr/md</td></tr>
-        <tr><td style="padding:5px 0;color:var(--muted);">Cash-flow ændring</td><td style="text-align:right;font-weight:700;font-size:1rem;color:${sc.besparelse>0?'var(--success)':'var(--danger)'};">${sc.besparelse>0?'+':''}${fmt(Math.round(sc.besparelse))} kr/md</td></tr>`:''}
-      </table>
-      <div style="font-size:.7rem;color:var(--muted);margin-top:8px;">Rentekilde: ${renteKilde}</div>
-    </div>
-
-  </div><!-- end left -->
-
-  <!-- HØJRE: scenarie + omkostninger + overvågning -->
-  <div class="res-col-right">
-
-    ${sc.type!=='ingen'?`
-    <!-- Scenarie-tabel -->
-    <div class="card" style="padding:16px;">
-      <div style="font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;">Hvad koster det over tid?</div>
-      <table class="scene-table">
-        <thead>
-          <tr><th>Horisont</th><th>Hold lån</th><th>Konvertér</th><th>Forskel</th></tr>
-        </thead>
-        <tbody>
-          ${scener.map(s=>`<tr>
-            <td>${s.h} år</td>
-            <td class="scene-now">${fmt(s.holdYdelse)} kr/md</td>
-            <td class="scene-conv">${fmt(s.konvYdelse)} kr/md</td>
-            <td class="${s.diff>0?'scene-better':'scene-worse'}">${s.diff>0?'+':''}${fmt(Math.round(s.diff/1000))}k kr</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-      <div style="font-size:.7rem;color:var(--muted);margin-top:8px;">Forskel = totalt betalt inkl. restgæld. + = fordel ved konvertering. ESTIMAT.</div>
-    </div>
-
-    <!-- Omkostningsoverblik -->
-    <div class="card" style="padding:16px;">
-      <div style="font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">Konverteringsomkostninger</div>
-      <div class="omk-row"><span class="omk-label">Kursskæring + stiftelse</span><span class="omk-est">${stiftelseOmk} kr <span class="omk-est-tag">ESTIMAT</span></span></div>
-      ${sc.kurstab>0?`<div class="omk-row"><span class="omk-label">Kurstab ved indfrielse</span><span class="omk-est">${kurstabTxt}</span></div>`:''}
-      ${sc.kursgevinst>0?`<div class="omk-row"><span class="omk-label">Kursgevinst</span><span class="omk-est" style="color:var(--success);">${kursgevTxt}</span></div>`:''}
-      <div class="omk-row" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-weight:700;">
-        <span class="omk-label">Total omk. (netto)</span>
-        <span class="omk-est">${fmt(Math.round(sc.omk))} kr <span class="omk-est-tag">ESTIMAT</span></span>
-      </div>
-      <div class="omk-row"><span class="omk-label">Tilbagebetalingstid</span><span class="${tbKls}" style="font-weight:600;">${tbTxt}</span></div>
-    </div>
-    `:''}
-
-    <!-- Overvågning box -->
-    <div class="overvag-box">
-      <div class="overvag-title">BoligLånsRadar Overvågning</div>
-      <div class="overvag-sub">Få besked med det samme, hvis markedsrenten rykker sig nok til at konvertering kan betale sig.</div>
-      <div style="display:flex;gap:0;margin:14px 0 10px;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.25);">
-        <button class="overvag-t-btn active" id="ovBtn1" onclick="overvagToggle('maaned')">
-          <div class="overvag-price">49 kr</div><div class="overvag-period">/måned</div>
-        </button>
-        <button class="overvag-t-btn" id="ovBtn2" onclick="overvagToggle('aar')">
-          <div class="overvag-price">399 kr</div><div class="overvag-period">/år (spar 189 kr)</div>
-        </button>
-      </div>
-      <div style="margin-bottom:10px;">
-        <div class="overvag-feature"><span class="overvag-check">✓</span> Månedlig status-mail om dit lån</div>
-        <div class="overvag-feature"><span class="overvag-check">✓</span> Øjeblikkelig alert hvis konvertering kan betale sig</div>
-        <div class="overvag-feature"><span class="overvag-check">✓</span> Friværdi- og markedsoverblik</div>
-        <div class="overvag-feature"><span class="overvag-check">✓</span> Konkrete forhandlingstips + kontaktinfo</div>
-      </div>
-      <div class="alert-thresh" id="alertSection">
-        <div style="font-size:.78rem;font-weight:600;margin-bottom:8px;opacity:.9;">Alert-grænser (valgfrit)</div>
-        <div style="display:flex;gap:8px;">
-          <div class="alert-field" style="flex:1">
-            <label>Ydelsesændring</label>
-            <div style="display:flex;align-items:center;gap:4px;"><input type="number" id="alertYdelse" value="${Math.round(Math.abs(sc.besparelse)||1000)}" style="width:80px;padding:4px 6px;border-radius:5px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-size:.85rem;"> <span style="font-size:.78rem;opacity:.8;">kr/md</span></div>
+  <!-- ── Verdict hero ── -->
+  <div class="res4-vh ${vhCls}">
+    <div class="res4-vh-top">
+      <div class="res4-vh-left">
+        <div class="res4-vh-eyebrow"><span class="res4-vh-dot"></span>${eyebrow}</div>
+        <div class="res4-vh-h">${vh_h}</div>
+        <div class="res4-vh-p">${vh_p}</div>
+        <div class="res4-tiles">
+          <div class="res4-tile">
+            <div class="res4-tile-label">Ydelsesændring</div>
+            <div class="res4-tile-val ${tile1Cls}">${tile1Val}</div>
+            <div class="res4-tile-sub">pr. måned, vejl.</div>
           </div>
-          <div class="alert-field" style="flex:1">
-            <label>Gældsreduktion</label>
-            <div style="display:flex;align-items:center;gap:4px;"><input type="number" id="alertRestgaeld" value="200000" style="width:80px;padding:4px 6px;border-radius:5px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-size:.85rem;"> <span style="font-size:.78rem;opacity:.8;">kr</span></div>
+          <div class="res4-tile">
+            <div class="res4-tile-label">Friværdi</div>
+            <div class="res4-tile-val blue">${fmt(Math.round(frivaerdi/1000)*1000)} kr</div>
+            <div class="res4-tile-sub">${frivaerdiPct.toFixed(1)}% af ejendomsværdi</div>
+          </div>
+          <div class="res4-tile">
+            <div class="res4-tile-label">LTV (belåning)</div>
+            <div class="res4-tile-val ${tile3Cls}">${ltv.toFixed(1)}%</div>
+            <div class="res4-tile-sub">${ltv < 60 ? 'Lav risiko' : ltv <= 80 ? 'Moderat' : 'Høj — over 80%'}</div>
           </div>
         </div>
       </div>
-      <div style="margin:10px 0 6px;">
-        <input type="email" id="overvagEmail" placeholder="din@email.dk" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-size:.9rem;box-sizing:border-box;" autocomplete="email">
+      <div class="res4-vh-right">
+        <div class="res4-vh-right-title">Dit lån</div>
+        <div class="res4-prop-row"><span class="res4-prop-lbl">Ejendom</span><span class="res4-prop-val" style="font-size:.72rem;max-width:140px;text-align:right;word-break:break-word;">${ejd || '—'}</span></div>
+        <div class="res4-prop-row"><span class="res4-prop-lbl">Restgæld</span><span class="res4-prop-val">${fmt(Math.round(rest/1000)*1000)} kr</span></div>
+        <div class="res4-prop-row"><span class="res4-prop-lbl">Rente</span><span class="res4-prop-val">${rente.toFixed(2)}%</span></div>
+        <div class="res4-prop-row"><span class="res4-prop-lbl">Låntype</span><span class="res4-prop-val">${ltype}</span></div>
+        <div class="res4-prop-row"><span class="res4-prop-lbl">Løbetid</span><span class="res4-prop-val">${loeb} år</span></div>
+        <div class="res4-prop-row"><span class="res4-prop-lbl">Bidragssats</span><span class="res4-prop-val">${bidr.toFixed(2)}%</span></div>
+        <div class="res4-prop-row"><span class="res4-prop-lbl">Nuv. ydelse</span><span class="res4-prop-val">${fmt(Math.round(nuv))} kr/md</span></div>
       </div>
-      <button class="overvag-btn" onclick="startOvervagning()">Start overvågning →</button>
     </div>
+  </div>
 
-    <!-- Bankpakke -->
-    <button class="btn btn-primary" onclick="startBankpakke()" style="margin-top:4px;">Hent bankpakke med beregninger →</button>
-    <button class="btn btn-ghost" onclick="goTo(1)">Beregn igen</button>
+  ${hasConv ? `
+  <!-- ── Lån 3-col ── -->
+  <div class="res4-loans-sec">
+    <div class="res4-loan-card">
+      <div class="res4-loan-head cur">📋 Nuværende lån</div>
+      <div class="res4-loan-body">
+        <div class="res4-loan-row"><span class="res4-loan-lbl">Rente</span><span class="res4-loan-val">${rente.toFixed(2)}%</span></div>
+        <div class="res4-loan-row"><span class="res4-loan-lbl">Type</span><span class="res4-loan-val">${ltype}</span></div>
+        <div class="res4-loan-row"><span class="res4-loan-lbl">Bidragssats</span><span class="res4-loan-val">${bidr.toFixed(2)}%</span></div>
+        <div class="res4-loan-row"><span class="res4-loan-lbl">Restgæld</span><span class="res4-loan-val">${fmt(Math.round(rest/1000)*1000)} kr</span></div>
+        <div class="res4-loan-row"><span class="res4-loan-lbl">Ydelse</span><span class="res4-loan-val">${fmt(Math.round(nuv))} kr/md</span></div>
+      </div>
+    </div>
+    <div class="res4-loan-card">
+      <div class="res4-loan-head nw">✨ ${sc.type === 'nedkonvertering' ? 'Nedkonvertering' : 'Opkonvertering'}</div>
+      <div class="res4-loan-body">
+        <div class="res4-loan-row"><span class="res4-loan-lbl">Ny rente</span><span class="res4-loan-val hl">${(sc.nyRente || mrente).toFixed(2)}%</span></div>
+        <div class="res4-loan-row"><span class="res4-loan-lbl">Markedsrente</span><span class="res4-loan-val">${mrente.toFixed(2)}% <span style="font-size:.68rem;color:var(--muted);">live</span></span></div>
+        <div class="res4-loan-row"><span class="res4-loan-lbl">Ny restgæld</span><span class="res4-loan-val">${sc.nyRest ? fmt(Math.round(sc.nyRest/1000)*1000) : '—'} kr</span></div>
+        <div class="res4-loan-row"><span class="res4-loan-lbl">Ny ydelse</span><span class="res4-loan-val hl">${fmt(Math.round(sc.nyYdelse))} kr/md</span></div>
+        <div class="res4-loan-row"><span class="res4-loan-lbl">Ændring</span><span class="res4-loan-val" style="color:${sc.besparelse>0?'var(--success)':'var(--danger)'};">${sc.besparelse>0?'+':''}${fmt(Math.round(sc.besparelse))} kr/md</span></div>
+      </div>
+    </div>
+    <div class="res4-cmp-card">
+      <div class="res4-cmp-head">📊 Sammenligning over tid</div>
+      <div class="res4-cmp-body">
+        <table class="res4-table">
+          <thead><tr><th>Horisont</th><th>Hold</th><th>Konv.</th><th>Forskel</th></tr></thead>
+          <tbody>
+            ${scener.map(s => {
+              const diff = Math.round(s.diff / 1000);
+              return `<tr>
+                <td>${s.h} år</td>
+                <td>${fmt(s.holdYdelse)}/md</td>
+                <td>${fmt(s.konvYdelse)}/md</td>
+                <td class="${s.diff > 0 ? 'pos' : 'neg'}">${s.diff > 0 ? '+' : ''}${diff}k</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+        <div style="font-size:.68rem;color:var(--muted);margin-top:8px;">+ = fordel ved konvertering (total inkl. restgæld). ESTIMAT.</div>
+        <div style="font-size:.68rem;color:var(--muted);margin-top:2px;">Rentekilde: ${renteKilde}</div>
+      </div>
+    </div>
+  </div>
+  ` : ''}
 
-  </div><!-- end right -->
+  <!-- ── Analyse 3-col ── -->
+  <div class="res4-analysis-sec">
+    <div class="res4-chart-card">
+      <div class="res4-analysis-head">📈 Ydelse over tid</div>
+      <div class="res4-analysis-body">
+        ${hasConv ? `
+        <div class="res4-chart-tabs">
+          ${scener.map(s => `<button class="res4-chart-tab${s.h===5?' active':''}" data-h="${s.h}" onclick="window.setRes4Tab(${s.h})">${s.h} år</button>`).join('')}
+        </div>
+        <div id="res4ChartWrap" style="height:120px;"></div>
+        <div id="res4ChartNote" class="res4-chart-note" style="font-size:.76rem;font-weight:600;padding:8px 10px;border-radius:7px;margin-top:10px;border:1px solid #a7e8c4;"></div>
+        ` : `<div style="color:var(--muted);font-size:.83rem;padding:30px 0;text-align:center;line-height:1.6;">Ingen konverteringsscenarie.<br>Dit lån er konkurrencedygtigt.</div>`}
+      </div>
+    </div>
+    <div class="res4-costs-card">
+      <div class="res4-analysis-head">💰 Konverteringsomkostninger</div>
+      <div class="res4-analysis-body">
+        ${hasConv ? `
+        <div class="res4-cost-row"><span class="res4-cost-name">Kursskæring + stiftelse</span><span class="res4-cost-amt">${stiftelseOmk} kr</span></div>
+        ${sc.kurstab > 0 ? `<div class="res4-cost-row"><span class="res4-cost-name">Kurstab ved indfrielse</span><span class="res4-cost-amt" style="color:var(--danger);">−${fmt(Math.round(sc.kurstab))} kr</span></div>` : ''}
+        ${sc.kursgevinst > 0 ? `<div class="res4-cost-row"><span class="res4-cost-name">Kursgevinst</span><span class="res4-cost-amt" style="color:var(--success);">+${fmt(Math.round(sc.kursgevinst))} kr</span></div>` : ''}
+        <div class="res4-cost-total"><span>Nettoomkostning (estimat)</span><span>${totalOmkTxt} kr</span></div>
+        <div style="font-size:.68rem;color:var(--muted);margin-top:8px;">Alle beløb er estimater — din bank kan give et præcist tilbud.</div>
+        ` : `<div style="color:var(--muted);font-size:.83rem;padding:30px 0;text-align:center;line-height:1.6;">Ingen konverterings-<br>omkostninger p.t.</div>`}
+      </div>
+    </div>
+    <div class="res4-payback-card">
+      <div class="res4-analysis-head">⏱ Tilbagebetalingstid</div>
+      <div class="res4-analysis-body">
+        ${hasConv && sc.tb ? `
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;">Måneder for at tjene omkostningerne hjem:</div>
+        <div style="font-size:2.2rem;font-weight:800;letter-spacing:-1px;color:${sc.tb<=24?'var(--success)':sc.tb<=48?'var(--warn)':'var(--danger)'};">${tbTxt}</div>
+        <div class="res4-payback-bar" style="margin:12px 0 4px;">
+          <div class="res4-payback-fill" style="width:${tbPct}%;"></div>
+          <div class="res4-payback-marker" style="left:${Math.min(tbPct,97)}%;"></div>
+        </div>
+        <div class="res4-payback-labels"><span>0</span><span>2 år</span><span>4 år+</span></div>
+        <div class="res4-payback-hl" style="margin-top:12px;">${sc.tb <= 24 ? '✓ Korttidshorisont — god forretning' : sc.tb <= 48 ? '◉ Moderat — overvej din tidshorisont' : '⚠ Lang tilbagebetalingstid'}</div>
+        ` : `<div style="color:var(--muted);font-size:.83rem;padding:30px 0;text-align:center;line-height:1.6;">${hasConv ? 'Tilbagebetalingstid > 48 mdr.<br>Overvej nøje.' : 'Ikke relevant —<br>ingen konverteringsscenarie.'}</div>`}
+      </div>
+    </div>
+  </div>
 
-</div><!-- end 2col -->
+  <!-- ── CTA + Handlinger ── -->
+  <div class="res4-cta-row">
+    <div class="res4-cta-card">
+      <div class="res4-cta-bell">📬</div>
+      <div class="res4-cta-title">Din månedlige lånestatus-mail</div>
+      <div class="res4-cta-sub">Hver måned sender vi dig en personlig opdatering om dit lån — og en øjeblikkelig alert hvis markedet giver mulighed for besparelse.</div>
+      <div class="res4-cta-features">
+        <div class="res4-cta-feat">Månedlig mail: rente, friværdi og markedsstatus</div>
+        <div class="res4-cta-feat">Alarm når konvertering kan betale sig for dig</div>
+        <div class="res4-cta-feat">Konkrete forhandlingstips til din bank</div>
+        <div class="res4-cta-feat">Bankpakke med dine beregninger klar til mødet</div>
+      </div>
+      <div class="res4-cta-plans-row">
+        <div class="res4-cta-plan sel" data-plan="maaned" onclick="window.pickRes4Plan('maaned')">
+          <div class="res4-cta-plan-label">Månedlig</div>
+          <div class="res4-cta-plan-price">49 kr</div>
+          <div class="res4-cta-plan-period">/måned</div>
+        </div>
+        <div class="res4-cta-plan" data-plan="aar" onclick="window.pickRes4Plan('aar')">
+          <div class="res4-cta-plan-label">Årlig</div>
+          <div class="res4-cta-plan-price">399 kr</div>
+          <div class="res4-cta-plan-period">/år</div>
+          <div class="res4-cta-plan-badge">Spar 189 kr</div>
+        </div>
+      </div>
+      <input type="email" id="overvagEmail" placeholder="din@email.dk" style="width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font-size:.9rem;box-sizing:border-box;margin-bottom:10px;" autocomplete="email">
+      <button id="ovBtn1" style="display:none;"></button>
+      <button id="ovBtn2" style="display:none;"></button>
+      <button class="res4-cta-btn" onclick="startOvervagning()">Start overvågning →</button>
+    </div>
+    <div class="res4-actions-card">
+      <div class="res4-actions-head">Næste skridt</div>
+      <div class="res4-action-item" onclick="startBankpakke()">
+        <div class="res4-action-icon-box">🏦</div>
+        <div class="res4-action-body">
+          <div class="res4-action-title">Hent bankpakke</div>
+          <div class="res4-action-sub">Få dine beregninger klar til banksamtalen med konkrete forhandlingstips.</div>
+        </div>
+        <div class="res4-action-chev">›</div>
+      </div>
+      <div class="res4-action-item" onclick="goTo(1)">
+        <div class="res4-action-icon-box">🔄</div>
+        <div class="res4-action-body">
+          <div class="res4-action-title">Beregn igen</div>
+          <div class="res4-action-sub">Juster tal og se hvad der ændrer sig ved en anden rente eller restgæld.</div>
+        </div>
+        <div class="res4-action-chev">›</div>
+      </div>
+      <div class="res4-action-item" onclick="startOvervagning()">
+        <div class="res4-action-icon-box">📡</div>
+        <div class="res4-action-body">
+          <div class="res4-action-title">Start overvågning</div>
+          <div class="res4-action-sub">Automatisk besked næste gang markedet giver mulighed for en god konvertering.</div>
+        </div>
+        <div class="res4-action-chev">›</div>
+      </div>
+    </div>
+  </div>
+
+</div>
 
 <div class="legal-note">
   ⚠️ Alle beregninger er vejledende og er ikke finansiel rådgivning. Renter og kurser er estimerede og ændrer sig løbende. Kontakt din bank, Totalkredit eller Nykredit for et bindende tilbud.
 </div>
 `;
 
-  // Sæt state for toggle
   window._overvagPeriode = 'maaned';
   window._beregningState = d;
+
+  if (hasConv && scener && scener.length) setTimeout(() => window.setRes4Tab(scener[0].h), 0);
 }
 
 function overvagToggle(p) {
