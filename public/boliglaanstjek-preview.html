@@ -667,7 +667,7 @@ body::before{
 .res4-prop-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.1);font-size:.8rem;}
 .res4-prop-row:last-child{border-bottom:none;}
 .res4-prop-lbl{color:rgba(255,255,255,.6);}
-.res4-prop-val{color:#fff;font-weight:600;text-align:right;}
+.res4-prop-val{color:#fff;font-weight:600;text-align:right;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .res4-prop-badge{display:inline-block;padding:3px 10px;border-radius:100px;background:var(--success);color:#fff;font-size:.68rem;font-weight:700;letter-spacing:.03em;margin-left:4px;}
 
 /* Loans 3-col */
@@ -746,14 +746,49 @@ body::before{
 .res4-action-sub{font-size:.72rem;color:var(--muted);line-height:1.4;}
 .res4-action-chev{color:var(--muted);font-size:.9rem;flex-shrink:0;}
 
+/* Forecast radar (free teaser) */
+.res4-forecast{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);}
+.res4-forecast-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.res4-forecast-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+@media(max-width:600px){.res4-forecast-grid{grid-template-columns:1fr;}}
+.res4-fcast-col{display:flex;flex-direction:column;gap:7px;}
+.res4-fcast-lbl{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+.res4-fcast-val{font-size:1.3rem;font-weight:800;letter-spacing:-.4px;}
+.res4-fcast-sub{font-size:.72rem;color:var(--muted);line-height:1.4;}
+.res4-fcast-bar{height:7px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:4px;}
+.res4-fcast-fill{height:100%;border-radius:4px;}
+
+/* Paywall gate */
+.res4-gate{position:relative;border-radius:14px;overflow:hidden;}
+.res4-gate-blur{filter:blur(5px);pointer-events:none;user-select:none;opacity:.55;}
+.res4-gate-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(248,250,255,.82);backdrop-filter:blur(1px);z-index:5;padding:28px 20px;text-align:center;}
+:root[data-theme="dark"] .res4-gate-overlay{background:rgba(12,16,36,.88);}
+.res4-gate-lock{font-size:2rem;margin-bottom:8px;}
+.res4-gate-h{font-size:1.1rem;font-weight:800;color:var(--text);margin-bottom:6px;text-wrap:balance;}
+.res4-gate-p{font-size:.8rem;color:var(--muted);line-height:1.6;max-width:360px;margin:0 auto 16px;}
+.res4-gate-feats{display:flex;flex-direction:column;gap:5px;margin-bottom:16px;text-align:left;width:100%;max-width:320px;}
+.res4-gate-feat{font-size:.77rem;color:var(--text);display:flex;align-items:flex-start;gap:8px;line-height:1.4;}
+.res4-gate-feat::before{content:"✓";color:var(--success);font-weight:700;flex-shrink:0;}
+.res4-gate-plans{display:flex;gap:8px;margin-bottom:14px;justify-content:center;}
+.res4-gate-plan{border:2px solid var(--border);border-radius:9px;padding:9px 16px;cursor:pointer;font-size:.78rem;text-align:center;background:var(--bg);color:var(--text);transition:.15s;}
+.res4-gate-plan.sel{border-color:var(--navy);background:var(--sky);}
+.res4-gate-plan-price{font-size:1rem;font-weight:800;display:block;}
+.res4-gate-plan-period{font-size:.68rem;color:var(--muted);}
+.res4-gate-plan-badge{display:inline-block;background:#fbbf24;color:#000;font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:100px;margin-top:3px;}
+.res4-gate-email{width:100%;max-width:310px;padding:10px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:.88rem;font-family:inherit;box-sizing:border-box;margin-bottom:10px;}
+.res4-gate-email:focus{outline:none;border-color:var(--accent);}
+.res4-gate-btn{padding:12px 32px;border:none;border-radius:9px;background:var(--navy);color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap;}
+.res4-gate-btn:hover{background:#1e4080;}
+.res4-gate-legal{font-size:.65rem;color:var(--muted);margin-top:10px;}
+
 /* Responsive */
 @media(max-width:700px){
   .res4-vh-top{grid-template-columns:1fr;}
-  .res4-vh-right{display:none;}
+  .res4-vh-right{min-width:unset;max-width:unset;width:100%;}
   .res4-loans-sec{grid-template-columns:1fr;}
   .res4-analysis-sec{grid-template-columns:1fr;}
   .res4-cta-row{grid-template-columns:1fr;}
-  .res4-tiles{display:grid;grid-template-columns:1fr;}
+  .res4-tiles{grid-template-columns:1fr;}
   .res4-tile{border-right:none;border-bottom:1px solid var(--border);}
   .res4-tile:last-child{border-bottom:none;}
 }
@@ -1768,9 +1803,37 @@ function renderResultat(d) {
   const totalOmkTxt = fmt(Math.round(sc.omk || 0));
 
   // ── Rente kilde ──
-  const renteKilde = renter.source === 'Danmarks Nationalbank'
+  const renteKilde = renter && renter.source === 'Danmarks Nationalbank'
     ? `Live: Danmarks Nationalbank (${renter.updated ? new Date(renter.updated).toLocaleDateString('da-DK') : '–'})`
     : 'Vejledende estimat';
+
+  // ── Forecast radar calculations ──
+  // How "ready" is the conversion? 0-100%
+  let readyPct, readyColor, readyLbl, readySub;
+  if (sc.anbefalet) {
+    readyPct = 100; readyColor = '#1A8A54'; readyLbl = 'Klar nu!'; readySub = 'Konvertering anbefales — handle nu';
+  } else if (hasConv && sc.besparelse > 0) {
+    readyPct = 72; readyColor = '#f59e0b'; readyLbl = '~72%'; readySub = 'Besparelse der, men omkostninger for høje';
+  } else if (hasConv) {
+    // besparelse <= 0: markedsrente er ikke lav nok endnu
+    const rentegab = Math.max(0, rente - mrente);
+    readyPct = Math.min(65, Math.round(rentegab / 1.5 * 100));
+    readyColor = '#f59e0b'; readyLbl = `~${readyPct}%`; readySub = 'Afventer større rentebevægelse';
+  } else {
+    readyPct = 20; readyColor = '#94a3b8'; readyLbl = '~20%'; readySub = 'Markedsrente matches dit lån';
+  }
+
+  // Rate spread: your rate vs market
+  const rateDiff = (rente - mrente).toFixed(2);
+  const rateDiffNum = parseFloat(rateDiff);
+  const rateSpreadColor = rateDiffNum >= 1.0 ? '#1A8A54' : rateDiffNum >= 0.5 ? '#f59e0b' : '#94a3b8';
+
+  // Next term hint: Danish mortgage terms are Jan 1 and Oct 1
+  const now = new Date();
+  const terms = [new Date(now.getFullYear(), 0, 1), new Date(now.getFullYear(), 9, 1), new Date(now.getFullYear()+1, 0, 1)];
+  const nextTerm = terms.find(t => t > now) || terms[terms.length-1];
+  const daysToTerm = Math.round((nextTerm - now) / 86400000);
+  const termStr = nextTerm.toLocaleDateString('da-DK', {day:'numeric', month:'long'});
 
   // ── Chart helpers ──
   window._chartData = scener;
@@ -1821,9 +1884,8 @@ function renderResultat(d) {
 
   window.pickRes4Plan = function(plan) {
     window._overvagPeriode = plan;
-    document.querySelectorAll('.res4-cta-plan').forEach(el => el.classList.remove('sel'));
-    const sel = document.querySelector(`.res4-cta-plan[data-plan="${plan}"]`);
-    if (sel) sel.classList.add('sel');
+    document.querySelectorAll('.res4-gate-plan, .res4-cta-plan').forEach(el => el.classList.remove('sel'));
+    document.querySelectorAll(`.res4-gate-plan[data-plan="${plan}"], .res4-cta-plan[data-plan="${plan}"]`).forEach(el => el.classList.add('sel'));
     const b1 = document.getElementById('ovBtn1');
     const b2 = document.getElementById('ovBtn2');
     if (b1) b1.classList.toggle('active', plan === 'maaned');
@@ -1834,7 +1896,7 @@ function renderResultat(d) {
   p4.innerHTML = `
 <div class="res4-wrap">
 
-  <!-- ── Verdict hero ── -->
+  <!-- ── 1. Verdict hero (FREE) ── -->
   <div class="res4-vh ${vhCls}">
     <div class="res4-vh-top">
       <div class="res4-vh-left">
@@ -1861,7 +1923,7 @@ function renderResultat(d) {
       </div>
       <div class="res4-vh-right">
         <div class="res4-vh-right-title">Dit lån</div>
-        <div class="res4-prop-row"><span class="res4-prop-lbl">Ejendom</span><span class="res4-prop-val" style="font-size:.72rem;max-width:140px;text-align:right;word-break:break-word;">${ejd || '—'}</span></div>
+        <div class="res4-prop-row"><span class="res4-prop-lbl">Ejendom</span><span class="res4-prop-val" style="font-size:.72rem;">${ejd || '—'}</span></div>
         <div class="res4-prop-row"><span class="res4-prop-lbl">Restgæld</span><span class="res4-prop-val">${fmt(Math.round(rest/1000)*1000)} kr</span></div>
         <div class="res4-prop-row"><span class="res4-prop-lbl">Rente</span><span class="res4-prop-val">${rente.toFixed(2)}%</span></div>
         <div class="res4-prop-row"><span class="res4-prop-lbl">Låntype</span><span class="res4-prop-val">${ltype}</span></div>
@@ -1872,152 +1934,122 @@ function renderResultat(d) {
     </div>
   </div>
 
-  ${hasConv ? `
-  <!-- ── Lån 3-col ── -->
-  <div class="res4-loans-sec">
-    <div class="res4-loan-card">
-      <div class="res4-loan-head cur">📋 Nuværende lån</div>
-      <div class="res4-loan-body">
-        <div class="res4-loan-row"><span class="res4-loan-lbl">Rente</span><span class="res4-loan-val">${rente.toFixed(2)}%</span></div>
-        <div class="res4-loan-row"><span class="res4-loan-lbl">Type</span><span class="res4-loan-val">${ltype}</span></div>
-        <div class="res4-loan-row"><span class="res4-loan-lbl">Bidragssats</span><span class="res4-loan-val">${bidr.toFixed(2)}%</span></div>
-        <div class="res4-loan-row"><span class="res4-loan-lbl">Restgæld</span><span class="res4-loan-val">${fmt(Math.round(rest/1000)*1000)} kr</span></div>
-        <div class="res4-loan-row"><span class="res4-loan-lbl">Ydelse</span><span class="res4-loan-val">${fmt(Math.round(nuv))} kr/md</span></div>
+  <!-- ── 2. Forecast radar (FREE — sneak peek, motivates subscription) ── -->
+  <div class="res4-forecast">
+    <div class="res4-forecast-title">📡 Din omlægningsradar</div>
+    <div class="res4-forecast-grid">
+      <div class="res4-fcast-col">
+        <div class="res4-fcast-lbl">Konverteringsparathed</div>
+        <div class="res4-fcast-val" style="color:${readyColor};">${readyLbl}</div>
+        <div class="res4-fcast-bar"><div class="res4-fcast-fill" style="width:${readyPct}%;background:${readyColor};"></div></div>
+        <div class="res4-fcast-sub">${readySub}</div>
       </div>
-    </div>
-    <div class="res4-loan-card">
-      <div class="res4-loan-head nw">✨ ${sc.type === 'nedkonvertering' ? 'Nedkonvertering' : 'Opkonvertering'}</div>
-      <div class="res4-loan-body">
-        <div class="res4-loan-row"><span class="res4-loan-lbl">Ny rente</span><span class="res4-loan-val hl">${(sc.nyRente || mrente).toFixed(2)}%</span></div>
-        <div class="res4-loan-row"><span class="res4-loan-lbl">Markedsrente</span><span class="res4-loan-val">${mrente.toFixed(2)}% <span style="font-size:.68rem;color:var(--muted);">live</span></span></div>
-        <div class="res4-loan-row"><span class="res4-loan-lbl">Ny restgæld</span><span class="res4-loan-val">${sc.nyRest ? fmt(Math.round(sc.nyRest/1000)*1000) : '—'} kr</span></div>
-        <div class="res4-loan-row"><span class="res4-loan-lbl">Ny ydelse</span><span class="res4-loan-val hl">${fmt(Math.round(sc.nyYdelse))} kr/md</span></div>
-        <div class="res4-loan-row"><span class="res4-loan-lbl">Ændring</span><span class="res4-loan-val" style="color:${sc.besparelse>0?'var(--success)':'var(--danger)'};">${sc.besparelse>0?'+':''}${fmt(Math.round(sc.besparelse))} kr/md</span></div>
+      <div class="res4-fcast-col">
+        <div class="res4-fcast-lbl">Rentespænd (dit lån vs. marked)</div>
+        <div class="res4-fcast-val" style="color:${rateSpreadColor};">${rateDiffNum >= 0 ? '+' : ''}${rateDiff}%</div>
+        <div class="res4-fcast-bar"><div class="res4-fcast-fill" style="width:${Math.min(100,Math.abs(rateDiffNum)/2*100)}%;background:${rateSpreadColor};"></div></div>
+        <div class="res4-fcast-sub">Dit lån: ${rente.toFixed(2)}% · Marked: ${mrente.toFixed(2)}% live</div>
       </div>
-    </div>
-    <div class="res4-cmp-card">
-      <div class="res4-cmp-head">📊 Sammenligning over tid</div>
-      <div class="res4-cmp-body">
-        <table class="res4-table">
-          <thead><tr><th>Horisont</th><th>Hold</th><th>Konv.</th><th>Forskel</th></tr></thead>
-          <tbody>
-            ${scener.map(s => {
-              const diff = Math.round(s.diff / 1000);
-              return `<tr>
-                <td>${s.h} år</td>
-                <td>${fmt(s.holdYdelse)}/md</td>
-                <td>${fmt(s.konvYdelse)}/md</td>
-                <td class="${s.diff > 0 ? 'pos' : 'neg'}">${s.diff > 0 ? '+' : ''}${diff}k</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-        <div style="font-size:.68rem;color:var(--muted);margin-top:8px;">+ = fordel ved konvertering (total inkl. restgæld). ESTIMAT.</div>
-        <div style="font-size:.68rem;color:var(--muted);margin-top:2px;">Rentekilde: ${renteKilde}</div>
-      </div>
-    </div>
-  </div>
-  ` : ''}
-
-  <!-- ── Analyse 3-col ── -->
-  <div class="res4-analysis-sec">
-    <div class="res4-chart-card">
-      <div class="res4-analysis-head">📈 Ydelse over tid</div>
-      <div class="res4-analysis-body">
-        ${hasConv ? `
-        <div class="res4-chart-tabs">
-          ${scener.map(s => `<button class="res4-chart-tab${s.h===5?' active':''}" data-h="${s.h}" onclick="window.setRes4Tab(${s.h})">${s.h} år</button>`).join('')}
-        </div>
-        <div id="res4ChartWrap" style="height:120px;"></div>
-        <div id="res4ChartNote" class="res4-chart-note" style="font-size:.76rem;font-weight:600;padding:8px 10px;border-radius:7px;margin-top:10px;border:1px solid #a7e8c4;"></div>
-        ` : `<div style="color:var(--muted);font-size:.83rem;padding:30px 0;text-align:center;line-height:1.6;">Ingen konverteringsscenarie.<br>Dit lån er konkurrencedygtigt.</div>`}
-      </div>
-    </div>
-    <div class="res4-costs-card">
-      <div class="res4-analysis-head">💰 Konverteringsomkostninger</div>
-      <div class="res4-analysis-body">
-        ${hasConv ? `
-        <div class="res4-cost-row"><span class="res4-cost-name">Kursskæring + stiftelse</span><span class="res4-cost-amt">${stiftelseOmk} kr</span></div>
-        ${sc.kurstab > 0 ? `<div class="res4-cost-row"><span class="res4-cost-name">Kurstab ved indfrielse</span><span class="res4-cost-amt" style="color:var(--danger);">−${fmt(Math.round(sc.kurstab))} kr</span></div>` : ''}
-        ${sc.kursgevinst > 0 ? `<div class="res4-cost-row"><span class="res4-cost-name">Kursgevinst</span><span class="res4-cost-amt" style="color:var(--success);">+${fmt(Math.round(sc.kursgevinst))} kr</span></div>` : ''}
-        <div class="res4-cost-total"><span>Nettoomkostning (estimat)</span><span>${totalOmkTxt} kr</span></div>
-        <div style="font-size:.68rem;color:var(--muted);margin-top:8px;">Alle beløb er estimater — din bank kan give et præcist tilbud.</div>
-        ` : `<div style="color:var(--muted);font-size:.83rem;padding:30px 0;text-align:center;line-height:1.6;">Ingen konverterings-<br>omkostninger p.t.</div>`}
-      </div>
-    </div>
-    <div class="res4-payback-card">
-      <div class="res4-analysis-head">⏱ Tilbagebetalingstid</div>
-      <div class="res4-analysis-body">
-        ${hasConv && sc.tb ? `
-        <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;">Måneder for at tjene omkostningerne hjem:</div>
-        <div style="font-size:2.2rem;font-weight:800;letter-spacing:-1px;color:${sc.tb<=24?'var(--success)':sc.tb<=48?'var(--warn)':'var(--danger)'};">${tbTxt}</div>
-        <div class="res4-payback-bar" style="margin:12px 0 4px;">
-          <div class="res4-payback-fill" style="width:${tbPct}%;"></div>
-          <div class="res4-payback-marker" style="left:${Math.min(tbPct,97)}%;"></div>
-        </div>
-        <div class="res4-payback-labels"><span>0</span><span>2 år</span><span>4 år+</span></div>
-        <div class="res4-payback-hl" style="margin-top:12px;">${sc.tb <= 24 ? '✓ Korttidshorisont — god forretning' : sc.tb <= 48 ? '◉ Moderat — overvej din tidshorisont' : '⚠ Lang tilbagebetalingstid'}</div>
-        ` : `<div style="color:var(--muted);font-size:.83rem;padding:30px 0;text-align:center;line-height:1.6;">${hasConv ? 'Tilbagebetalingstid > 48 mdr.<br>Overvej nøje.' : 'Ikke relevant —<br>ingen konverteringsscenarie.'}</div>`}
+      <div class="res4-fcast-col">
+        <div class="res4-fcast-lbl">Næste gunstige termin</div>
+        <div class="res4-fcast-val" style="color:var(--accent);">${daysToTerm} dage</div>
+        <div class="res4-fcast-bar"><div class="res4-fcast-fill" style="width:${Math.min(100,100-daysToTerm/90*100)}%;background:var(--accent);"></div></div>
+        <div class="res4-fcast-sub">${termStr} — omlæg ved termin for at undgå kursskæring</div>
       </div>
     </div>
   </div>
 
-  <!-- ── CTA + Handlinger ── -->
-  <div class="res4-cta-row">
-    <div class="res4-cta-card">
-      <div class="res4-cta-bell">📬</div>
-      <div class="res4-cta-title">Din månedlige lånestatus-mail</div>
-      <div class="res4-cta-sub">Hver måned sender vi dig en personlig opdatering om dit lån — og en øjeblikkelig alert hvis markedet giver mulighed for besparelse.</div>
-      <div class="res4-cta-features">
-        <div class="res4-cta-feat">Månedlig mail: rente, friværdi og markedsstatus</div>
-        <div class="res4-cta-feat">Alarm når konvertering kan betale sig for dig</div>
-        <div class="res4-cta-feat">Konkrete forhandlingstips til din bank</div>
-        <div class="res4-cta-feat">Bankpakke med dine beregninger klar til mødet</div>
-      </div>
-      <div class="res4-cta-plans-row">
-        <div class="res4-cta-plan sel" data-plan="maaned" onclick="window.pickRes4Plan('maaned')">
-          <div class="res4-cta-plan-label">Månedlig</div>
-          <div class="res4-cta-plan-price">49 kr</div>
-          <div class="res4-cta-plan-period">/måned</div>
+  <!-- ── 3. Full analysis — GATED (blur overlay with inline CTA) ── -->
+  <div class="res4-gate">
+    <div class="res4-gate-blur">
+      <!-- blurred content: loans comparison -->
+      ${hasConv ? `
+      <div class="res4-loans-sec">
+        <div class="res4-loan-card">
+          <div class="res4-loan-head cur">📋 Nuværende lån</div>
+          <div class="res4-loan-body">
+            <div class="res4-loan-row"><span class="res4-loan-lbl">Rente</span><span class="res4-loan-val">${rente.toFixed(2)}%</span></div>
+            <div class="res4-loan-row"><span class="res4-loan-lbl">Type</span><span class="res4-loan-val">${ltype}</span></div>
+            <div class="res4-loan-row"><span class="res4-loan-lbl">Bidragssats</span><span class="res4-loan-val">${bidr.toFixed(2)}%</span></div>
+            <div class="res4-loan-row"><span class="res4-loan-lbl">Restgæld</span><span class="res4-loan-val">${fmt(Math.round(rest/1000)*1000)} kr</span></div>
+            <div class="res4-loan-row"><span class="res4-loan-lbl">Ydelse</span><span class="res4-loan-val">${fmt(Math.round(nuv))} kr/md</span></div>
+          </div>
         </div>
-        <div class="res4-cta-plan" data-plan="aar" onclick="window.pickRes4Plan('aar')">
-          <div class="res4-cta-plan-label">Årlig</div>
-          <div class="res4-cta-plan-price">399 kr</div>
-          <div class="res4-cta-plan-period">/år</div>
-          <div class="res4-cta-plan-badge">Spar 189 kr</div>
+        <div class="res4-loan-card">
+          <div class="res4-loan-head nw">✨ ${sc.type === 'nedkonvertering' ? 'Nedkonvertering' : 'Opkonvertering'}</div>
+          <div class="res4-loan-body">
+            <div class="res4-loan-row"><span class="res4-loan-lbl">Ny rente</span><span class="res4-loan-val hl">${(sc.nyRente || mrente).toFixed(2)}%</span></div>
+            <div class="res4-loan-row"><span class="res4-loan-lbl">Ny restgæld</span><span class="res4-loan-val">${sc.nyRest ? fmt(Math.round(sc.nyRest/1000)*1000) : '—'} kr</span></div>
+            <div class="res4-loan-row"><span class="res4-loan-lbl">Ny ydelse</span><span class="res4-loan-val hl">${fmt(Math.round(sc.nyYdelse))} kr/md</span></div>
+            <div class="res4-loan-row"><span class="res4-loan-lbl">Ændring</span><span class="res4-loan-val">${sc.besparelse>0?'+':''}${fmt(Math.round(sc.besparelse))} kr/md</span></div>
+          </div>
+        </div>
+        <div class="res4-cmp-card">
+          <div class="res4-cmp-head">📊 Sammenligning over tid</div>
+          <div class="res4-cmp-body">
+            <table class="res4-table">
+              <thead><tr><th>Horisont</th><th>Hold</th><th>Konv.</th><th>Forskel</th></tr></thead>
+              <tbody>${scener.map(s=>`<tr><td>${s.h} år</td><td>${fmt(s.holdYdelse)}/md</td><td>${fmt(s.konvYdelse)}/md</td><td class="${s.diff>0?'pos':'neg'}">${s.diff>0?'+':''}${Math.round(s.diff/1000)}k</td></tr>`).join('')}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>` : ''}
+      <!-- blurred content: analysis -->
+      <div class="res4-analysis-sec" style="margin-top:14px;">
+        <div class="res4-chart-card"><div class="res4-analysis-head">📈 Ydelse over tid</div><div class="res4-analysis-body" style="height:160px;"></div></div>
+        <div class="res4-costs-card"><div class="res4-analysis-head">💰 Konverteringsomkostninger</div><div class="res4-analysis-body" style="height:160px;"></div></div>
+        <div class="res4-payback-card"><div class="res4-analysis-head">⏱ Tilbagebetalingstid</div><div class="res4-analysis-body" style="height:160px;"></div></div>
+      </div>
+    </div>
+
+    <!-- Gate overlay with inline CTA -->
+    <div class="res4-gate-overlay">
+      <div class="res4-gate-lock">🔐</div>
+      <div class="res4-gate-h">Din personlige låne&shy;dashboard venter</div>
+      <div class="res4-gate-p">Fuld scenarieanalyse, tilbagebetalingstid og konverteringsomkostninger — plus månedlig opdatering når markedet ændrer sig.</div>
+      <div class="res4-gate-feats">
+        <div class="res4-gate-feat">Komplet sammenligning: dit lån vs. nyt lån</div>
+        <div class="res4-gate-feat">Månedlig mail: rente, friværdi og markedsstatus</div>
+        <div class="res4-gate-feat">Øjeblikkelig alert når det er tid at omlægge</div>
+        <div class="res4-gate-feat">Bankpakke klar til dit næste bankm&oslash;de</div>
+      </div>
+      <div class="res4-gate-plans">
+        <div class="res4-gate-plan sel" data-plan="maaned" onclick="window.pickRes4Plan('maaned')">
+          <span class="res4-gate-plan-price">49 kr</span>
+          <span class="res4-gate-plan-period">/måned</span>
+        </div>
+        <div class="res4-gate-plan" data-plan="aar" onclick="window.pickRes4Plan('aar')">
+          <span class="res4-gate-plan-price">399 kr</span>
+          <span class="res4-gate-plan-period">/år</span>
+          <span class="res4-gate-plan-badge">Spar 189 kr</span>
         </div>
       </div>
-      <input type="email" id="overvagEmail" placeholder="din@email.dk" style="width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font-size:.9rem;box-sizing:border-box;margin-bottom:10px;" autocomplete="email">
+      <input type="email" id="overvagEmail" class="res4-gate-email" placeholder="din@email.dk" autocomplete="email">
       <button id="ovBtn1" style="display:none;"></button>
       <button id="ovBtn2" style="display:none;"></button>
-      <button class="res4-cta-btn" onclick="startOvervagning()">Start overvågning →</button>
+      <button class="res4-gate-btn" onclick="startOvervagning()">Aktivér lånestatus-mail →</button>
+      <div class="res4-gate-legal">Ingen binding · Opsig når som helst · 49 kr/md</div>
     </div>
-    <div class="res4-actions-card">
-      <div class="res4-actions-head">Næste skridt</div>
-      <div class="res4-action-item" onclick="startBankpakke()">
-        <div class="res4-action-icon-box">🏦</div>
-        <div class="res4-action-body">
-          <div class="res4-action-title">Hent bankpakke</div>
-          <div class="res4-action-sub">Få dine beregninger klar til banksamtalen med konkrete forhandlingstips.</div>
-        </div>
-        <div class="res4-action-chev">›</div>
+  </div>
+
+  <!-- ── 4. Quick actions (FREE) ── -->
+  <div class="res4-actions-card">
+    <div class="res4-actions-head">Næste skridt</div>
+    <div class="res4-action-item" onclick="startBankpakke()">
+      <div class="res4-action-icon-box">🏦</div>
+      <div class="res4-action-body">
+        <div class="res4-action-title">Hent bankpakke</div>
+        <div class="res4-action-sub">Få dine beregninger klar til banksamtalen med konkrete forhandlingstips.</div>
       </div>
-      <div class="res4-action-item" onclick="goTo(1)">
-        <div class="res4-action-icon-box">🔄</div>
-        <div class="res4-action-body">
-          <div class="res4-action-title">Beregn igen</div>
-          <div class="res4-action-sub">Juster tal og se hvad der ændrer sig ved en anden rente eller restgæld.</div>
-        </div>
-        <div class="res4-action-chev">›</div>
+      <div class="res4-action-chev">›</div>
+    </div>
+    <div class="res4-action-item" onclick="goTo(1)">
+      <div class="res4-action-icon-box">🔄</div>
+      <div class="res4-action-body">
+        <div class="res4-action-title">Beregn igen</div>
+        <div class="res4-action-sub">Juster tal og se hvad der ændrer sig ved en anden rente eller restgæld.</div>
       </div>
-      <div class="res4-action-item" onclick="startOvervagning()">
-        <div class="res4-action-icon-box">📡</div>
-        <div class="res4-action-body">
-          <div class="res4-action-title">Start overvågning</div>
-          <div class="res4-action-sub">Automatisk besked næste gang markedet giver mulighed for en god konvertering.</div>
-        </div>
-        <div class="res4-action-chev">›</div>
-      </div>
+      <div class="res4-action-chev">›</div>
     </div>
   </div>
 
