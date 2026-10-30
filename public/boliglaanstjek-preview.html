@@ -1869,7 +1869,22 @@ function dawaSearch(q) {
           <strong>${linje1}</strong><span>${linje2}</span></div>`;
       }).join('');
       drop.style.display = 'block';
-    } catch(e) { drop.style.display='none'; }
+    } catch(e) {
+      try {
+        const r2 = await fetch('/api/adresse?q=' + encodeURIComponent(q));
+        const data = await r2.json();
+        dawaResults = data.suggestions || [];
+        dawaCursor = -1;
+        if (!dawaResults.length) { drop.style.display='none'; return; }
+        drop.innerHTML = dawaResults.map((d,i) => {
+          const linje1 = d.label.split(',')[0];
+          const linje2 = d.postnr ? (d.postnr + ' ' + d.by) : '';
+          return `<div class="dawa-item" data-i="${i}" onmousedown="dawaPick(${i})">
+            <strong>${linje1}</strong><span>${linje2}</span></div>`;
+        }).join('');
+        drop.style.display = 'block';
+      } catch(e2) { drop.style.display='none'; }
+    }
   }, 180);
 }
 
