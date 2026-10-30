@@ -1811,7 +1811,7 @@ app.post("/api/bankpakke/start", async (req, res) => {
   if (!banker || !banker.length)
     return res.status(400).json({ error: "Vælg mindst én bank" });
 
-  const BANKPAKKE_PRICE = parseInt(process.env.BANKPAKKE_PRICE_DKK || "299");
+  const BANKPAKKE_PRICE = parseInt(process.env.BANKPAKKE_PRICE_DKK || "89");
   const origin = req.headers.origin || `https://${req.headers.host}`;
   const bankerStr = banker.slice(0, 8).join("|");
 
