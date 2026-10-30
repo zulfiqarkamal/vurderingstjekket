@@ -34,7 +34,16 @@ The older inspection below is retained as historical context; its statement that
 4. Map any relevant n8n workflows to this app. Do not infer a linkage from names alone.
 5. Add reusable specialist agent definitions as separate reviewed changes.
 
-## Latest work entry
+## Screenshot OCR for boliglånstjek — 2026-10-30
+- Agent: Claude Code. Branch: `claude/screenshot-ocr-endpoint`, PR pending.
+- Objective: allow users to photograph their bank loan screen and have restgæld, ydelse, rente, løbetid, lånstype extracted automatically via Claude Vision.
+- Changed files: `server.js` (added `/api/analyze-screenshot` POST endpoint using raw fetch to Anthropic API), `package.json` (added `@anthropic-ai/sdk ^0.32.0`), `public/boliglaanstjek-preview.html` (added `capture="environment"` to file input for direct camera on mobile).
+- The frontend scaffold (Step 2 upload zone + `handleScreenshotUpload()` + Step 3 fields) was already in place from a prior session. Only the backend endpoint was missing.
+- Requires `ANTHROPIC_API_KEY` Railway env var — endpoint returns 503 if absent.
+- Validation: `node --check server.js` passes. No live API call tested.
+- Next: GoCardless open banking integration for automatic løn/udgifter (discussed, not yet approved).
+
+## Latest work entry (previous)
 - Date: 2026-10-28
 - Agent: ChatGPT (read-only analysis)
 - Branch: none; `main` inspected through GitHub connector.
