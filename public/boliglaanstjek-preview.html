@@ -668,7 +668,7 @@ body::before{
 
   <!-- Source chooser -->
   <div class="source-chooser" id="sourceChooser">
-    <div class="source-opt active" id="srcVt" onclick="setSource('vt')">
+    <div class="source-opt" id="srcVt" onclick="setSource('vt')">
       <div class="src-icon src-vt">VT</div>
       <div>
         <div class="src-name">Fra Vurderingstjekket.dk</div>
@@ -676,7 +676,7 @@ body::before{
       </div>
       <div class="src-check">✓</div>
     </div>
-    <div class="source-opt" id="srcManuel" onclick="setSource('manuel')">
+    <div class="source-opt active" id="srcManuel" onclick="setSource('manuel')">
       <div class="src-icon src-m">📋</div>
       <div>
         <div class="src-name">Ny indtastning</div>
@@ -687,7 +687,7 @@ body::before{
   </div>
 
   <!-- VT mode -->
-  <div class="card" id="vtCard">
+  <div class="card" id="vtCard" style="display:none">
     <div class="card-title">Din ejendom</div>
     <div class="card-sub">Vi har hentet ejendomsværdi og grundværdi fra Vurderingstjekket.dk. Kontrollér at tallene er korrekte.</div>
 
@@ -722,7 +722,7 @@ body::before{
   </div>
 
   <!-- Manuel mode -->
-  <div class="card" id="manuelCard" style="display:none">
+  <div class="card" id="manuelCard">
     <div class="card-title">Din ejendom</div>
     <div class="card-sub">Udfyld din adresse og ejendomsværdi. Du finder tallene på <strong>vurdering.dk</strong> eller på din seneste årsopgørelse fra SKAT.</div>
 
