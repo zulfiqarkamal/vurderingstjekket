@@ -1,5 +1,31 @@
 # Shared AI development handover — Vurderingstjekket
 
+## Stripe-betalingsflows + adresse-fix — 2026-10-30
+- Agent: Claude Code. Branch: `claude/stripe-products`, PR pending.
+- Objective: fix adresse-autocomplete i ejendomsvurdering.html; tilføj 3 rigtige Stripe-betalingsflows.
+
+### Ændrede filer
+1. **`public/ejendomsvurdering.html`** — `fetchSuggestions()` kalder nu Dataforsyningen direkte fra browser (CORS åben, ingen server-proxy). Fallback til `/api/adresse` hvis direkte kald fejler.
+2. **`server.js`** — Ny endpoint `POST /api/bankpakke/start`: 299 kr one-time Stripe Checkout for bankpakke; inkl. e-mailvalidering og banker-liste i metadata.
+3. **`public/boliglaanstjek-preview.html`**:
+   - Panel-7: Tilføjet e-mail felt (`pakkeEmail`) over send-knap. `sendPakke()` kalder nu `/api/bankpakke/start` og redirecter til Stripe URL.
+   - Panel-8: `payCard()` kalder nu `/api/laanovervagning/start` og redirecter til Stripe URL. Fjernet "Betaling er afkoblet"-tekst. Tilføjet `#p8-success` success-kort.
+   - URL-param handling: `?bankpakke=ok` viser success-kort i panel-7; `?overvagning=ok` viser `#p8-success` i panel-8.
+
+### Priser (justerbare via Railway env vars)
+- `BANKPAKKE_PRICE_DKK` — default 299 kr (engangsbetaling)
+- `PRICE_DKK` — EV-klage (eksisterende, default 350 kr)
+- Overvågning: 49 kr/md eller 399 kr/år (hardcodet i `/api/laanovervagning/start`)
+
+### Test/validering
+- `node --check server.js` bestået. Stripe-kald ikke testet live.
+- Adresse-fix: Dataforsyningen CORS-åben, ingen API-nøgle kræves fra browser.
+
+### Næste opgaver
+- PR #27 (agenter) afventer merge-godkendelse.
+- Overvej at sætte `BANKPAKKE_PRICE_DKK=299` i Railway env vars.
+- GoCardless open banking (diskuteret, ikke godkendt endnu).
+
 ## Security hardening ready for local review — 2026-10-28
 - Agent: Codex. Branch: `codex/security-hardening`, based on `c80eb5e`.
 - Read AGENTS.md, CLAUDE.md, this handover, and all three `.claude/agents/` definitions. Fetched origin; origin/main matched local main. Working tree was clean before starting.

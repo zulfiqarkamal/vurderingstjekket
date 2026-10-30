@@ -461,13 +461,28 @@ function updateFocus(items) {
 
 async function fetchSuggestions(q) {
   try {
-    const r = await fetch("/api/adresse?q=" + encodeURIComponent(q));
-    const data = await r.json();
-    currentSuggestions = data.suggestions || [];
+    const url = "https://api.dataforsyningen.dk/adresser/autocomplete?q=" + encodeURIComponent(q) + "&caretpos=" + q.length + "&per_side=8&fuzzy=";
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const raw = await r.json();
+    currentSuggestions = Array.isArray(raw) ? raw.map(function(item) {
+      const adr = item.adresse || {};
+      return { adresseId: adr.id || null, husnummerId: adr.adgangsadresseid || null,
+               label: item.tekst || "", postnr: adr.postnr || "", by: adr.postnrnavn || "", kommunekode: adr.kommunekode || "" };
+    }).filter(function(s) { return s.label; }) : [];
+    if (!currentSuggestions.length) throw new Error("empty");
     focusIndex = -1;
     renderDropdown(currentSuggestions);
   } catch(err) {
-    hideDropdown();
+    try {
+      const r = await fetch("/api/adresse?q=" + encodeURIComponent(q));
+      const data = await r.json();
+      currentSuggestions = data.suggestions || [];
+      focusIndex = -1;
+      renderDropdown(currentSuggestions);
+    } catch(e) {
+      hideDropdown();
+    }
   }
 }
 
