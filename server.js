@@ -9,7 +9,7 @@
  *   STRIPE_SECRET_KEY        e.g. sk_live_...
  *   STRIPE_WEBHOOK_SECRET    e.g. whsec_...
  *   APIFY_TOKEN              your Apify API token
- *   BBR_USER                 (optional, defaults to IUXUCSLFZW)
+ *   BBR_USER                 (required — set in Railway environment variables)
  *   BBR_PASS                 (optional, defaults to Ghulab.4u)
  */
 
@@ -35,13 +35,40 @@ app.use((req, res, next) => {
 // Stripe webhook needs raw body for signature verification
 app.use("/api/stripe-webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
+
+// Product routing: Railway retains all assessment APIs and its Stripe webhook.
+app.get("/ejendomsvurdering", (_req, res) => {
+  res.set("Cache-Control", "no-cache").sendFile(path.join(__dirname, "public", "ejendomsvurdering.html"));
+});
+app.get("/boliglaanstjek/preview", (_req, res) => {
+  res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "boliglaanstjek-preview.html"));
+});
+app.get("/boliglaanstjek", (_req, res) => {
+  // Navigate to the Worker origin, preserving its relative APIs, cookies and
+  // independently configured Stripe callbacks. Never proxy payment credentials.
+  const configured = process.env.BOLIGLAANSRADAR_URL ?? "https://boliglansradar.gamma7th.workers.dev/";
+  if (configured) {
+    try {
+      const target = new URL(configured);
+      if (target.protocol === "https:" && !target.username && !target.password && target.pathname === "/" && !target.search && !target.hash) {
+        return res.set("Cache-Control", "no-store").set("Referrer-Policy", "no-referrer").redirect(302, target.href);
+      }
+    } catch { /* Missing/invalid configuration falls back to a clear preview. */ }
+  }
+  res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "boliglaanstjek-preview.html"));
+});
 // HTML må ikke caches, ellers ser folk en gammel version af siden efter en opdatering
 app.use(express.static(path.join(__dirname, "public"), {
+  // Let the root handler recognize historical payment returns before serving home.
+  index: false,
   setHeaders: (res, filePath) => { if (filePath.endsWith(".html")) res.setHeader("Cache-Control", "no-cache"); },
 }));
 
 // Fallback: serve index.html from public/ or root
-app.get("/", (_req, res) => {
+app.get("/", (req, res) => {
+  if (["session", "cancelled", "test"].some(key => Object.prototype.hasOwnProperty.call(req.query, key))) {
+    return res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "ejendomsvurdering.html"));
+  }
   const pub  = path.join(__dirname, "public", "index.html");
   const root = path.join(__dirname, "index.html");
   const target = fs.existsSync(pub) ? pub : fs.existsSync(root) ? root : null;
@@ -671,6 +698,59 @@ app.post("/api/free-check", async (req, res) => {
 // ─── In-memory session store ──────────────────────────────────
 const SESSIONS = new Map(); // sessionId → { status, ... }
 
+// A report ID is a locator, not authorization. Bind access to the browser
+// that started checkout; never expose the access secret in URLs or JSON.
+function grantReportAccess(req, res, sessionId, sess) {
+  const token = crypto.randomBytes(32).toString("hex");
+  sess.accessTokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  sess.accessExpiresAt = Date.now() + 24 * 3600 * 1000;
+  res.cookie(`report_access_${sessionId}`, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production" || req.secure === true || req.headers["x-forwarded-proto"] === "https",
+    sameSite: "lax",
+    path: "/api",
+    maxAge: 24 * 3600 * 1000,
+  });
+}
+
+function canAccessReport(req, sessionId, sess) {
+  if (!sess || !(sess.paymentVerified === true || sess.testAuthorized === true) ||
+      !sess.accessTokenHash || !(sess.accessExpiresAt > Date.now())) return false;
+  const name = `report_access_${sessionId}=`;
+  const cookie = (req.headers.cookie || "").split(";").map(s => s.trim()).find(s => s.startsWith(name));
+  const token = cookie ? cookie.slice(name.length) : "";
+  if (!/^[a-f0-9]{64}$/.test(token)) return false;
+  const hash = crypto.createHash("sha256").update(token).digest("hex");
+  return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(sess.accessTokenHash, "hex"));
+}
+
+function checkoutInput(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const numeric = value => typeof value === "number" || typeof value === "string";
+  if (!numeric(body.m2) || !numeric(body.ev)) return null;
+  const m2 = Number(body.m2), ev = Number(body.ev);
+  if (!Number.isFinite(m2) || m2 <= 0 || !Number.isFinite(ev) || ev <= 0) return null;
+  const data = { m2, ev };
+  for (const field of ["address", "label", "postnr", "kommunekode", "anvKode", "boligtypeLabel", "landsdel", "opfoeretAar", "adresseId"]) {
+    if (body[field] == null) continue;
+    if (typeof body[field] !== "string" || body[field].length > 500) return null;
+    data[field] = body[field];
+  }
+  if (!(data.address || data.label)) return null;
+  for (const field of ["gv", "grundareal"]) {
+    if (body[field] == null) continue;
+    if (!numeric(body[field])) return null;
+    const value = Number(body[field]);
+    if (!Number.isFinite(value) || value < 0) return null;
+    data[field] = value;
+  }
+  data.forhold = Array.isArray(body.forhold) ? body.forhold.filter(k => typeof k === "string" && Object.hasOwn(FORHOLD, k)) : [];
+  // Retain only the analytics label, never trust a submitted eligibility result.
+  const verdict = body.freeResult?.verdict;
+  data.freeResult = { verdict: ["SAG", "TÆT", "INGEN", "STÆRK", "MULIG", "USIKKER"].includes(verdict) ? verdict : null };
+  return data;
+}
+
 // ─── History log (persistent JSON file) ───────────────────────
 // Gemmes på Railway Volume (/data) hvis den findes, så data overlever redeploys.
 // Falder tilbage til lokal mappe (f.eks. ved kørsel uden volume) hvis /data ikke findes.
@@ -935,22 +1015,27 @@ ${pagerHtml ? `<div class="pager">${pagerHtml}</div>` : ""}
 // ─── Create Stripe payment session ───────────────────────────
 // POST /api/create-payment  body: { address, label, m2, kommunekode, anvKode, ev, gv, freeResult }
 app.post("/api/create-payment", async (req, res) => {
+  res.set("Cache-Control", "no-store");
   if (!stripe) return res.status(500).json({ error: "Stripe er ikke konfigureret (mangler STRIPE_SECRET_KEY)" });
+  const input = checkoutInput(req.body);
+  if (!input) return res.status(400).json({ error: "Ugyldige boligoplysninger" });
 
   const sessionId = crypto.randomUUID();
   SESSIONS.set(sessionId, {
+    ...input,
     status: "pending_payment",
     createdAt: Date.now(),
-    ...req.body,
+    paymentVerified: false,
+    expectedAmount: PRICE_DKK * 100,
   });
 
   logEvent("checkout_started", {
     sessionId,
-    address: req.body.label || req.body.address || "",
-    ev: req.body.ev,
-    m2: req.body.m2,
-    kommunekode: String(req.body.kommunekode || "").padStart(4, "0"),
-    freeVerdict: req.body.freeResult?.verdict || null,
+    address: input.label || input.address || "",
+    ev: input.ev,
+    m2: input.m2,
+    kommunekode: String(input.kommunekode || "").padStart(4, "0"),
+    freeVerdict: input.freeResult.verdict,
   });
 
   try {
@@ -963,19 +1048,20 @@ app.post("/api/create-payment", async (req, res) => {
           currency: "dkk",
           product_data: {
             name: "Vurderingstjekket – Klagepakke",
-            description: `Dokumentation og færdig klage · ${req.body.label || req.body.address || "din ejendom"}`,
+            description: `Dokumentation og færdig klage · ${input.label || input.address || "din ejendom"}`,
           },
           unit_amount: PRICE_DKK * 100, // øre
         },
         quantity: 1,
       }],
       mode: "payment",
-      success_url: `${origin}/?session=${sessionId}`,
-      cancel_url:  `${origin}/?cancelled=1`,
+      success_url: `${origin}/ejendomsvurdering?session=${sessionId}`,
+      cancel_url:  `${origin}/ejendomsvurdering?cancelled=1`,
       metadata:    { sessionId },
     });
 
     SESSIONS.get(sessionId).stripeCheckoutId = checkoutSession.id;
+    grantReportAccess(req, res, sessionId, SESSIONS.get(sessionId));
     res.json({ checkoutUrl: checkoutSession.url, sessionId });
   } catch (err) {
     SESSIONS.delete(sessionId);
@@ -1009,7 +1095,13 @@ app.post("/api/stripe-webhook", async (req, res) => {
     const sessionId = co.metadata?.sessionId;
     const sess = sessionId && SESSIONS.get(sessionId);
     if (!sess) return;
+    // Signature verification authenticates Stripe, but this event must also
+    // represent the settled payment for this exact server-created order.
+    if (co.id !== sess.stripeCheckoutId || co.payment_status !== "paid" ||
+        co.currency !== "dkk" || co.amount_total !== sess.expectedAmount) return;
+    if (sess.paymentVerified) return;
 
+    sess.paymentVerified = true;
     sess.status = "generating";
     // Capture customer email from Stripe for later delivery
     sess.customerEmail = co.customer_details?.email || co.customer_email || null;
@@ -1511,8 +1603,9 @@ app.post("/api/track", (req, res) => {
 
 // ─── Klage status ─────────────────────────────────────────────
 app.get("/api/klage/:sessionId", (req, res) => {
+  res.set("Cache-Control", "no-store");
   const sess = SESSIONS.get(req.params.sessionId);
-  if (!sess) return res.status(404).json({ error: "Session ikke fundet" });
+  if (!canAccessReport(req, req.params.sessionId, sess)) return res.status(403).json({ error: "Ingen adgang til rapporten" });
 
   res.json({
     status:          sess.status,
@@ -1529,12 +1622,13 @@ app.get("/api/klage/:sessionId", (req, res) => {
 // ─── Send klagetekst on-demand to customer-supplied e-mail ───
 // POST /api/send-klage-mail  body: { sessionId, email }
 app.post("/api/send-klage-mail", async (req, res) => {
+  res.set("Cache-Control", "no-store");
   const { sessionId, email } = req.body || {};
   if (!sessionId) return res.status(400).json({ error: "Mangler sessionId" });
-  if (!email || !email.includes("@")) return res.status(400).json({ error: "Ugyldig e-mailadresse" });
+  if (typeof email !== "string" || !email.includes("@")) return res.status(400).json({ error: "Ugyldig e-mailadresse" });
 
   const sess = SESSIONS.get(sessionId);
-  if (!sess) return res.status(404).json({ error: "Session ikke fundet — prøv at genindlæse siden" });
+  if (!canAccessReport(req, sessionId, sess)) return res.status(403).json({ error: "Ingen adgang til rapporten" });
   if (sess.status !== "done" || !sess.klageTekst) {
     return res.status(400).json({ error: "Klageteksten er ikke klar endnu" });
   }
@@ -1586,6 +1680,9 @@ app.get("/api/test-klage", requireAdminCookie, async (req, res) => {
   }
 
   const sessionId = crypto.randomUUID();
+  // Only this admin-authenticated route may bypass payment for internal tests.
+  sessData.testAuthorized = true;
+  grantReportAccess(req, res, sessionId, sessData);
   SESSIONS.set(sessionId, sessData);
   try {
     await generateKlage(sessionId, sessData);

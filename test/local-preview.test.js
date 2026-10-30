@@ -1,0 +1,46 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { once } from 'node:events';
+import { createLocalPreview } from '../scripts/local-preview.mjs';
+
+test('real Express preview serves both products and runs the assessment with mocks', async t => {
+  const { app, calls } = createLocalPreview();
+  const server = app.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const request = (route, options) => fetch(origin + route, { redirect: 'manual', ...options });
+  const post = (route, body) => request(route, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin }, body: JSON.stringify(body) });
+  const home = await (await request('/')).text();
+  assert.match(home, /Ejendomsvurdering/);
+  assert.match(home, /Boliglånstjek/);
+  assert.match(home, /LOKAL DEMO/);
+  const form = await (await request('/ejendomsvurdering')).text();
+  assert.match(form, /id="address-input"/);
+  assert.match(form, /LOKAL DEMO/);
+  const mortgage = await request('/boliglaanstjek');
+  assert.equal(mortgage.status, 302);
+  assert.equal(mortgage.headers.get('location'), 'https://boliglansradar.gamma7th.workers.dev/');
+  const suggestions = await (await request('/api/adresse?q=demo')).json();
+  assert.equal(suggestions.suggestions[0].adresseId, 'local-address');
+  const bbr = await (await request('/api/bbr?husnummerId=local-building')).json();
+  assert.equal(bbr.m2, 120);
+  const input = { m2: bbr.m2, ev: 3000000, kommunekode: bbr.kommunekode, anvKode: bbr.anvKode,
+    address: suggestions.suggestions[0].label, postnr: '2635' };
+  assert.equal((await post('/api/free-check', {})).status, 400);
+  const result = await (await post('/api/free-check', input)).json();
+  assert.equal(result.estimate, 1800000);
+  assert.equal(result.canBuy, true);
+  const checkout = await post('/api/create-payment', { ...input, freeResult: result });
+  assert.equal(checkout.status, 200);
+  assert.match(checkout.headers.get('set-cookie'), /HttpOnly/);
+  const order = await checkout.json();
+  assert.equal(order.checkoutUrl, '/__preview/checkout');
+  assert.match(await (await request(order.checkoutUrl)).text(), /Simuleret checkout/);
+  assert.equal((await request('/api/klage/' + order.sessionId)).status, 403);
+  assert.equal((await post('/api/stripe-webhook', {})).status, 400);
+  assert.equal((await request('/admin')).status, 404);
+  const cancelled = await (await request('/?cancelled=1')).text();
+  assert.match(cancelled, /id="address-input"/);
+  assert.deepEqual(calls, { address: 1, bbr: 1, checkout: 1, blockedNetwork: 0 });
+});
