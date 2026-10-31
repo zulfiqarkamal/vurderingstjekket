@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="da">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Min salgssag — BoligSelvsalg</title>
+<link rel="stylesheet" href="/home.css">
+<style>
+.sag-layout{display:grid;grid-template-columns:260px 1fr;gap:0;min-height:calc(100vh - 90px)}
+.sag-nav{background:#123c36;color:#f7f7f0;padding:28px 0}
+.sag-nav-header{padding:0 24px 20px;border-bottom:1px solid #1c5949}
+.sag-nav-header .addr{font-size:13px;color:#a8c5a0;margin-top:6px;word-break:break-word}
+.sag-steps{list-style:none;padding:16px 0;margin:0}
+.sag-steps li{padding:0}
+.sag-step-btn{width:100%;background:none;border:none;padding:12px 24px;text-align:left;cursor:pointer;display:flex;align-items:center;gap:12px;font:14px system-ui;color:#c9d9c6;transition:background .12s}
+.sag-step-btn:hover{background:#1c5949}
+.sag-step-btn.active{background:#1c5949;color:#d9eda4;font-weight:600}
+.sag-step-btn.done .step-icon{background:#d9eda4;color:#123c36}
+.sag-step-btn.locked{opacity:.5;cursor:not-allowed}
+.step-icon{width:26px;height:26px;border-radius:50%;background:#2e5e4e;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#a8c5a0;flex-shrink:0}
+.sag-main{padding:36px;background:#f7f7f0;overflow-y:auto}
+.sag-main h2{font:26px/1.2 Georgia,serif;margin-bottom:8px}
+.sag-main .sub{color:var(--muted);font-size:14px;margin-bottom:28px}
+.gate-card{background:white;border:1px solid var(--line);border-radius:14px;padding:36px;max-width:560px}
+.gate-card h3{font:22px Georgia,serif;margin-bottom:10px}
+.gate-card p{color:var(--muted);font-size:14px;margin-bottom:20px}
+.price-row{display:flex;align-items:center;gap:14px;background:#edf1e6;border-radius:10px;padding:16px 20px;margin-bottom:20px}
+.price-big{font:36px/1 Georgia,serif;color:#1c5949;letter-spacing:-1px}
+.price-note{font-size:13px;color:var(--muted);line-height:1.5}
+.btn-pay{display:block;width:100%;padding:15px;background:#d9eda4;color:#123c36;border:none;border-radius:8px;font:700 15px system-ui;cursor:pointer;text-align:center;transition:background .15s}
+.btn-pay:hover{background:#c8de93}
+.btn-pay:disabled{background:#ddd;color:#999;cursor:not-allowed}
+.incl-list{list-style:none;padding:0;margin:0 0 20px}
+.incl-list li{padding:6px 0;font-size:13px;color:var(--muted);display:flex;gap:8px}
+.incl-list li::before{content:"✓";color:#1c5949;font-weight:700;flex-shrink:0}
+.step-panel{display:none}
+.step-panel.active{display:block}
+.checklist-item{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.checklist-item:last-child{border-bottom:none}
+.check-box{width:22px;height:22px;border:2px solid var(--line);border-radius:5px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:2px;transition:all .15s}
+.check-box.checked{background:#1c5949;border-color:#1c5949;color:white}
+.check-label{flex:1}
+.check-label strong{display:block;font-size:14px;margin-bottom:2px}
+.check-label span{font-size:12px;color:var(--muted)}
+.progress-bar{height:6px;background:#dce4dc;border-radius:3px;margin-bottom:28px;overflow:hidden}
+.progress-fill{height:100%;background:#1c5949;border-radius:3px;transition:width .3s}
+.locked-overlay{background:#f7f7f0;border:2px dashed var(--line);border-radius:12px;padding:32px;text-align:center;margin-top:16px}
+.locked-overlay p{color:var(--muted);font-size:14px;margin:8px 0 0}
+.status-badge{display:inline-flex;align-items:center;gap:6px;background:#edf1e6;color:#1c5949;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;margin-bottom:16px}
+.status-badge.paid{background:#d9eda4;color:#123c36}
+@media(max-width:760px){
+  .sag-layout{grid-template-columns:1fr}
+  .sag-nav{padding:20px 0}
+  .sag-steps{display:flex;overflow-x:auto;gap:0}
+  .sag-step-btn{white-space:nowrap;flex-direction:column;text-align:center;padding:10px 16px;font-size:12px;gap:6px}
+  .sag-main{padding:20px}
+}
+</style></head>
+<body><a class="skip" href="#indhold">Gå til indhold</a>
+<header><nav class="wrap" aria-label="Hovednavigation">
+<a class="brand" href="/" aria-label="Vurderingstjekket forside"><span class="mark" aria-hidden="true">⌂</span>Vurderingstjekket<span style="color:#78926b">.</span></a>
+<div class="nav-links"><a href="/ejendomsvurdering">Ejendomsvurdering</a><a href="/boliglaanstjek">Boliglånstjek</a><a href="/selvsalg" aria-current="page">Selvsalg</a></div>
+</nav></header>
+
+<main id="indhold">
+<div id="loading" style="text-align:center;padding:80px 20px;color:var(--muted)">Henter din kladde…</div>
+<div id="not-found" style="display:none;text-align:center;padding:80px 20px">
+  <h2 style="font:32px Georgia,serif;margin-bottom:12px">Kladde ikke fundet</h2>
+  <p style="color:var(--muted)">Linket er måske udløbet eller forkert. <a href="/selvsalg/start">Opret en ny kladde</a>.</p>
+</div>
+<div id="sag-app" style="display:none" class="sag-layout">
+  <nav class="sag-nav" aria-label="Sagsnavigation">
+    <div class="sag-nav-header">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#a8c5a0;font-weight:700">Din sag</div>
+      <div class="addr" id="nav-addr">—</div>
+    </div>
+    <ul class="sag-steps">
+      <li><button class="sag-step-btn active" data-step="0"><div class="step-icon">1</div>Overblik & status</button></li>
+      <li><button class="sag-step-btn" data-step="1"><div class="step-icon">2</div>Salgstjekliste</button></li>
+      <li><button class="sag-step-btn locked" data-step="2"><div class="step-icon">3</div>Fotoguide</button></li>
+      <li><button class="sag-step-btn locked" data-step="3"><div class="step-icon">4</div>Annoncetekst</button></li>
+      <li><button class="sag-step-btn locked" data-step="4"><div class="step-icon">5</div>Dokumentpakke</button></li>
+      <li><button class="sag-step-btn locked" data-step="5"><div class="step-icon">6</div>Brochure</button></li>
+    </ul>
+  </nav>
+
+  <div class="sag-main">
+
+    <!-- Step 0: Overblik -->
+    <div class="step-panel active" id="panel-0">
+      <h2 id="overblik-titel">Overblik over dit salg</h2>
+      <p class="sub" id="overblik-sub">Her er din kladdes aktuelle status.</p>
+
+      <div id="status-free">
+        <span class="status-badge">📋 Gratis kladde</span>
+        <div class="gate-card" id="gate-card">
+          <h3>Lås din salgspakke op</h3>
+          <p>Du har oprettet en gratis kladde. Når du er klar, kan du låse din fulde salgspakke op for en engangsbetaling.</p>
+          <div class="price-row">
+            <span class="price-big">799 kr.</span>
+            <span class="price-note">inkl. moms<br>Engangsbetaling — aldrig løbende</span>
+          </div>
+          <ul class="incl-list">
+            <li>Fotoguide til professionelle billeder</li>
+            <li>Redigerbart annoncetekst-udkast</li>
+            <li>Printbar brochure med fakta og billeder</li>
+            <li>Dokumentpakke til din advokat</li>
+            <li>Fremvisningsplan og købernotat</li>
+          </ul>
+          <button class="btn-pay" id="btn-pay">Lås salgspakken op — 799 kr.</button>
+          <p style="font-size:12px;color:var(--muted);margin-top:12px;text-align:center">Engangsbetaling · Sikker betaling via Stripe · Vilkår fremgår ved checkout</p>
+        </div>
+      </div>
+
+      <div id="status-paid" style="display:none">
+        <span class="status-badge paid">✓ Salgspakke aktiveret</span>
+        <p style="color:var(--muted);font-size:14px;margin-top:4px">Du har adgang til alle trin i salgspakken. Brug navigationen til venstre.</p>
+      </div>
+    </div>
+
+    <!-- Step 1: Salgstjekliste (fri for alle) -->
+    <div class="step-panel" id="panel-1">
+      <h2>Salgstjekliste</h2>
+      <p class="sub">Gå trinene igennem i din egen takt. Tjeklisten gemmes automatisk.</p>
+      <div class="progress-bar"><div class="progress-fill" id="check-progress" style="width:0%"></div></div>
+      <div id="check-list">
+        <!-- Dynamically rendered -->
+      </div>
+    </div>
+
+    <!-- Step 2–5: Låste trin -->
+    <div class="step-panel" id="panel-2">
+      <h2>Fotoguide</h2>
+      <p class="sub">Konkrete anvisninger til at fotografere din bolig optimalt.</p>
+      <div class="locked-overlay" id="lock-2">
+        <div style="font-size:32px">📸</div>
+        <strong>Kræver salgspakken</strong>
+        <p>Lås salgspakken op fra Overblik-fanen for at få adgang til fotoguiden.</p>
+      </div>
+      <div id="foto-content" style="display:none">
+        <div style="background:white;border-radius:12px;border:1px solid var(--line);padding:28px">
+          <h3 style="font:20px Georgia,serif;margin-bottom:16px">Fotografering af din bolig</h3>
+          <p style="color:var(--muted);font-size:14px;line-height:1.7">En god fotoserie kan øge interessen for din bolig markant. Her er de vigtigste regler:</p>
+          <ol style="color:var(--muted);font-size:14px;line-height:2;padding-left:20px">
+            <li><strong>Lys:</strong> Fotografer altid på en solrig dag, helst formiddag eller eftermiddag.</li>
+            <li><strong>Ryddelig bolig:</strong> Fjern personlige genstande, ekstra møbler og rod.</li>
+            <li><strong>Vinduer:</strong> Åbn gardiner og persienner — sørg for lys fra vinduerne.</li>
+            <li><strong>Vinkler:</strong> Fotografer fra hjørnerne i rummene — det giver en rumfornemmelse.</li>
+            <li><strong>Ude:</strong> Façade- og havebilleder i godt vejr. Inkluder terrasse/altan.</li>
+            <li><strong>Opløsning:</strong> Brug mindst 12 MP. Vandret format (landscape) er standard.</li>
+            <li><strong>Rækkefølge:</strong> Start med facade, stue, køkken, soveværelse, badeværelse, have/terrasse.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-panel" id="panel-3">
+      <h2>Annoncetekst</h2>
+      <p class="sub">Redigerbart udkast baseret på din boligs oplysninger.</p>
+      <div class="locked-overlay" id="lock-3">
+        <div style="font-size:32px">📝</div>
+        <strong>Kræver salgspakken</strong>
+        <p>Lås salgspakken op for at generere dit annoncetekst-udkast.</p>
+      </div>
+      <div id="annonce-content" style="display:none">
+        <div style="background:white;border-radius:12px;border:1px solid var(--line);padding:28px">
+          <h3 style="font:20px Georgia,serif;margin-bottom:12px">Dit annoncetekst-udkast</h3>
+          <textarea id="annonce-tekst" style="width:100%;min-height:260px;border:1.5px solid var(--line);border-radius:8px;padding:14px;font:15px/1.6 system-ui;resize:vertical" placeholder="Udkast genereres baseret på din boligs oplysninger…"></textarea>
+          <p style="font-size:12px;color:var(--muted);margin-top:8px">Rediger teksten, så den passer præcis til din bolig, inden du bruger den i annoncer.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-panel" id="panel-4">
+      <h2>Dokumentpakke</h2>
+      <p class="sub">Oversigt over de dokumenter, din advokat har brug for.</p>
+      <div class="locked-overlay" id="lock-4">
+        <div style="font-size:32px">📁</div>
+        <strong>Kræver salgspakken</strong>
+        <p>Lås salgspakken op for at se din dokumentpakke.</p>
+      </div>
+      <div id="dok-content" style="display:none">
+        <div style="background:white;border-radius:12px;border:1px solid var(--line);padding:28px">
+          <h3 style="font:20px Georgia,serif;margin-bottom:16px">Dokumenter til din advokat</h3>
+          <div id="dok-list"></div>
+          <p style="font-size:13px;color:var(--muted);margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">Advokaten skal inddrages <strong>inden</strong> underskrift af købsaftalen. Dokumentpakken hjælper dig med at have papirerne klar, inden advokaten går i gang.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-panel" id="panel-5">
+      <h2>Brochure</h2>
+      <p class="sub">Printbar brochure til fremvisning og interesserede købere.</p>
+      <div class="locked-overlay" id="lock-5">
+        <div style="font-size:32px">🖨️</div>
+        <strong>Kræver salgspakken</strong>
+        <p>Lås salgspakken op for at generere din brochure.</p>
+      </div>
+      <div id="brochure-content" style="display:none">
+        <div style="background:white;border-radius:12px;border:1px solid var(--line);padding:28px;text-align:center">
+          <div style="font-size:40px;margin-bottom:12px">🖨️</div>
+          <h3 style="font:20px Georgia,serif;margin-bottom:8px">Din brochure er klar</h3>
+          <p style="color:var(--muted);font-size:14px;margin-bottom:20px">Brochuren er genereret med fakta og oplysninger fra din kladde.</p>
+          <button style="background:#1c5949;color:white;border:none;border-radius:8px;padding:12px 24px;font:600 14px system-ui;cursor:pointer" onclick="printBrochure()">Udskriv / gem som PDF</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</main>
+
+<footer><div class="wrap"><span>Vurderingstjekket · Boliglånsradar · BoligSelvsalg</span><div><a href="/ejendomsvurdering">Ejendomsvurdering</a><a href="/boliglaanstjek">Boliglånstjek</a><a href="/selvsalg">Selvsalg</a></div></div></footer>
+
+<script>
+const CHECKLIST_ITEMS = [
+  { id:"c1", label:"Bestem salgspris", hint:"Undersøg sammenlignelige salg i dit område de seneste 6 måneder." },
+  { id:"c2", label:"Indhent tilstandsrapport", hint:"Bestil hos en beskikket bygningssagkyndig — kræves for huseforsikring til køber." },
+  { id:"c3", label:"Indhent elinstallationsrapport", hint:"Skal udføres af en autoriseret elinstallatør." },
+  { id:"c4", label:"Indhent energimærke (EPC)", hint:"Kræves ved salg. Bestil hos et certificeret energimærkefirma." },
+  { id:"c5", label:"Find advokat til berigtigelse", hint:"Advokaten opretter skøde og håndterer overdragelsen. Inddrag inden underskrift af købsaftale." },
+  { id:"c6", label:"Ryd op og klargør boligen", hint:"Fjern personlige genstande, mal evt. vægge i neutrale farver." },
+  { id:"c7", label:"Tag billeder af boligen", hint:"Se fotoguiden for anvisninger (kræver salgspakken)." },
+  { id:"c8", label:"Vælg annonceportal(er)", hint:"Fx Boligsiden.dk, Home.dk — du køber portallicens direkte hos dem." },
+  { id:"c9", label:"Skriv og godkend annoncetekst", hint:"Brug udkastet i salgspakken som udgangspunkt." },
+  { id:"c10", label:"Planlæg fremvisninger / åbent hus", hint:"Sæt datoer og annoncer dem i din annonce." },
+  { id:"c11", label:"Modtag og forhandl tilbud", hint:"Tilbud gives normalt skriftligt — send altid til advokaten inden accept." },
+  { id:"c12", label:"Underskriv købsaftale (via advokat)", hint:"Advokaten sikrer korrekt berigtigelse og skødeoprettelse." },
+];
+
+const DOK_ITEMS = [
+  { label:"Seneste BBR-meddelelse", status:"Hent på ois.dk (gratis)" },
+  { label:"Ejendomsdatarapport", status:"Hent via din advokat eller tinglysning.dk" },
+  { label:"Tilstandsrapport", status:"Indhentes fra bygningssagkyndig" },
+  { label:"Elinstallationsrapport", status:"Indhentes fra autoriseret elinstallatør" },
+  { label:"Energimærke (EPC)", status:"Indhentes fra certificeret firma" },
+  { label:"Forsikringstilbud til køber", hint:"Mange advokater indhenter dette" },
+  { label:"Ejerforenings årsregnskab (hvis ejerlejlighed)", hint:"Kontakt din ejerforening" },
+  { label:"Ejerpantebrev / tinglyst pant", status:"Din bank/advokat hjælper" },
+  { label:"Byggetilladelser / BBR-rettelser (hvis relevant)", hint:"Kommune og BBR" },
+];
+
+let SAG = null;
+let checks = {};
+
+// Get sagId from URL
+const sagId = location.pathname.split("/").pop();
+
+async function loadSag() {
+  try {
+    const r = await fetch(`/api/selvsalg/sag/${sagId}`);
+    if (!r.ok) throw new Error("not found");
+    SAG = await r.json();
+    initApp();
+  } catch {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("not-found").style.display = "block";
+  }
+}
+
+function initApp() {
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("sag-app").style.display = "grid";
+
+  document.getElementById("nav-addr").textContent = SAG.adresse || "Ukendt adresse";
+  document.getElementById("overblik-titel").textContent = `Overblik — ${SAG.adresse}`;
+
+  // Load saved checks from localStorage
+  try { checks = JSON.parse(localStorage.getItem("sag_checks_" + sagId) || "{}"); } catch {}
+
+  renderChecklist();
+
+  if (SAG.betalt) {
+    unlockPaid();
+  }
+
+  // Handle ?pakke=ok from Stripe return
+  if (new URLSearchParams(location.search).get("pakke") === "ok") {
+    unlockPaid();
+    history.replaceState({}, "", location.pathname);
+  }
+
+  // Nav buttons
+  document.querySelectorAll(".sag-step-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const step = parseInt(btn.dataset.step);
+      if (btn.classList.contains("locked")) return;
+      switchPanel(step);
+    });
+  });
+
+  // Pay button
+  document.getElementById("btn-pay").addEventListener("click", startCheckout);
+}
+
+function switchPanel(n) {
+  document.querySelectorAll(".step-panel").forEach((p, i) => {
+    p.classList.toggle("active", i === n);
+  });
+  document.querySelectorAll(".sag-step-btn").forEach(btn => {
+    btn.classList.toggle("active", parseInt(btn.dataset.step) === n);
+  });
+  window.scrollTo(0, 0);
+}
+
+function renderChecklist() {
+  const container = document.getElementById("check-list");
+  container.innerHTML = "";
+  CHECKLIST_ITEMS.forEach(item => {
+    const done = !!checks[item.id];
+    const div = document.createElement("div");
+    div.className = "checklist-item";
+    div.innerHTML = `
+      <div class="check-box ${done ? "checked" : ""}" data-id="${item.id}" tabindex="0" role="checkbox" aria-checked="${done}">
+        ${done ? "✓" : ""}
+      </div>
+      <div class="check-label">
+        <strong style="text-decoration:${done?"line-through":""};color:${done?"var(--muted)":"inherit"}">${item.label}</strong>
+        <span>${item.hint || ""}</span>
+      </div>`;
+    container.appendChild(div);
+    div.querySelector(".check-box").addEventListener("click", () => toggleCheck(item.id));
+    div.querySelector(".check-box").addEventListener("keydown", e => { if (e.key===" "||e.key==="Enter") toggleCheck(item.id); });
+  });
+  updateProgress();
+}
+
+function toggleCheck(id) {
+  checks[id] = !checks[id];
+  try { localStorage.setItem("sag_checks_" + sagId, JSON.stringify(checks)); } catch {}
+  renderChecklist();
+}
+
+function updateProgress() {
+  const done = Object.values(checks).filter(Boolean).length;
+  const pct = Math.round(done / CHECKLIST_ITEMS.length * 100);
+  document.getElementById("check-progress").style.width = pct + "%";
+}
+
+function unlockPaid() {
+  document.getElementById("status-free").style.display = "none";
+  document.getElementById("status-paid").style.display = "block";
+
+  // Unlock nav steps
+  document.querySelectorAll(".sag-step-btn.locked").forEach(btn => btn.classList.remove("locked"));
+
+  // Unlock panels
+  [2,3,4,5].forEach(n => {
+    document.getElementById(`lock-${n}`).style.display = "none";
+    const c = document.getElementById(["","","foto-content","annonce-content","dok-content","brochure-content"][n]);
+    if (c) c.style.display = "block";
+  });
+
+  // Generate annonce text
+  if (SAG) generateAnnonceText();
+
+  // Render dok list
+  renderDokList();
+}
+
+function generateAnnonceText() {
+  if (!SAG) return;
+  const ta = document.getElementById("annonce-tekst");
+  const bt = { villa:"villa", raekkehus:"rækkehus", ejerlejlighed:"ejerlejlighed", landejendom:"landejendom", sommerhus:"sommerhus" };
+  const type = bt[SAG.boligtype] || "bolig";
+  const vaerelse = SAG.vaerelse ? `${SAG.vaerelse}-værelses ` : "";
+  const areal = SAG.m2bolig ? `${SAG.m2bolig} m²` : "";
+  const aar = SAG.byggeaar ? ` fra ${SAG.byggeaar}` : "";
+  ta.value = `Lys og velholdt ${vaerelse}${type}${areal ? ` på ${areal}` : ""}${aar}\n\n${SAG.adresse}\n\nHer præsenteres en fantastisk mulighed for at erhverve en smuk ${type} i ${areal ? `${areal}, ` : ""}beliggende i et roligt kvarter med gode forbindelser.\n\nBoligen byder på lyse, velindrettede rum med gode materialer og en praktisk planløsning, der indbyder til familieliv.\n\n[Tilføj dine egne unikke salgspunkter her — hvad elsker du ved boligen?]\n\nKontakt for fremvisning:\n[Dit navn]\n[Dit telefonnummer]\n[Din e-mail]`;
+}
+
+function renderDokList() {
+  const container = document.getElementById("dok-list");
+  container.innerHTML = DOK_ITEMS.map(d => `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);gap:16px">
+      <span style="font-size:14px">${d.label}</span>
+      <span style="font-size:12px;color:var(--muted);text-align:right;flex-shrink:0">${d.status||d.hint||""}</span>
+    </div>`).join("");
+}
+
+async function startCheckout() {
+  const btn = document.getElementById("btn-pay");
+  btn.disabled = true;
+  btn.textContent = "Starter betaling…";
+  try {
+    const r = await fetch("/api/selvsalg/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sagId }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.checkoutUrl) throw new Error(data.error || "Fejl");
+    location.href = data.checkoutUrl;
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = "Lås salgspakken op — 799 kr.";
+    alert("Fejl ved opstart af betaling: " + e.message);
+  }
+}
+
+function printBrochure() {
+  window.print();
+}
+
+loadSag();
+</script>
+</body></html>

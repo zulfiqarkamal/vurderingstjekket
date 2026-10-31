@@ -50,7 +50,10 @@ app.get("/selvsalg", (_req, res) => {
   res.set("Cache-Control", "no-cache").sendFile(path.join(__dirname, "public", "selvsalg.html"));
 });
 app.get("/selvsalg/start", (_req, res) => {
-  res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "selvsalg.html"));
+  res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "selvsalg-start.html"));
+});
+app.get("/selvsalg/sag/:id", (_req, res) => {
+  res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "selvsalg-sag.html"));
 });
 // HTML må ikke caches, ellers ser folk en gammel version af siden efter en opdatering
 app.use(express.static(path.join(__dirname, "public"), {
@@ -732,6 +735,24 @@ app.post("/api/free-check", async (req, res) => {
 // ─── In-memory session store ──────────────────────────────────
 const SESSIONS = new Map(); // sessionId → { status, ... }
 
+// ─── BoligSelvsalg sags-storage ──────────────────────────────
+// File-based JSON persistence so sager survive server restarts.
+const SAGER_FILE = path.join(__dirname, "data", "selvsalg-sager.json");
+function loadSager() {
+  try {
+    if (!fs.existsSync(path.join(__dirname, "data"))) fs.mkdirSync(path.join(__dirname, "data"), { recursive: true });
+    if (fs.existsSync(SAGER_FILE)) return JSON.parse(fs.readFileSync(SAGER_FILE, "utf8"));
+  } catch {}
+  return {};
+}
+function saveSager(sager) {
+  try {
+    if (!fs.existsSync(path.join(__dirname, "data"))) fs.mkdirSync(path.join(__dirname, "data"), { recursive: true });
+    fs.writeFileSync(SAGER_FILE, JSON.stringify(sager, null, 2));
+  } catch (e) { console.error("saveSager fejl:", e.message); }
+}
+const SAGER = loadSager(); // sagId → { adresse, boligtype, m2bolig, ... betalt, oprettet }
+
 // A report ID is a locator, not authorization. Bind access to the browser
 // that started checkout; never expose the access secret in URLs or JSON.
 function grantReportAccess(req, res, sessionId, sess) {
@@ -1126,6 +1147,21 @@ app.post("/api/stripe-webhook", async (req, res) => {
 
   if (event.type === "checkout.session.completed") {
     const co = event.data.object;
+
+    // BoligSelvsalg payment
+    if (co.metadata?.type === "selvsalg") {
+      const sagId = co.metadata?.sagId;
+      const sag = sagId && SAGER[sagId];
+      if (sag && co.payment_status === "paid" && co.currency === "dkk" && !sag.betalt) {
+        sag.betalt = true;
+        sag.betaltAt = new Date().toISOString();
+        saveSager(SAGER);
+        logEvent("selvsalg_betalt", { sagId, adresse: sag.adresse, amount: co.amount_total });
+        console.log(`✅ Selvsalg betalt: sag ${sagId}`);
+      }
+      return;
+    }
+
     const sessionId = co.metadata?.sessionId;
     const sess = sessionId && SESSIONS.get(sessionId);
     if (!sess) return;
@@ -1842,6 +1878,86 @@ app.post("/api/bankpakke/start", async (req, res) => {
     res.json({ url: session.url });
   } catch (err) {
     console.error("[bankpakke]", err.message);
+    res.status(500).json({ error: "Kunne ikke oprette betaling" });
+  }
+});
+
+// ─── BoligSelvsalg API ────────────────────────────────────────
+
+app.post("/api/selvsalg/opret", (req, res) => {
+  const { adresse, boligtype, m2bolig, byggeaar, vaerelse, navn, email, telefon, ejerBekraeftet } = req.body || {};
+  if (!adresse || !boligtype || !m2bolig) return res.status(400).json({ error: "Mangler påkrævede felter" });
+  if (!navn || !email || !email.includes("@")) return res.status(400).json({ error: "Ugyldig kontaktoplysning" });
+  if (!ejerBekraeftet) return res.status(400).json({ error: "Ejerskab skal bekræftes" });
+
+  const sagId = crypto.randomBytes(12).toString("hex");
+  const sag = {
+    sagId,
+    adresse: String(adresse).trim().slice(0, 200),
+    boligtype: String(boligtype).trim(),
+    m2bolig: parseInt(m2bolig),
+    byggeaar: byggeaar ? parseInt(byggeaar) : null,
+    vaerelse: vaerelse ? parseInt(vaerelse) : null,
+    navn: String(navn).trim().slice(0, 100),
+    email: String(email).trim().toLowerCase().slice(0, 200),
+    telefon: telefon ? String(telefon).trim().slice(0, 30) : null,
+    ejerBekraeftet: true,
+    betalt: false,
+    oprettet: new Date().toISOString(),
+  };
+  SAGER[sagId] = sag;
+  saveSager(SAGER);
+  logEvent("selvsalg_opret", { sagId, adresse: sag.adresse, email: sag.email });
+  res.json({ sagId });
+});
+
+app.get("/api/selvsalg/sag/:id", (req, res) => {
+  const sag = SAGER[req.params.id];
+  if (!sag) return res.status(404).json({ error: "Sag ikke fundet" });
+  // Return safe subset — do not expose email to unauthenticated browser
+  res.json({
+    sagId: sag.sagId,
+    adresse: sag.adresse,
+    boligtype: sag.boligtype,
+    m2bolig: sag.m2bolig,
+    byggeaar: sag.byggeaar,
+    vaerelse: sag.vaerelse,
+    navn: sag.navn,
+    betalt: sag.betalt,
+    oprettet: sag.oprettet,
+  });
+});
+
+app.post("/api/selvsalg/checkout", async (req, res) => {
+  const { sagId } = req.body || {};
+  const sag = sagId && SAGER[sagId];
+  if (!sag) return res.status(400).json({ error: "Sag ikke fundet" });
+  if (sag.betalt) return res.status(400).json({ error: "Salgspakken er allerede aktiveret" });
+  if (!stripe) return res.status(503).json({ error: "Betaling ikke konfigureret" });
+
+  const SELVSALG_PRICE = parseInt(process.env.SELVSALG_PRICE_DKK || "799");
+  const origin = req.headers.origin || `https://${req.headers.host}`;
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      line_items: [{ price_data: {
+        currency: "dkk",
+        product_data: {
+          name: "BoligSelvsalg — Digital salgspakke",
+          description: sag.adresse,
+        },
+        unit_amount: SELVSALG_PRICE * 100,
+      }, quantity: 1 }],
+      customer_email: sag.email,
+      metadata: { type: "selvsalg", sagId },
+      success_url: `${origin}/selvsalg/sag/${sagId}?pakke=ok`,
+      cancel_url:  `${origin}/selvsalg/sag/${sagId}`,
+    });
+    logEvent("selvsalg_checkout", { sagId, adresse: sag.adresse });
+    res.json({ checkoutUrl: session.url });
+  } catch (err) {
+    console.error("[selvsalg checkout]", err.message);
     res.status(500).json({ error: "Kunne ikke oprette betaling" });
   }
 });
