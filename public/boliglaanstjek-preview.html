@@ -758,29 +758,41 @@ body::before{
 .res4-fcast-bar{height:7px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:4px;}
 .res4-fcast-fill{height:100%;border-radius:4px;}
 
-/* Paywall gate — peek + card CTA pattern */
-.res4-gate-wrap{display:flex;flex-direction:column;gap:0;}
-.res4-gate-peek{position:relative;max-height:260px;overflow:hidden;border-radius:14px 14px 0 0;border:1px solid var(--border);border-bottom:none;}
-.res4-gate-peek-inner{filter:blur(4px);pointer-events:none;user-select:none;opacity:.5;padding:16px;}
-.res4-gate-peek::after{content:"";position:absolute;bottom:0;left:0;right:0;height:100px;background:linear-gradient(to bottom,transparent,var(--bg));pointer-events:none;}
-.res4-gate-cta{background:var(--surface);border:1px solid var(--border);border-radius:0 0 14px 14px;padding:28px 24px;text-align:center;box-shadow:var(--shadow);}
-.res4-gate-lock{font-size:2rem;margin-bottom:8px;}
-.res4-gate-h{font-size:1.1rem;font-weight:800;color:var(--text);margin-bottom:6px;text-wrap:balance;}
-.res4-gate-p{font-size:.8rem;color:var(--muted);line-height:1.6;max-width:360px;margin:0 auto 16px;}
-.res4-gate-feats{display:flex;flex-direction:column;gap:5px;margin-bottom:16px;text-align:left;width:100%;max-width:320px;margin-left:auto;margin-right:auto;}
-.res4-gate-feat{font-size:.77rem;color:var(--text);display:flex;align-items:flex-start;gap:8px;line-height:1.4;}
+/* Paywall gate — 3-column: blurred left | CTA center | blurred right */
+.res4-gate-wrap{position:relative;display:grid;grid-template-columns:1fr auto 1fr;min-height:420px;border-radius:14px;overflow:hidden;border:1px solid var(--border);}
+.res4-gate-peek-left,.res4-gate-peek-right{position:relative;overflow:hidden;}
+.res4-gate-peek-left .res4-gate-peek-inner,.res4-gate-peek-right .res4-gate-peek-inner{filter:blur(5px);pointer-events:none;user-select:none;opacity:.45;padding:20px;height:100%;box-sizing:border-box;}
+/* left fade toward center */
+.res4-gate-peek-left::after{content:"";position:absolute;top:0;right:0;width:80px;height:100%;background:linear-gradient(to right,transparent,var(--bg));pointer-events:none;}
+/* right fade toward center */
+.res4-gate-peek-right::after{content:"";position:absolute;top:0;left:0;width:80px;height:100%;background:linear-gradient(to left,transparent,var(--bg));pointer-events:none;}
+.res4-gate-cta{background:var(--surface);border-left:1px solid var(--border);border-right:1px solid var(--border);padding:28px 24px;text-align:center;box-shadow:0 0 40px rgba(0,0,0,.12);z-index:2;width:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.res4-gate-lock{font-size:2.2rem;margin-bottom:8px;}
+.res4-gate-badge{display:inline-flex;align-items:center;gap:5px;background:#fbbf24;color:#000;font-size:.65rem;font-weight:700;padding:3px 10px;border-radius:100px;margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em;}
+.res4-gate-h{font-size:1.05rem;font-weight:800;color:var(--text);margin-bottom:6px;text-wrap:balance;line-height:1.3;}
+.res4-gate-p{font-size:.77rem;color:var(--muted);line-height:1.55;max-width:290px;margin:0 auto 14px;}
+.res4-gate-feats{display:flex;flex-direction:column;gap:5px;margin-bottom:16px;text-align:left;width:100%;}
+.res4-gate-feat{font-size:.74rem;color:var(--text);display:flex;align-items:flex-start;gap:7px;line-height:1.4;}
 .res4-gate-feat::before{content:"✓";color:var(--success);font-weight:700;flex-shrink:0;}
-.res4-gate-plans{display:flex;gap:8px;margin-bottom:14px;justify-content:center;}
-.res4-gate-plan{border:2px solid var(--border);border-radius:9px;padding:9px 16px;cursor:pointer;font-size:.78rem;text-align:center;background:var(--bg);color:var(--text);transition:.15s;}
+.res4-gate-plans{display:flex;gap:8px;margin-bottom:14px;justify-content:center;width:100%;}
+.res4-gate-plan{border:2px solid var(--border);border-radius:9px;padding:9px 14px;cursor:pointer;font-size:.76rem;text-align:center;background:var(--bg);color:var(--text);transition:.15s;flex:1;}
 .res4-gate-plan.sel{border-color:var(--navy);background:var(--sky);}
 .res4-gate-plan-price{font-size:1rem;font-weight:800;display:block;}
-.res4-gate-plan-period{font-size:.68rem;color:var(--muted);}
-.res4-gate-plan-badge{display:inline-block;background:#fbbf24;color:#000;font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:100px;margin-top:3px;}
-.res4-gate-email{width:100%;max-width:310px;padding:10px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:.88rem;font-family:inherit;box-sizing:border-box;margin-bottom:10px;}
+.res4-gate-plan-period{font-size:.65rem;color:var(--muted);}
+.res4-gate-plan-badge{display:inline-block;background:#fbbf24;color:#000;font-size:.58rem;font-weight:700;padding:1px 5px;border-radius:100px;margin-top:3px;}
+.res4-gate-plan-sub{font-size:.58rem;color:var(--muted);display:block;margin-top:2px;}
+.res4-gate-email{width:100%;padding:10px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:.85rem;font-family:inherit;box-sizing:border-box;margin-bottom:10px;}
 .res4-gate-email:focus{outline:none;border-color:var(--accent);}
-.res4-gate-btn{padding:12px 32px;border:none;border-radius:9px;background:var(--navy);color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap;}
+.res4-gate-btn{width:100%;padding:13px 16px;border:none;border-radius:9px;background:var(--navy);color:#fff;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:.15s;}
 .res4-gate-btn:hover{background:#1e4080;}
-.res4-gate-legal{font-size:.65rem;color:var(--muted);margin-top:10px;}
+.res4-gate-legal{font-size:.63rem;color:var(--muted);margin-top:8px;}
+/* Mobile: stack to single column */
+@media(max-width:700px){
+  .res4-gate-wrap{grid-template-columns:1fr;min-height:unset;}
+  .res4-gate-peek-left{display:none;}
+  .res4-gate-peek-right{display:none;}
+  .res4-gate-cta{width:100%;border:none;box-shadow:none;border-top:1px solid var(--border);}
+}
 
 /* Responsive */
 @media(max-width:700px){
@@ -1964,54 +1976,49 @@ function renderResultat(d) {
     </div>
   </div>
 
-  <!-- ── 3. Full analysis — GATED (peek + CTA card) ── -->
+  <!-- ── 3. Full analysis — GATED (3-col: blur | CTA | blur) ── -->
   <div class="res4-gate-wrap">
-    <!-- Blurred peek: shows top of content, fades out -->
-    <div class="res4-gate-peek">
+
+    <!-- Left blurred panel: Detaljeret sammenligning -->
+    <div class="res4-gate-peek-left">
       <div class="res4-gate-peek-inner">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px;">🏠 Detaljeret sammenligning</div>
         ${hasConv ? `
-        <div class="res4-loans-sec">
-          <div class="res4-loan-card">
-            <div class="res4-loan-head cur">📋 Nuværende lån</div>
-            <div class="res4-loan-body">
-              <div class="res4-loan-row"><span class="res4-loan-lbl">Rente</span><span class="res4-loan-val">${rente.toFixed(2)}%</span></div>
-              <div class="res4-loan-row"><span class="res4-loan-lbl">Type</span><span class="res4-loan-val">${ltype}</span></div>
-              <div class="res4-loan-row"><span class="res4-loan-lbl">Bidragssats</span><span class="res4-loan-val">${bidr.toFixed(2)}%</span></div>
-              <div class="res4-loan-row"><span class="res4-loan-lbl">Restgæld</span><span class="res4-loan-val">${fmt(Math.round(rest/1000)*1000)} kr</span></div>
-              <div class="res4-loan-row"><span class="res4-loan-lbl">Ydelse</span><span class="res4-loan-val">${fmt(Math.round(nuv))} kr/md</span></div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;">
+            <div style="font-size:.7rem;font-weight:700;color:var(--muted);margin-bottom:8px;">📋 Dit nuværende lån</div>
+            <div style="display:flex;flex-direction:column;gap:5px;">
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;"><span style="color:var(--muted);">Restgæld</span><span style="font-weight:700;">${fmt(Math.round(rest/1000)*1000)} kr</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;"><span style="color:var(--muted);">Rente</span><span style="font-weight:700;">${rente.toFixed(2)}%</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;"><span style="color:var(--muted);">Månedlig ydelse</span><span style="font-weight:700;">${fmt(Math.round(nuv))} kr</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;"><span style="color:var(--muted);">Samlede omkostn.</span><span style="font-weight:700;">${fmt(Math.round((sc.omkostninger||29800)))} kr</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;"><span style="color:var(--muted);">AOP</span><span style="font-weight:700;">${((rente+bidr)*1.05).toFixed(2)}%</span></div>
             </div>
           </div>
-          <div class="res4-loan-card">
-            <div class="res4-loan-head nw">✨ ${sc.type === 'nedkonvertering' ? 'Nedkonvertering' : 'Opkonvertering'}</div>
-            <div class="res4-loan-body">
-              <div class="res4-loan-row"><span class="res4-loan-lbl">Ny rente</span><span class="res4-loan-val hl">${(sc.nyRente || mrente).toFixed(2)}%</span></div>
-              <div class="res4-loan-row"><span class="res4-loan-lbl">Ny restgæld</span><span class="res4-loan-val">${sc.nyRest ? fmt(Math.round(sc.nyRest/1000)*1000) : '—'} kr</span></div>
-              <div class="res4-loan-row"><span class="res4-loan-lbl">Ny ydelse</span><span class="res4-loan-val hl">${fmt(Math.round(sc.nyYdelse))} kr/md</span></div>
-              <div class="res4-loan-row"><span class="res4-loan-lbl">Ændring</span><span class="res4-loan-val">${sc.besparelse>0?'+':''}${fmt(Math.round(sc.besparelse))} kr/md</span></div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;">
+            <div style="font-size:.7rem;font-weight:700;color:var(--muted);margin-bottom:8px;">✨ ${sc.type === 'nedkonvertering' ? 'Nedkonvertering' : 'Nyt lån'}</div>
+            <div style="display:flex;flex-direction:column;gap:5px;">
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;"><span style="color:var(--muted);">Ny restgæld</span><span style="font-weight:700;color:var(--accent);">${sc.nyRest ? fmt(Math.round(sc.nyRest/1000)*1000) : fmt(Math.round(rest/1000)*1000)} kr</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;"><span style="color:var(--muted);">Ny rente</span><span style="font-weight:700;color:var(--accent);">${(sc.nyRente||mrente).toFixed(2)}%</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;"><span style="color:var(--muted);">Ny ydelse</span><span style="font-weight:700;color:var(--accent);">${fmt(Math.round(sc.nyYdelse))} kr</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;"><span style="color:var(--muted);">Ændring</span><span style="font-weight:700;color:var(--accent);">${sc.besparelse>0?'+':''}${fmt(Math.round(sc.besparelse))} kr/md</span></div>
             </div>
           </div>
-          <div class="res4-cmp-card">
-            <div class="res4-cmp-head">📊 Sammenligning over tid</div>
-            <div class="res4-cmp-body">
-              <table class="res4-table">
-                <thead><tr><th>Horisont</th><th>Hold</th><th>Konv.</th><th>Forskel</th></tr></thead>
-                <tbody>${(scener||[]).map(s=>`<tr><td>${s.h} år</td><td>${fmt(s.holdYdelse)}/md</td><td>${fmt(s.konvYdelse)}/md</td><td class="${s.diff>0?'pos':'neg'}">${s.diff>0?'+':''}${Math.round(s.diff/1000)}k</td></tr>`).join('')}</tbody>
-              </table>
-            </div>
-          </div>
+          <div style="font-size:.65rem;font-style:italic;color:var(--muted);margin-top:4px;text-align:center;">og meget mere...</div>
         </div>` : `
-        <div class="res4-analysis-sec">
-          <div class="res4-chart-card"><div class="res4-analysis-head">📈 Ydelse over tid</div><div class="res4-analysis-body" style="height:120px;"></div></div>
-          <div class="res4-payback-card"><div class="res4-analysis-head">⏱ Tilbagebetalingstid</div><div class="res4-analysis-body" style="height:120px;"></div></div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;height:100px;"></div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;height:100px;"></div>
         </div>`}
       </div>
     </div>
 
-    <!-- CTA card — always fully visible in normal flow -->
+    <!-- Center: CTA card -->
     <div class="res4-gate-cta">
       <div class="res4-gate-lock">🔐</div>
+      <div class="res4-gate-badge">👑 Få mere indsigt</div>
       <div class="res4-gate-h">Din personlige låne&shy;dashboard venter</div>
-      <div class="res4-gate-p">Fuld scenarieanalyse, tilbagebetalingstid og konverteringsomkostninger — plus månedlig opdatering når markedet ændrer sig.</div>
+      <div class="res4-gate-p">Fuld scenarieanalyse, tilbagebetalingstid og konverteringsomkostninger — plus løbende overvågning af markedet.</div>
       <div class="res4-gate-feats">
         <div class="res4-gate-feat">Komplet sammenligning: dit lån vs. nyt lån</div>
         <div class="res4-gate-feat">Månedlig mail: rente, friværdi og markedsstatus</div>
@@ -2020,21 +2027,53 @@ function renderResultat(d) {
       </div>
       <div class="res4-gate-plans">
         <div class="res4-gate-plan sel" data-plan="maaned" onclick="window.pickRes4Plan('maaned')">
-          <span class="res4-gate-plan-price">49 kr</span>
-          <span class="res4-gate-plan-period">/måned</span>
+          <span class="res4-gate-plan-price">49 kr./måned</span>
+          <span class="res4-gate-plan-sub">Løbende abonnement</span>
+          <span class="res4-gate-plan-period">Opsig når som helst</span>
         </div>
         <div class="res4-gate-plan" data-plan="aar" onclick="window.pickRes4Plan('aar')">
-          <span class="res4-gate-plan-price">399 kr</span>
-          <span class="res4-gate-plan-period">/år</span>
-          <span class="res4-gate-plan-badge">Spar 189 kr</span>
+          <span class="res4-gate-plan-price">399 kr./år</span>
+          <span class="res4-gate-plan-badge">Mest værdi</span>
+          <span class="res4-gate-plan-sub">Spar 40% (33 kr./md.)</span>
+          <span class="res4-gate-plan-period">12 måneders abonnement</span>
         </div>
       </div>
       <input type="email" id="overvagEmail" class="res4-gate-email" placeholder="din@email.dk" autocomplete="email">
       <button id="ovBtn1" style="display:none;"></button>
       <button id="ovBtn2" style="display:none;"></button>
-      <button class="res4-gate-btn" onclick="startOvervagning()">Aktivér lånestatus-mail →</button>
-      <div class="res4-gate-legal">Ingen binding · Opsig når som helst · 49 kr/md</div>
+      <button class="res4-gate-btn" onclick="startOvervagning()">Start overvågning →</button>
+      <div class="res4-gate-legal">Se hvad du får ↓</div>
     </div>
+
+    <!-- Right blurred panel: Renters udvikling -->
+    <div class="res4-gate-peek-right">
+      <div class="res4-gate-peek-inner">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px;">📈 Renters udvikling</div>
+        <!-- Fake chart SVG that mimics a rate chart -->
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;">
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            ${['1år','3år','5år','10år'].map(l=>`<span style="font-size:.6rem;padding:2px 7px;border-radius:4px;background:var(--border);color:var(--muted);">${l}</span>`).join('')}
+          </div>
+          <svg viewBox="0 0 220 90" width="100%" style="overflow:visible;">
+            <polyline points="0,70 30,62 55,55 80,65 105,50 130,45 155,38 180,42 210,35" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round"/>
+            <polyline points="0,75 30,70 55,65 80,72 105,60 130,58 155,52 180,55 210,48" fill="none" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,3" stroke-linejoin="round"/>
+            <text x="185" y="32" font-size="8" fill="#3b82f6">Dit lån</text>
+            <text x="185" y="46" font-size="7" fill="#6b7280">3år: 4,35%</text>
+          </svg>
+          <div style="display:flex;gap:12px;margin-top:4px;">
+            <div style="display:flex;align-items:center;gap:4px;font-size:.65rem;color:var(--muted);"><span style="width:12px;height:2px;background:#3b82f6;display:inline-block;border-radius:2px;"></span>Dit lån</div>
+            <div style="display:flex;align-items:center;gap:4px;font-size:.65rem;color:var(--muted);"><span style="width:12px;height:2px;background:#10b981;display:inline-block;border-radius:2px;border-top:2px dashed #10b981;"></span>Marked</div>
+          </div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;">
+          <div style="font-size:.68rem;font-weight:700;color:var(--muted);margin-bottom:8px;">📊 Tilbagebetalingstid</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${[3,5,10].map(y=>`<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:.72rem;color:var(--muted);min-width:28px;">${y}år</span><div style="flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${y===3?40:y===5?60:85}%;background:var(--accent);border-radius:4px;"></div></div></div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ── 4. Quick actions (FREE) ── -->
@@ -2069,12 +2108,6 @@ function renderResultat(d) {
   window._beregningState = d;
 
   if (hasConv && scener && scener.length) setTimeout(() => window.setRes4Tab(scener[0].h), 0);
-
-  // Scroll so gate section is visible after a short delay
-  setTimeout(() => {
-    const gate = document.querySelector('.res4-gate-wrap');
-    if (gate) gate.scrollIntoView({behavior:'smooth', block:'start'});
-  }, 300);
 }
 
 function overvagToggle(p) {
