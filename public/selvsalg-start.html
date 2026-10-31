@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="da">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opret kladde — BoligSelvsalg</title>
+<meta name="description" content="Start din gratis kladde til boligsalget. Det forpligter dig ikke.">
+<link rel="stylesheet" href="/home.css">
+<style>
+.start-hero{background:#123c36;color:#f7f7f0;padding:52px 0 40px}
+.start-hero h1{color:#f7f7f0;font-size:clamp(32px,4vw,48px);margin:12px 0}
+.start-hero .lead{color:#c9d9c6;font-size:16px;max-width:500px}
+.form-wrap{max-width:640px;margin:48px auto;padding:0 28px}
+.form-card{background:white;border:1px solid var(--line);border-radius:14px;padding:36px}
+.form-card h2{font:26px/1.2 Georgia,serif;margin-bottom:6px}
+.form-card .sub{color:var(--muted);font-size:14px;margin-bottom:28px}
+.field{margin-bottom:22px}
+label{display:block;font-size:13px;font-weight:650;margin-bottom:6px;color:var(--ink)}
+input,select{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:8px;font:15px system-ui;background:white;color:var(--ink);transition:border-color .15s}
+input:focus,select:focus{border-color:#1c5949;outline:none}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.hint{font-size:12px;color:var(--muted);margin-top:5px}
+.step-bar{display:flex;gap:8px;margin-bottom:30px}
+.step-dot{width:8px;height:8px;border-radius:50%;background:#dce4dc}
+.step-dot.active{background:#1c5949}
+.submit-row{margin-top:28px}
+.btn-primary{display:block;width:100%;padding:15px;background:#1c5949;color:white;border:none;border-radius:8px;font:600 15px system-ui;cursor:pointer;text-align:center}
+.btn-primary:hover{background:#123c36}
+.btn-primary:disabled{background:#8caa86;cursor:not-allowed}
+.disclaimer{font-size:12px;color:var(--muted);text-align:center;margin-top:14px;line-height:1.6}
+.error-msg{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;font-size:13px;color:#991b1b;margin-bottom:18px;display:none}
+#step2{display:none}
+#step3{display:none}
+.success-box{text-align:center;padding:32px 0}
+.success-icon{font-size:48px;margin-bottom:16px}
+.success-box h3{font:28px Georgia,serif;margin-bottom:8px}
+.success-box p{color:var(--muted);font-size:14px;max-width:380px;margin:0 auto 24px}
+.address-suggestions{position:absolute;background:white;border:1.5px solid #1c5949;border-top:none;border-radius:0 0 8px 8px;width:100%;z-index:20;max-height:220px;overflow-y:auto}
+.address-suggestions li{padding:10px 14px;font-size:14px;cursor:pointer;list-style:none;border-bottom:1px solid var(--line)}
+.address-suggestions li:last-child{border-bottom:none}
+.address-suggestions li:hover,.address-suggestions li.active{background:#edf1e6}
+.addr-wrap{position:relative}
+@media(max-width:600px){.row2{grid-template-columns:1fr}.form-card{padding:24px}}
+</style></head>
+<body><a class="skip" href="#indhold">Gå til indhold</a>
+<header><nav class="wrap" aria-label="Hovednavigation">
+<a class="brand" href="/" aria-label="Vurderingstjekket forside"><span class="mark" aria-hidden="true">⌂</span>Vurderingstjekket<span style="color:#78926b">.</span></a>
+<div class="nav-links"><a href="/ejendomsvurdering">Ejendomsvurdering</a><a href="/boliglaanstjek">Boliglånstjek</a><a href="/selvsalg" aria-current="page">Selvsalg</a></div>
+</nav></header>
+
+<section class="start-hero">
+  <div class="wrap">
+    <div class="eyebrow" style="color:#a8c5a0">BoligSelvsalg</div>
+    <h1>Opret din gratis kladde</h1>
+    <p class="lead">Det tager 2 minutter. Du forpligter dig ikke, og du betaler først, når du vil låse din salgspakke op.</p>
+  </div>
+</section>
+
+<main id="indhold">
+<div class="form-wrap">
+
+  <div id="step1-wrap" class="form-card">
+    <div class="step-bar" aria-label="Trin 1 af 2">
+      <div class="step-dot active"></div><div class="step-dot"></div>
+    </div>
+    <h2>Din bolig</h2>
+    <p class="sub">Udfyld grundoplysningerne om den bolig, du vil sælge.</p>
+    <div id="error1" class="error-msg" role="alert"></div>
+    <div class="field">
+      <label for="adresse">Adresse <span style="color:#c0392b">*</span></label>
+      <div class="addr-wrap">
+        <input type="text" id="adresse" autocomplete="off" placeholder="Fx Roskildevej 12, 2500 Valby" required>
+        <ul class="address-suggestions" id="addr-list" role="listbox" style="display:none"></ul>
+      </div>
+      <div class="hint">Begynd at skrive — vælg den korrekte adresse fra listen</div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="boligtype">Boligtype <span style="color:#c0392b">*</span></label>
+        <select id="boligtype" required>
+          <option value="">Vælg type</option>
+          <option value="villa">Villa / parcelhus</option>
+          <option value="raekkehus">Rækkehus / dobbelthus</option>
+          <option value="ejerlejlighed">Ejerlejlighed</option>
+          <option value="landejendom">Landejendom / gård</option>
+          <option value="sommerhus">Sommerhus / fritidshus</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="m2bolig">Boligareal (m²) <span style="color:#c0392b">*</span></label>
+        <input type="number" id="m2bolig" min="10" max="2000" placeholder="125" required>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="byggeaar">Byggeår</label>
+        <input type="number" id="byggeaar" min="1800" max="2026" placeholder="1975">
+      </div>
+      <div class="field">
+        <label for="vaerelse">Antal værelser</label>
+        <input type="number" id="vaerelse" min="1" max="20" placeholder="5">
+      </div>
+    </div>
+    <div class="submit-row">
+      <button class="btn-primary" id="btn-step1" type="button">Fortsæt →</button>
+    </div>
+  </div>
+
+  <div id="step2" class="form-card">
+    <div class="step-bar" aria-label="Trin 2 af 2">
+      <div class="step-dot"></div><div class="step-dot active"></div>
+    </div>
+    <h2>Dine kontaktoplysninger</h2>
+    <p class="sub">Bruges til at sende din kladde og notificere dig, når salgspakken er klar.</p>
+    <div id="error2" class="error-msg" role="alert"></div>
+    <div class="row2">
+      <div class="field">
+        <label for="navn">Dit navn <span style="color:#c0392b">*</span></label>
+        <input type="text" id="navn" placeholder="Anna Hansen" required>
+      </div>
+      <div class="field">
+        <label for="email">E-mailadresse <span style="color:#c0392b">*</span></label>
+        <input type="email" id="email" placeholder="anna@eksempel.dk" required>
+      </div>
+    </div>
+    <div class="field">
+      <label for="telefon">Telefonnummer</label>
+      <input type="tel" id="telefon" placeholder="+45 12 34 56 78">
+    </div>
+    <div class="field" style="display:flex;align-items:flex-start;gap:10px;margin-top:4px">
+      <input type="checkbox" id="ejer-bekr" style="width:auto;margin-top:3px;flex-shrink:0" required>
+      <label for="ejer-bekr" style="font-weight:400;cursor:pointer">Jeg bekræfter, at jeg er ejer af eller har fuldmagt til at sælge den angivne ejendom. <span style="color:#c0392b">*</span></label>
+    </div>
+    <div class="submit-row">
+      <button class="btn-primary" id="btn-step2" type="button">Opret gratis kladde</button>
+      <p class="disclaimer">Ingen binding. Du betaler først, når du vælger at låse salgspakken op (799 kr. inkl. moms).<br>Vi gemmer dine oplysninger sikkert og deler dem ikke med tredjeparter.</p>
+    </div>
+    <div style="margin-top:16px">
+      <button style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0" id="btn-back">← Tilbage</button>
+    </div>
+  </div>
+
+  <div id="step3" class="form-card">
+    <div class="success-box">
+      <div class="success-icon" aria-hidden="true">🏡</div>
+      <h3>Din kladde er oprettet!</h3>
+      <p id="success-text">Vi er klar til at hjælpe dig med boligsalget. Åbn din kladde for at komme i gang.</p>
+      <a id="sag-link" class="button" href="/selvsalg" style="display:inline-flex">Åbn min kladde →</a>
+      <p style="font-size:12px;color:var(--muted);margin-top:14px">Gem linket — det er din adgang til kladden.</p>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<footer><div class="wrap"><span>Vurderingstjekket · Boliglånsradar · BoligSelvsalg</span><div><a href="/ejendomsvurdering">Ejendomsvurdering</a><a href="/boliglaanstjek">Boliglånstjek</a><a href="/selvsalg">Selvsalg</a></div></div></footer>
+
+<script>
+// Address autocomplete via DAWA
+const adresseInput = document.getElementById("adresse");
+const addrList = document.getElementById("addr-list");
+let dawaTimeout, selectedDawa = null;
+
+adresseInput.addEventListener("input", () => {
+  clearTimeout(dawaTimeout);
+  const q = adresseInput.value.trim();
+  if (q.length < 3) { addrList.style.display = "none"; return; }
+  dawaTimeout = setTimeout(() => fetchDawa(q), 200);
+});
+
+async function fetchDawa(q) {
+  try {
+    const r = await fetch(`https://api.dataforsyningen.dk/adresser/autocomplete?q=${encodeURIComponent(q)}&per_side=6`);
+    const data = await r.json();
+    addrList.innerHTML = "";
+    if (!data.length) { addrList.style.display = "none"; return; }
+    data.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = item.tekst;
+      li.role = "option";
+      li.addEventListener("mousedown", () => {
+        adresseInput.value = item.tekst;
+        selectedDawa = item;
+        addrList.style.display = "none";
+      });
+      addrList.appendChild(li);
+    });
+    addrList.style.display = "block";
+  } catch {}
+}
+
+document.addEventListener("click", e => {
+  if (!e.target.closest(".addr-wrap")) addrList.style.display = "none";
+});
+
+// Step navigation
+document.getElementById("btn-step1").addEventListener("click", () => {
+  const err = document.getElementById("error1");
+  err.style.display = "none";
+  const adresse = adresseInput.value.trim();
+  const boligtype = document.getElementById("boligtype").value;
+  const m2 = document.getElementById("m2bolig").value;
+  if (!adresse) { showErr(err, "Udfyld venligst adressen."); return; }
+  if (!boligtype) { showErr(err, "Vælg venligst boligtype."); return; }
+  if (!m2 || m2 < 10) { showErr(err, "Angiv venligst et gyldigt boligareal."); return; }
+  document.getElementById("step1-wrap").style.display = "none";
+  document.getElementById("step2").style.display = "block";
+  window.scrollTo(0, 0);
+});
+
+document.getElementById("btn-back").addEventListener("click", () => {
+  document.getElementById("step2").style.display = "none";
+  document.getElementById("step1-wrap").style.display = "block";
+  window.scrollTo(0, 0);
+});
+
+document.getElementById("btn-step2").addEventListener("click", async () => {
+  const err = document.getElementById("error2");
+  err.style.display = "none";
+  const navn = document.getElementById("navn").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const ejer = document.getElementById("ejer-bekr").checked;
+  if (!navn) { showErr(err, "Angiv venligst dit navn."); return; }
+  if (!email || !email.includes("@")) { showErr(err, "Angiv venligst en gyldig e-mailadresse."); return; }
+  if (!ejer) { showErr(err, "Du skal bekræfte ejerskabet for at fortsætte."); return; }
+
+  const btn = document.getElementById("btn-step2");
+  btn.disabled = true;
+  btn.textContent = "Opretter kladde…";
+
+  const payload = {
+    adresse: adresseInput.value.trim(),
+    boligtype: document.getElementById("boligtype").value,
+    m2bolig: parseInt(document.getElementById("m2bolig").value),
+    byggeaar: parseInt(document.getElementById("byggeaar").value) || null,
+    vaerelse: parseInt(document.getElementById("vaerelse").value) || null,
+    navn,
+    email,
+    telefon: document.getElementById("telefon").value.trim() || null,
+    ejerBekraeftet: true,
+  };
+
+  try {
+    const r = await fetch("/api/selvsalg/opret", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.sagId) throw new Error(data.error || "Ukendt fejl");
+
+    document.getElementById("step2").style.display = "none";
+    document.getElementById("step3").style.display = "block";
+    const link = `/selvsalg/sag/${data.sagId}`;
+    document.getElementById("sag-link").href = link;
+    document.getElementById("success-text").textContent =
+      `Kladde oprettet til ${payload.adresse}. Gå til din kladde for at begynde salgsforberedelsen.`;
+    window.scrollTo(0, 0);
+  } catch (e) {
+    showErr(err, "Der opstod en fejl: " + e.message + ". Prøv igen.");
+    btn.disabled = false;
+    btn.textContent = "Opret gratis kladde";
+  }
+});
+
+function showErr(el, msg) {
+  el.textContent = msg;
+  el.style.display = "block";
+  el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+</script>
+</body></html>
