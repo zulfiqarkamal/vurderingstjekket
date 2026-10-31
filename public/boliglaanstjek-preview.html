@@ -793,6 +793,16 @@ body::before{
   .res4-gate-peek-right{display:none;}
   .res4-gate-cta{width:100%;border:none;box-shadow:none;border-top:1px solid var(--border);}
 }
+/* Nøgletal row above gate */
+.res4-gate-disclaimer{background:var(--sky);border:1px solid var(--accent);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--navy);display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;}
+.res4-gate-disclaimer strong{display:block;font-weight:700;margin-bottom:2px;}
+.res4-noeglet-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}
+@media(max-width:600px){.res4-noeglet-row{grid-template-columns:repeat(2,1fr);}}
+.res4-noeglet-tile{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 10px;text-align:center;}
+.res4-nt-label{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px;}
+.res4-nt-val{font-size:1.05rem;font-weight:800;color:var(--text);}
+.res4-nt-val.pos{color:#10b981;}
+.res4-nt-sub{font-size:.65rem;color:var(--muted);margin-top:2px;}
 
 /* Responsive */
 @media(max-width:700px){
@@ -1975,6 +1985,38 @@ function renderResultat(d) {
       </div>
     </div>
   </div>
+
+  <!-- ── 3. Nøgletal (frit synlige) + disclaimer ── -->
+  ${hasConv ? `
+  <div class="res4-gate-disclaimer">
+    <span style="font-size:1.1rem;flex-shrink:0;">ℹ️</span>
+    <div>
+      <strong>Beregnet ud fra dine oplysninger</strong>
+      Disse nøgletal er gratis. Tilmeld dig for fuld analyse, løbende overvågning og alert når det er tid at omlægge.
+    </div>
+  </div>
+  <div class="res4-noeglet-row">
+    <div class="res4-noeglet-tile">
+      <div class="res4-nt-label">Mulig besparelse</div>
+      <div class="res4-nt-val pos">${sc.besparelse<0?'+':''}${fmt(Math.abs(Math.round(sc.besparelse)))} kr</div>
+      <div class="res4-nt-sub">pr. måned</div>
+    </div>
+    <div class="res4-noeglet-tile">
+      <div class="res4-nt-label">Ny rente</div>
+      <div class="res4-nt-val">${(sc.nyRente||mrente).toFixed(2)}%</div>
+      <div class="res4-nt-sub">mod ${rente.toFixed(2)}% i dag</div>
+    </div>
+    <div class="res4-noeglet-tile">
+      <div class="res4-nt-label">Ny restgæld</div>
+      <div class="res4-nt-val">${fmt(Math.round((sc.nyRest||rest)/1000)*1000)}</div>
+      <div class="res4-nt-sub">kr. efter konv.</div>
+    </div>
+    <div class="res4-noeglet-tile">
+      <div class="res4-nt-label">Break-even</div>
+      <div class="res4-nt-val">~${Math.ceil((sc.omkostninger||29800)/Math.abs(sc.besparelse)/12)} år</div>
+      <div class="res4-nt-sub">tilbagebetalingstid</div>
+    </div>
+  </div>` : ''}
 
   <!-- ── 3. Full analysis — GATED (3-col: blur | CTA | blur) ── -->
   <div class="res4-gate-wrap">
