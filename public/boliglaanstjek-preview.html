@@ -759,9 +759,9 @@ body::before{
 .res4-fcast-fill{height:100%;border-radius:4px;}
 
 /* ── Gated section — blur overlay approach ────────────────────────────── */
-.res4-gated-wrap{position:relative;margin-bottom:14px;}
-.res4-gated-inner{filter:blur(6px);pointer-events:none;user-select:none;opacity:.5;}
-.res4-gate-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;background:linear-gradient(160deg,rgba(243,246,251,.15) 0%,rgba(243,246,251,.45) 100%);}
+.res4-gated-wrap{position:relative;margin-bottom:14px;min-height:720px;overflow:visible;}
+.res4-gated-inner{filter:blur(6px);pointer-events:none;user-select:none;opacity:.5;min-height:700px;}
+.res4-gate-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;overflow:visible;background:linear-gradient(160deg,rgba(243,246,251,.15) 0%,rgba(243,246,251,.45) 100%);}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .res4-gate-overlay{background:linear-gradient(160deg,rgba(12,22,40,.15) 0%,rgba(12,22,40,.45) 100%);}}
 :root[data-theme="dark"] .res4-gate-overlay{background:linear-gradient(160deg,rgba(12,22,40,.15) 0%,rgba(12,22,40,.45) 100%);}
 
