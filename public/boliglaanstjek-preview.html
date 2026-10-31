@@ -2069,6 +2069,12 @@ function renderResultat(d) {
   window._beregningState = d;
 
   if (hasConv && scener && scener.length) setTimeout(() => window.setRes4Tab(scener[0].h), 0);
+
+  // Scroll so gate section is visible after a short delay
+  setTimeout(() => {
+    const gate = document.querySelector('.res4-gate-wrap');
+    if (gate) gate.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 300);
 }
 
 function overvagToggle(p) {
