@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vurderingstjekket</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 260px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #1a1f1a;
+      color: #e8ede8;
+    }
+    .header {
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid #2e3a2e;
+    }
+    .brand {
+      font-size: 15px;
+      font-weight: 600;
+      color: #a8c5a0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .brand .mark { font-size: 18px; }
+    .tagline {
+      font-size: 11px;
+      color: #7a9a72;
+      margin-top: 3px;
+    }
+    .menu {
+      padding: 8px;
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 11px 12px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: #e8ede8;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s;
+      margin-bottom: 4px;
+    }
+    .btn:last-child { margin-bottom: 0; }
+    .btn:hover { background: #2a352a; }
+    .btn:active { background: #344034; }
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .btn-ev .btn-icon { background: #1e3a2e; }
+    .btn-laan .btn-icon { background: #1e2e3a; }
+    .btn-salg .btn-icon { background: #3a2e1e; }
+    .btn-label { font-weight: 500; }
+    .btn-desc { font-size: 11px; color: #7a9a72; margin-top: 1px; }
+    .btn-text { flex: 1; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand"><span class="mark">⌂</span>Vurderingstjekket</div>
+    <div class="tagline">Tre produkter til boligejere</div>
+  </div>
+  <div class="menu">
+    <button class="btn btn-ev" data-url="https://www.vurderingstjekket.dk/ejendomsvurdering">
+      <div class="btn-icon">📋</div>
+      <div class="btn-text">
+        <div class="btn-label">Ejendomsvurdering</div>
+        <div class="btn-desc">Tjek om du kan klage</div>
+      </div>
+    </button>
+    <button class="btn btn-laan" data-url="https://www.vurderingstjekket.dk/boliglaanstjek">
+      <div class="btn-icon">📊</div>
+      <div class="btn-text">
+        <div class="btn-label">Boliglånstjek</div>
+        <div class="btn-desc">Analyser dit lån</div>
+      </div>
+    </button>
+    <button class="btn btn-salg" data-url="https://www.vurderingstjekket.dk/selvsalg">
+      <div class="btn-icon">🏠</div>
+      <div class="btn-text">
+        <div class="btn-label">Selvsalg</div>
+        <div class="btn-desc">Sælg selv for 799 kr.</div>
+      </div>
+    </button>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
