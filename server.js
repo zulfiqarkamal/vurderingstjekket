@@ -46,6 +46,12 @@ app.get("/boliglaanstjek/preview", (_req, res) => {
 app.get("/boliglaanstjek", (_req, res) => {
   res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "boliglaanstjek-preview.html"));
 });
+app.get("/selvsalg", (_req, res) => {
+  res.set("Cache-Control", "no-cache").sendFile(path.join(__dirname, "public", "selvsalg.html"));
+});
+app.get("/selvsalg/start", (_req, res) => {
+  res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "selvsalg.html"));
+});
 // HTML må ikke caches, ellers ser folk en gammel version af siden efter en opdatering
 app.use(express.static(path.join(__dirname, "public"), {
   // Let the root handler recognize historical payment returns before serving home.
