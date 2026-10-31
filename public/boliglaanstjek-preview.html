@@ -758,16 +758,50 @@ body::before{
 .res4-fcast-bar{height:7px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:4px;}
 .res4-fcast-fill{height:100%;border-radius:4px;}
 
-/* Paywall gate — 3-column: blurred left | CTA center | blurred right */
-.res4-gate-wrap{position:relative;display:grid;grid-template-columns:1fr auto 1fr;min-height:420px;border-radius:14px;overflow:hidden;border:1px solid var(--border);}
-.res4-gate-peek-left,.res4-gate-peek-right{position:relative;overflow:hidden;}
-.res4-gate-peek-left .res4-gate-peek-inner,.res4-gate-peek-right .res4-gate-peek-inner{filter:blur(5px);pointer-events:none;user-select:none;opacity:.45;padding:20px;height:100%;box-sizing:border-box;}
-/* left fade toward center */
-.res4-gate-peek-left::after{content:"";position:absolute;top:0;right:0;width:80px;height:100%;background:linear-gradient(to right,transparent,var(--bg));pointer-events:none;}
-/* right fade toward center */
-.res4-gate-peek-right::after{content:"";position:absolute;top:0;left:0;width:80px;height:100%;background:linear-gradient(to left,transparent,var(--bg));pointer-events:none;}
-.res4-gate-cta{background:var(--surface);border-left:1px solid var(--border);border-right:1px solid var(--border);padding:28px 24px;text-align:center;box-shadow:0 0 40px rgba(0,0,0,.12);z-index:2;width:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.res4-gate-lock{font-size:2.2rem;margin-bottom:8px;}
+/* ── Gated section — blur overlay approach ────────────────────────────── */
+.res4-gated-wrap{position:relative;margin-bottom:14px;}
+.res4-gated-inner{filter:blur(6px);pointer-events:none;user-select:none;opacity:.5;}
+.res4-gate-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;background:linear-gradient(160deg,rgba(243,246,251,.15) 0%,rgba(243,246,251,.45) 100%);}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .res4-gate-overlay{background:linear-gradient(160deg,rgba(12,22,40,.15) 0%,rgba(12,22,40,.45) 100%);}}
+:root[data-theme="dark"] .res4-gate-overlay{background:linear-gradient(160deg,rgba(12,22,40,.15) 0%,rgba(12,22,40,.45) 100%);}
+
+/* Loans section (3-col) */
+.res4-loans-sec{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+@media(max-width:900px){.res4-loans-sec{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.res4-loans-sec{grid-template-columns:1fr;}}
+.res4-loan-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow);}
+.res4-loan-card-h{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.res4-loan-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);}
+.res4-loan-row:last-child{border-bottom:none;}
+.res4-loan-lbl{font-size:.76rem;color:var(--muted);}
+.res4-loan-val{font-size:.82rem;font-weight:700;color:var(--text);}
+.res4-loan-val.accent{color:var(--accent);}
+.res4-loan-val.pos{color:var(--success);}
+.res4-loan-val.neg{color:var(--danger);}
+.res4-comp-table{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);}
+.res4-comp-thead{background:var(--navy);color:#fff;display:grid;grid-template-columns:1fr 1fr 1fr;padding:8px 12px;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+.res4-comp-row{display:grid;grid-template-columns:1fr 1fr 1fr;padding:7px 12px;border-bottom:1px solid var(--border);font-size:.76rem;}
+.res4-comp-row:last-child{border-bottom:none;}
+.res4-comp-row:nth-child(even){background:var(--sky);}
+.res4-comp-cell{color:var(--muted);}
+.res4-comp-cell.val{color:var(--text);font-weight:600;}
+.res4-comp-cell.accent{color:var(--accent);font-weight:700;}
+.res4-comp-cell.pos{color:var(--success);font-weight:700;}
+
+/* Analysis section (3-col) */
+.res4-analysis-sec{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+@media(max-width:900px){.res4-analysis-sec{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.res4-analysis-sec{grid-template-columns:1fr;}}
+.res4-chart-card,.res4-costs-card,.res4-payback-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow);}
+.res4-card-h{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:14px;}
+.res4-costs-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:.78rem;}
+.res4-costs-row:last-child{border-bottom:none;}
+.res4-costs-lbl{color:var(--muted);}
+.res4-costs-val{font-weight:700;color:var(--text);}
+
+/* CTA card (overlay) */
+.res4-gate-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px 24px;text-align:center;box-shadow:0 8px 48px rgba(0,0,0,.22);max-width:360px;width:calc(100% - 32px);display:flex;flex-direction:column;align-items:center;}
+.res4-gate-lock{font-size:2rem;margin-bottom:8px;}
 .res4-gate-badge{display:inline-flex;align-items:center;gap:5px;background:#fbbf24;color:#000;font-size:.65rem;font-weight:700;padding:3px 10px;border-radius:100px;margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em;}
 .res4-gate-h{font-size:1.05rem;font-weight:800;color:var(--text);margin-bottom:6px;text-wrap:balance;line-height:1.3;}
 .res4-gate-p{font-size:.77rem;color:var(--muted);line-height:1.55;max-width:290px;margin:0 auto 14px;}
@@ -786,13 +820,6 @@ body::before{
 .res4-gate-btn{width:100%;padding:13px 16px;border:none;border-radius:9px;background:var(--navy);color:#fff;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:.15s;}
 .res4-gate-btn:hover{background:#1e4080;}
 .res4-gate-legal{font-size:.63rem;color:var(--muted);margin-top:8px;}
-/* Mobile: stack to single column */
-@media(max-width:700px){
-  .res4-gate-wrap{grid-template-columns:1fr;min-height:unset;}
-  .res4-gate-peek-left{display:none;}
-  .res4-gate-peek-right{display:none;}
-  .res4-gate-cta{width:100%;border:none;box-shadow:none;border-top:1px solid var(--border);}
-}
 /* Nøgletal row above gate */
 .res4-gate-disclaimer{background:var(--sky);border:1px solid var(--accent);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--navy);display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;}
 .res4-gate-disclaimer strong{display:block;font-weight:700;margin-bottom:2px;}
@@ -2018,8 +2045,123 @@ function renderResultat(d) {
     </div>
   </div>` : ''}
 
-  <!-- ── 3. Full analysis — GATED (3-col: blur | CTA | blur) ── -->
-  <div class="res4-gate-wrap">
+  <!-- ── 3. GATED section: loans + analysis with blur overlay ── -->
+  <div class="res4-gated-wrap">
+    <div class="res4-gated-inner">
+      <!-- Loans comparison (3-col) -->
+      <div class="res4-loans-sec">
+        <div class="res4-loan-card">
+          <div class="res4-loan-card-h">📋 Dit nuværende lån</div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">Restgæld</span><span class="res4-loan-val">${fmt(Math.round(rest/1000)*1000)} kr</span></div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">Rente</span><span class="res4-loan-val">${rente.toFixed(2)}%</span></div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">Bidragssats</span><span class="res4-loan-val">${bidr.toFixed(2)}%</span></div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">AOP (vejl.)</span><span class="res4-loan-val">${((rente+bidr)*1.05).toFixed(2)}%</span></div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">Månedlig ydelse</span><span class="res4-loan-val">${fmt(Math.round(nuv))} kr</span></div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">Låntype</span><span class="res4-loan-val">${ltype}</span></div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">Restløbetid</span><span class="res4-loan-val">${loeb} år</span></div>
+        </div>
+        ${hasConv ? `
+        <div class="res4-loan-card">
+          <div class="res4-loan-card-h">✨ ${sc.type === 'nedkonvertering' ? 'Nedkonvertering' : 'Nyt lån'}</div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">Ny restgæld</span><span class="res4-loan-val accent">${sc.nyRest ? fmt(Math.round(sc.nyRest/1000)*1000) : fmt(Math.round(rest/1000)*1000)} kr</span></div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">Ny rente</span><span class="res4-loan-val accent">${(sc.nyRente||mrente).toFixed(2)}%</span></div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">Bidragssats</span><span class="res4-loan-val">${bidr.toFixed(2)}%</span></div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">Ny AOP (vejl.)</span><span class="res4-loan-val accent">${((sc.nyRente||mrente)+bidr*1.05).toFixed(2)}%</span></div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">Ny ydelse</span><span class="res4-loan-val ${sc.besparelse<0?'pos':'neg'}">${fmt(Math.round(sc.nyYdelse))} kr</span></div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">Ændring/md</span><span class="res4-loan-val ${sc.besparelse<0?'pos':'neg'}">${sc.besparelse<0?'+':''}${fmt(Math.abs(Math.round(sc.besparelse)))} kr</span></div>
+          <div class="res4-loan-row"><span class="res4-loan-lbl">Break-even</span><span class="res4-loan-val">~${Math.ceil((sc.omkostninger||29800)/Math.max(1,Math.abs(sc.besparelse))/12)} år</span></div>
+        </div>` : `
+        <div class="res4-loan-card">
+          <div class="res4-loan-card-h">💡 Vurdering</div>
+          <div style="font-size:.82rem;color:var(--muted);line-height:1.6;padding-top:6px;">Ingen omlægningsmulighed identificeret baseret på nuværende markedsrenter.</div>
+        </div>`}
+        <div class="res4-comp-table">
+          <div class="res4-comp-thead"><span>Parameter</span><span>Nu</span><span>Nyt lån</span></div>
+          <div class="res4-comp-row"><span class="res4-comp-cell">Rente</span><span class="res4-comp-cell val">${rente.toFixed(2)}%</span><span class="res4-comp-cell accent">${(sc.nyRente||mrente).toFixed(2)}%</span></div>
+          <div class="res4-comp-row"><span class="res4-comp-cell">Ydelse/md</span><span class="res4-comp-cell val">${fmt(Math.round(nuv))} kr</span><span class="res4-comp-cell ${hasConv&&sc.besparelse<0?'pos':'accent'}">${hasConv?fmt(Math.round(sc.nyYdelse)):'—'} kr</span></div>
+          <div class="res4-comp-row"><span class="res4-comp-cell">Restgæld</span><span class="res4-comp-cell val">${fmt(Math.round(rest/1000)*1000)} kr</span><span class="res4-comp-cell accent">${hasConv&&sc.nyRest?fmt(Math.round(sc.nyRest/1000)*1000):'—'} kr</span></div>
+          <div class="res4-comp-row"><span class="res4-comp-cell">AOP</span><span class="res4-comp-cell val">${((rente+bidr)*1.05).toFixed(2)}%</span><span class="res4-comp-cell accent">${hasConv?((sc.nyRente||mrente)+bidr*1.05).toFixed(2):'—'}%</span></div>
+          <div class="res4-comp-row"><span class="res4-comp-cell">Omk. konv.</span><span class="res4-comp-cell val">—</span><span class="res4-comp-cell val">${hasConv?fmt(sc.omkostninger||29800):'—'} kr</span></div>
+          <div class="res4-comp-row"><span class="res4-comp-cell">Break-even</span><span class="res4-comp-cell val">—</span><span class="res4-comp-cell val">${hasConv?'~'+Math.ceil((sc.omkostninger||29800)/Math.max(1,Math.abs(sc.besparelse))/12)+' år':'—'}</span></div>
+        </div>
+      </div>
+      <!-- Analysis (3-col) -->
+      <div class="res4-analysis-sec">
+        <div class="res4-chart-card">
+          <div class="res4-card-h">📈 Renteudvikling</div>
+          ${(()=>{
+            const mEnd=mrente,mStart=Math.min(mEnd+1.4,5.8);
+            const months=['Jan','Mar','Maj','Jul','Sep','Okt'];
+            const mRates=months.map((_,i)=>{const t=i/(months.length-1);return +(mStart+(mEnd-mStart)*t+Math.sin(t*Math.PI*1.5)*0.12).toFixed(2);});
+            const minR=Math.min(...mRates,rente)-.3,maxR=Math.max(...mRates,rente)+.3;
+            const yOf=r=>12+(maxR-r)/(maxR-minR)*70;
+            const xOf=i=>22+i*(196/(months.length-1));
+            const mPts=mRates.map((r,i)=>`${xOf(i)},${yOf(r)}`).join(' ');
+            const uPts=months.map((_,i)=>`${xOf(i)},${yOf(rente)}`).join(' ');
+            return `<svg viewBox="0 0 240 100" width="100%" style="overflow:visible;margin-bottom:8px;">
+              <line x1="22" y1="${yOf(Math.min(...mRates,rente)-.15)}" x2="218" y2="${yOf(Math.min(...mRates,rente)-.15)}" stroke="var(--border)" stroke-width=".7"/>
+              <line x1="22" y1="${yOf((maxR+minR)/2)}" x2="218" y2="${yOf((maxR+minR)/2)}" stroke="var(--border)" stroke-width=".7"/>
+              <line x1="22" y1="82" x2="218" y2="82" stroke="var(--border)" stroke-width="1"/>
+              ${months.map((_,i)=>`<text x="${xOf(i)}" y="92" font-size="6" fill="var(--muted)" text-anchor="middle">${months[i]}</text>`).join('')}
+              <polyline points="${uPts}" fill="none" stroke="#10b981" stroke-width="1.8" stroke-dasharray="5,3"/>
+              <polyline points="${mPts}" fill="none" stroke="#3b82f6" stroke-width="2.2" stroke-linejoin="round"/>
+              <circle cx="${xOf(months.length-1)}" cy="${yOf(mEnd)}" r="3" fill="#3b82f6"/>
+              <text x="${xOf(months.length-1)-30}" y="${yOf(mEnd)-5}" font-size="7" fill="#3b82f6" font-weight="700">${mEnd.toFixed(2)}%</text>
+              <circle cx="${xOf(months.length-1)}" cy="${yOf(rente)}" r="3" fill="#10b981"/>
+              <text x="${xOf(months.length-1)-30}" y="${yOf(rente)+10}" font-size="7" fill="#10b981" font-weight="700">${rente.toFixed(2)}%</text>
+            </svg>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--muted);"><svg width="18" height="6"><line x1="0" y1="3" x2="18" y2="3" stroke="#3b82f6" stroke-width="2"/></svg>Markedsrente</div>
+              <div style="display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--muted);"><svg width="18" height="6"><line x1="0" y1="3" x2="18" y2="3" stroke="#10b981" stroke-width="2" stroke-dasharray="4,3"/></svg>Din rente</div>
+            </div>`;
+          })()}
+        </div>
+        <div class="res4-costs-card">
+          <div class="res4-card-h">💰 Konverteringsomkostninger</div>
+          ${hasConv ? `
+          <div class="res4-costs-row"><span class="res4-costs-lbl">Kursskæring</span><span class="res4-costs-val">${fmt(Math.round((sc.omkostninger||29800)*.6))} kr</span></div>
+          <div class="res4-costs-row"><span class="res4-costs-lbl">Tinglysningsafgift</span><span class="res4-costs-val">${fmt(Math.round((sc.omkostninger||29800)*.2))} kr</span></div>
+          <div class="res4-costs-row"><span class="res4-costs-lbl">Ekspeditionsgebyr</span><span class="res4-costs-val">${fmt(Math.round((sc.omkostninger||29800)*.12))} kr</span></div>
+          <div class="res4-costs-row"><span class="res4-costs-lbl">Øvrige</span><span class="res4-costs-val">${fmt(Math.round((sc.omkostninger||29800)*.08))} kr</span></div>
+          <div style="margin-top:10px;padding-top:10px;border-top:2px solid var(--border);display:flex;justify-content:space-between;"><span style="font-size:.8rem;font-weight:700;">I alt</span><span style="font-size:.88rem;font-weight:800;color:var(--navy);">${fmt(sc.omkostninger||29800)} kr</span></div>
+          <div style="margin-top:10px;background:var(--sky);border-radius:8px;padding:9px 12px;font-size:.72rem;color:var(--muted);line-height:1.5;">ℹ️ Vejledende estimat — din bank giver det bindende tilbud.</div>` : `
+          <div style="font-size:.82rem;color:var(--muted);line-height:1.6;">Ingen konvertering — ingen omkostninger beregnet.</div>`}
+        </div>
+        <div class="res4-payback-card">
+          <div class="res4-card-h">⏱ Tilbagebetalingstid</div>
+          ${hasConv ? `
+          <div style="margin-bottom:14px;"><div style="font-size:2rem;font-weight:800;color:var(--accent);line-height:1;">~${Math.ceil((sc.omkostninger||29800)/Math.max(1,Math.abs(sc.besparelse))/12)}<span style="font-size:1rem;font-weight:600;color:var(--muted);"> år</span></div><div style="font-size:.74rem;color:var(--muted);margin-top:4px;">Omk. ${fmt(sc.omkostninger||29800)} kr ÷ ${fmt(Math.abs(Math.round(sc.besparelse)))} kr/md</div></div>
+          ${[3,5,10].map(y=>{const sav=Math.abs(sc.besparelse)*12*y-(sc.omkostninger||29800);const pct=Math.min(100,Math.max(0,(sav+(sc.omkostninger||29800))/(sc.omkostninger||29800)*50));return `<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:3px;"><span style="color:var(--muted);">${y} år</span><span style="font-weight:700;color:${sav>0?'var(--success)':'var(--muted)'};">${sav>0?'+':''}${fmt(Math.round(sav/1000)*1000)} kr</span></div><div style="height:7px;background:var(--border);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${sav>0?'var(--success)':'var(--border)'};border-radius:4px;"></div></div></div>`;}).join('')}` : `
+          <div style="font-size:.82rem;color:var(--muted);line-height:1.6;">Beregnes når omlægningsmulighed er identificeret.</div>`}
+        </div>
+      </div>
+    </div>
+    <!-- Overlay CTA -->
+    <div class="res4-gate-overlay">
+      <div class="res4-gate-card">
+        <div class="res4-gate-lock">🔐</div>
+        <div class="res4-gate-badge">👑 Fuld analyse</div>
+        <div class="res4-gate-h">Se din komplette låneoversigt</div>
+        <div class="res4-gate-p">Detaljeret sammenligning, rentegraf og tilbagebetalingstid — plus løbende overvågning og alert når markedet bevæger sig.</div>
+        <div class="res4-gate-feats">
+          <div class="res4-gate-feat">Komplet lån-for-lån sammenligning</div>
+          <div class="res4-gate-feat">Rentegraf: marked vs. dit nuv. lån</div>
+          <div class="res4-gate-feat">Månedlig mail og omlægningsalert</div>
+          <div class="res4-gate-feat">Bankpakke klar til næste møde</div>
+        </div>
+        <div class="res4-gate-plans">
+          <div class="res4-gate-plan sel" data-plan="maaned" onclick="window.pickRes4Plan('maaned')"><span class="res4-gate-plan-price">49 kr./md</span><span class="res4-gate-plan-sub">Løbende abo.</span><span class="res4-gate-plan-period">Opsig når som helst</span></div>
+          <div class="res4-gate-plan" data-plan="aar" onclick="window.pickRes4Plan('aar')"><span class="res4-gate-plan-price">399 kr./år</span><span class="res4-gate-plan-badge">Mest værdi</span><span class="res4-gate-plan-sub">Spar 40%</span><span class="res4-gate-plan-period">12 måneders abo.</span></div>
+        </div>
+        <input type="email" id="overvagEmail" class="res4-gate-email" placeholder="din@email.dk" autocomplete="email">
+        <button id="ovBtn1" style="display:none;"></button>
+        <button id="ovBtn2" style="display:none;"></button>
+        <button class="res4-gate-btn" onclick="startOvervagning()">Start overvågning →</button>
+        <div class="res4-gate-legal">Ingen binding · Opsig når som helst</div>
+      </div>
+    </div>
+  </div>
+  <!-- OLD GATE HIDDEN (REMOVE) --><div style="display:none"><div class="res4-x-removed">
 
     <!-- Left blurred panel: Detaljeret sammenligning -->
     <div class="res4-gate-peek-left">
@@ -2116,7 +2258,7 @@ function renderResultat(d) {
       </div>
     </div>
 
-  </div>
+  </div></div></div>
 
   <!-- ── 4. Quick actions (FREE) ── -->
   <div class="res4-actions-card">
