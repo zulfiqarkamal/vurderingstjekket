@@ -2058,15 +2058,17 @@ function renderResultat(d) {
     </div>`}
     <div class="res4-cmp-card">
       <div class="res4-cmp-head">⚖ Sammenligning</div>
-      <div class="res4-cmp-table">
-        <div style="display:contents;font-size:.68rem;font-weight:700;color:var(--muted);"><span>Parameter</span><span>Nu</span><span>Nyt</span></div>
-        <span>Rente</span><span>${rente.toFixed(2)}%</span><span class="accent">${(sc.nyRente||mrente).toFixed(2)}%</span>
-        <span>Ydelse/md</span><span>${fmt(Math.round(nuv))} kr</span><span class="${hasConv&&sc.besparelse>0?'pos':'accent'}">${hasConv?fmt(Math.round(sc.nyYdelse))+'  kr':'—'}</span>
-        <span>Restgæld</span><span>${fmt(Math.round(rest/1000)*1000)} kr</span><span class="accent">${hasConv&&sc.nyRest?fmt(Math.round(sc.nyRest/1000)*1000)+' kr':'—'}</span>
-        <span>AOP</span><span>${((rente+bidr)*1.05).toFixed(2)}%</span><span class="accent">${hasConv?((sc.nyRente||mrente)+bidr*1.05).toFixed(2)+'%':'—'}</span>
-        <span>Omk.</span><span>—</span><span>${hasConv?fmt(sc.omkostninger||29800)+' kr':'—'}</span>
-        <span>Break-even</span><span>—</span><span>${hasConv?'~'+Math.ceil((sc.omkostninger||29800)/Math.max(1,Math.abs(sc.besparelse))/12)+' år':'—'}</span>
-      </div>
+      <table class="res4-cmp-table">
+        <thead><tr><th>Parameter</th><th>Nu</th><th>Nyt</th></tr></thead>
+        <tbody>
+          <tr><td>Rente</td><td class="val">${rente.toFixed(2)}%</td><td class="accent">${(sc.nyRente||mrente).toFixed(2)}%</td></tr>
+          <tr><td>Ydelse/md</td><td class="val">${fmt(Math.round(nuv))} kr</td><td class="${hasConv&&sc.besparelse>0?'pos':'accent'}">${hasConv?fmt(Math.round(sc.nyYdelse))+' kr':'—'}</td></tr>
+          <tr><td>Restgæld</td><td class="val">${fmt(Math.round(rest/1000)*1000)} kr</td><td class="accent">${hasConv&&sc.nyRest?fmt(Math.round(sc.nyRest/1000)*1000)+' kr':'—'}</td></tr>
+          <tr><td>AOP</td><td class="val">${((rente+bidr)*1.05).toFixed(2)}%</td><td class="accent">${hasConv?((sc.nyRente||mrente)+bidr*1.05).toFixed(2)+'%':'—'}</td></tr>
+          <tr><td>Omk.</td><td class="val">—</td><td>${hasConv?fmt(sc.omkostninger||29800)+' kr':'—'}</td></tr>
+          <tr><td>Break-even</td><td class="val">—</td><td>${hasConv?'~'+Math.ceil((sc.omkostninger||29800)/Math.max(1,Math.abs(sc.besparelse))/12)+' år':'—'}</td></tr>
+        </tbody>
+      </table>
       <div class="res4-cmp-note">ℹ️ Vejledende tal — din bank giver det bindende tilbud.</div>
     </div>
   </div>

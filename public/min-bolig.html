@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Min bolig — Vurderingstjekket</title>
+<meta name="description" content="Indtast din adresse én gang og få adgang til alle tre produkter fra Vurderingstjekket.">
+<link rel="stylesheet" href="/home.css">
+<style>
+.mb-page{min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px}
+.mb-card{background:var(--white);border:1px solid var(--line);border-radius:20px;padding:48px 52px;max-width:560px;width:100%;text-align:center;box-shadow:0 4px 40px rgba(26,79,63,.07)}
+.mb-icon{font-size:48px;margin-bottom:20px}
+.mb-card h1{font:clamp(26px,3vw,34px)/1.2 Georgia,serif;letter-spacing:-1px;margin-bottom:12px}
+.mb-card p{color:var(--muted);font-size:15px;margin-bottom:32px;line-height:1.7}
+.address-form{display:flex;flex-direction:column;gap:12px;text-align:left}
+.address-form label{font-size:13px;font-weight:700;color:var(--ink)}
+.address-input{width:100%;padding:14px 18px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:var(--paper);transition:border .15s;outline:none}
+.address-input:focus{border-color:var(--green)}
+.address-form .btn{width:100%;justify-content:center;padding:15px;font-size:15px;margin-top:4px}
+.form-note{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+
+/* Dashboard shown after address entry */
+.mb-dashboard{display:none;flex-direction:column;gap:0}
+.mb-welcome{text-align:center;margin-bottom:36px}
+.mb-address-pill{display:inline-flex;align-items:center;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:100px;padding:8px 18px;font-size:13px;margin-bottom:24px}
+.mb-address-pill button{border:none;background:none;cursor:pointer;color:var(--muted);font-size:12px;text-decoration:underline;padding:0}
+.mb-products{display:grid;grid-template-columns:1fr;gap:16px;margin-top:0}
+.mb-product{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:24px 28px;display:flex;align-items:center;gap:20px;text-decoration:none;color:var(--ink);transition:box-shadow .15s,border-color .15s}
+.mb-product:hover{box-shadow:0 4px 20px rgba(26,79,63,.1);border-color:#9ec5a8}
+.mb-product-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.mb-product-text{flex:1}
+.mb-product-title{font-weight:700;font-size:15px;margin-bottom:3px}
+.mb-product-desc{font-size:13px;color:var(--muted)}
+.mb-product-price{font-size:13px;font-weight:700;color:var(--green);white-space:nowrap}
+.mb-product-arrow{color:var(--muted);font-size:18px}
+</style>
+</head>
+<body>
+<header><nav class="wrap" aria-label="Hovednavigation">
+  <a class="brand" href="/" aria-label="Vurderingstjekket forside"><span class="mark" aria-hidden="true">⌂</span>Vurderingstjekket<span style="color:#78926b">.</span></a>
+  <div class="nav-links">
+    <a href="/ejendomsvurdering">Ejendomsvurdering</a>
+    <a href="/boliglaanstjek">BoligLånsRadar</a>
+    <a href="/selvsalg">BoligSelvsalg</a>
+    <a href="/min-bolig" style="color:var(--green);font-weight:700">Min bolig</a>
+    <a class="nav-cta" href="/">Forsiden →</a>
+  </div>
+</nav></header>
+
+<main>
+<div class="mb-page wrap">
+
+  <!-- Step 1: Address entry -->
+  <div class="mb-card" id="addressStep">
+    <div class="mb-icon">🏠</div>
+    <h1>Min bolig</h1>
+    <p>Indtast din adresse én gang og få adgang til alle tre produkter – din ejendomsvurdering, dit boliglån og mulighed for at sælge selv.</p>
+    <form class="address-form" id="addressForm" novalidate>
+      <label for="adresseInput">Din boligadresse</label>
+      <input
+        class="address-input"
+        type="text"
+        id="adresseInput"
+        name="adresse"
+        placeholder="Fx Østerbrogade 24, 2100 København Ø"
+        autocomplete="street-address"
+        required
+      >
+      <button type="submit" class="btn btn-primary">Gem min adresse →</button>
+    </form>
+    <p class="form-note">Vi gemmer kun din adresse lokalt i din browser. Ingen konto krævet.</p>
+  </div>
+
+  <!-- Step 2: Dashboard (shown after address saved) -->
+  <div id="dashboardStep" class="mb-dashboard">
+    <div class="mb-welcome">
+      <h1>Din bolig</h1>
+      <div class="mb-address-pill">
+        <span>📍</span>
+        <span id="savedAddress"></span>
+        <button onclick="resetAddress()">Skift adresse</button>
+      </div>
+      <p style="color:var(--muted);font-size:15px">Vælg et produkt herunder for at komme i gang.</p>
+    </div>
+
+    <div class="mb-products">
+      <a class="mb-product" id="link-vurdering" href="/ejendomsvurdering">
+        <div class="mb-product-icon" style="background:#e8f0e4">🏛️</div>
+        <div class="mb-product-text">
+          <div class="mb-product-title">Ejendomsvurdering</div>
+          <div class="mb-product-desc">Tjek om din officielle vurdering er for høj – og hvad du kan gøre</div>
+        </div>
+        <div class="mb-product-price">Gratis start</div>
+        <div class="mb-product-arrow">→</div>
+      </a>
+
+      <a class="mb-product" id="link-laan" href="/boliglaanstjek">
+        <div class="mb-product-icon" style="background:#dce8f5">📈</div>
+        <div class="mb-product-text">
+          <div class="mb-product-title">BoligLånsRadar</div>
+          <div class="mb-product-desc">Overvåg markedet og bliv advaret når dit lån kan forbedres</div>
+        </div>
+        <div class="mb-product-price">Fra 49 kr./md.</div>
+        <div class="mb-product-arrow">→</div>
+      </a>
+
+      <a class="mb-product" id="link-salg" href="/selvsalg" style="background:#f2f7ee">
+        <div class="mb-product-icon" style="background:#d9eda4">🏡</div>
+        <div class="mb-product-text">
+          <div class="mb-product-title">BoligSelvsalg</div>
+          <div class="mb-product-desc">Sælg selv med komplet guide, salgsmateriale og dokumentpakke</div>
+        </div>
+        <div class="mb-product-price">799 kr.</div>
+        <div class="mb-product-arrow">→</div>
+      </a>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<footer><div class="wrap"><span>Vurderingstjekket · BoligLånsRadar · BoligSelvsalg</span><div><a href="/ejendomsvurdering">Ejendomsvurdering</a><a href="/boliglaanstjek">Boliglånstjek</a><a href="/selvsalg">Selvsalg</a><a href="#indhold">Til toppen ↑</a></div></div></footer>
+
+<script>
+const STORAGE_KEY = 'mb_adresse';
+
+function getAddress() {
+  try { return localStorage.getItem(STORAGE_KEY) || ''; } catch(e) { return ''; }
+}
+
+function saveAddress(addr) {
+  try { localStorage.setItem(STORAGE_KEY, addr); } catch(e) {}
+}
+
+function removeAddress() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+}
+
+function appendAddress(baseUrl, addr) {
+  try {
+    const url = new URL(baseUrl, location.origin);
+    url.searchParams.set('adresse', addr);
+    return url.pathname + url.search;
+  } catch(e) { return baseUrl; }
+}
+
+function showDashboard(addr) {
+  document.getElementById('addressStep').style.display = 'none';
+  const dash = document.getElementById('dashboardStep');
+  dash.style.display = 'flex';
+  document.getElementById('savedAddress').textContent = addr;
+  // Append address to product links for convenience
+  ['link-vurdering','link-laan','link-salg'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.href = appendAddress(el.href, addr);
+  });
+}
+
+function resetAddress() {
+  removeAddress();
+  document.getElementById('dashboardStep').style.display = 'none';
+  document.getElementById('addressStep').style.display = 'block';
+  document.getElementById('adresseInput').value = '';
+  document.getElementById('adresseInput').focus();
+}
+
+document.getElementById('addressForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const addr = document.getElementById('adresseInput').value.trim();
+  if (!addr) { document.getElementById('adresseInput').focus(); return; }
+  saveAddress(addr);
+  showDashboard(addr);
+});
+
+// Check on load
+const stored = getAddress();
+if (stored) { showDashboard(stored); }
+</script>
+</body>
+</html>
