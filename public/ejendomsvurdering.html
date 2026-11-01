@@ -1153,6 +1153,12 @@ async function sendKlageByEmail() {
   document.querySelectorAll(".copybtn").forEach(function(btn){
     btn.addEventListener("click", copyKlage);
   });
+  // Pre-fill address from Min bolig
+  (function(){
+    var params = new URLSearchParams(window.location.search);
+    var addr = params.get('adresse') || (function(){ try { return localStorage.getItem('mb_adresse') || ''; } catch(e) { return ''; } })();
+    if (addr && inp) { inp.value = addr; }
+  })();
 })();
 </script>
 

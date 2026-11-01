@@ -2786,5 +2786,17 @@ async function payCard() {
     });
   }
 })();
+
+// Pre-fill address from Min bolig
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var addr = params.get('adresse') || (function(){ try { return localStorage.getItem('mb_adresse') || ''; } catch(e) { return ''; } })();
+  if (addr) {
+    window.addEventListener('DOMContentLoaded', function() {
+      var inp = document.getElementById('adresseM');
+      if (inp && !inp.value) inp.value = addr;
+    });
+  }
+})();
 </script>
 </body></html>
