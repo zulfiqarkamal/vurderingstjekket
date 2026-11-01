@@ -1906,15 +1906,21 @@ app.post("/api/analyze-screenshot", async (req, res) => {
   if (!apiKey) return res.status(503).json({ error: "OCR ikke konfigureret" });
 
   try {
-    const safeMediaType = ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mediaType)
-      ? mediaType
-      : "image/jpeg";
+    const isPdf = mediaType === "application/pdf";
+    const safeMediaType = isPdf
+      ? "application/pdf"
+      : (["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mediaType) ? mediaType : "image/jpeg");
+
+    const fileBlock = isPdf
+      ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } }
+      : { type: "image", source: { type: "base64", media_type: safeMediaType, data: image } };
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "pdfs-2024-09-25",
         "content-type": "application/json",
       },
       body: JSON.stringify({
@@ -1924,13 +1930,10 @@ app.post("/api/analyze-screenshot", async (req, res) => {
           {
             role: "user",
             content: [
-              {
-                type: "image",
-                source: { type: "base64", media_type: safeMediaType, data: image },
-              },
+              fileBlock,
               {
                 type: "text",
-                text: `Du er en dansk bank-OCR. Analysér dette skærmbillede fra en dansk netbank eller låneapp og udtræk oplysninger om ét boliglån. Svar KUN med JSON uden markdown-kodeblok:\n{"restgaeld": <heltal kr uden punktum>, "maanedligYdelse": <heltal kr>, "rente": <decimal f.eks. 3.5>, "loebetid": <heltal år>, "laantype": <"fastforrentet"|"variabel"|"rentetilpasning"|"">}\nHvis en værdi ikke kan aflæses, brug null for tal og "" for tekst.`,
+                text: `Du er en dansk bank-OCR. Analysér dette ${isPdf ? "dokument" : "skærmbillede"} fra en dansk netbank eller låneapp og udtræk oplysninger om ét boliglån. Svar KUN med JSON uden markdown-kodeblok:\n{"restgaeld": <heltal kr uden punktum>, "maanedligYdelse": <heltal kr>, "rente": <decimal f.eks. 3.5>, "loebetid": <heltal år>, "laantype": <"fastforrentet"|"variabel"|"rentetilpasning"|"">}\nHvis en værdi ikke kan aflæses, brug null for tal og "" for tekst.`,
               },
             ],
           },

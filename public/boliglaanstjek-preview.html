@@ -1058,7 +1058,7 @@ body::before{
 
     <!-- Upload zone -->
     <div class="upload-zone" id="uploadZone">
-      <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleScreenshotUpload(this)">
+      <input type="file" id="fileInput" accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.heic,.heif" onchange="handleScreenshotUpload(this)">
       <div class="upload-icon">
         <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect width="40" height="40" rx="10" fill="var(--accent)" fill-opacity=".12"/>
@@ -1066,8 +1066,8 @@ body::before{
           <path d="M12 28h16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </div>
-      <div class="upload-title">Tryk for at uploade dit screenshot</div>
-      <div class="upload-sub">JPG, PNG eller HEIC · Maks 20 MB</div>
+      <div class="upload-title">Tryk for at uploade billede eller fil</div>
+      <div class="upload-sub">JPG, PNG, HEIC eller PDF · Maks 20 MB</div>
     </div>
 
     <!-- Analyzing state -->
@@ -1623,7 +1623,7 @@ function handleScreenshotUpload(input) {
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ image: base64, mediaType: mType })
         });
-        if (!resp.ok && resp.status === 413) throw new Error('Billedet er for stort — komprimer det eller brug et mindre screenshot');
+        if (!resp.ok && resp.status === 413) throw new Error('Filen er for stor — brug et mindre billede eller et kortere PDF-dokument');
         const ct = resp.headers.get('content-type') || '';
         if (!ct.includes('json')) throw new Error('Server-fejl (' + resp.status + ') — prøv igen');
         const data = await resp.json();
