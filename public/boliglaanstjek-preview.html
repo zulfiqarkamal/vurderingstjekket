@@ -195,8 +195,10 @@ body::before{
 @media(min-width:700px){
   .res-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   .res-col-full{grid-column:1/-1;}
-  #panel-4 .main{max-width:900px;}
 }
+/* Remove outer 520px constraint when results panel is visible */
+#main:has(#panel-4.active){max-width:none;padding:0;}
+#main.panel4-active{max-width:none;padding:0;}
 
 /* ── Panel ──────────────────────────────────────────────────────────────── */
 .panel{display:none;}
@@ -1592,6 +1594,9 @@ function goTo(step) {
     el.classList.toggle('active', n === step);
   });
   currentStep = step;
+  // Expand outer wrapper for wide results layout (JS fallback for CSS :has())
+  const mainEl = document.getElementById('main');
+  if (mainEl) mainEl.classList.toggle('panel4-active', step === 4);
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
