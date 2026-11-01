@@ -124,6 +124,13 @@
       <div id="check-list">
         <!-- Dynamically rendered -->
       </div>
+
+      <!-- Ikke inkluderede ydelser -->
+      <div style="margin-top:36px">
+        <h3 style="font:18px/1.2 Georgia,serif;margin-bottom:6px">Ydelser du bestiller selv</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Disse ydelser er ikke inkluderet i salgspakken. Du bestiller og betaler direkte hos de relevante fagpersoner og portaler.</p>
+        <div id="ext-services"></div>
+      </div>
     </div>
 
     <!-- Step 2–5: Låste trin -->
@@ -211,6 +218,58 @@
 <footer><div class="wrap"><span>Vurderingstjekket · Boliglånsradar · BoligSelvsalg</span><div><a href="/ejendomsvurdering">Ejendomsvurdering</a><a href="/boliglaanstjek">Boliglånstjek</a><a href="/selvsalg">Selvsalg</a></div></div></footer>
 
 <script>
+const EXT_SERVICES = [
+  {
+    id:"es1", icon:"⚡", label:"Elinstallationsrapport",
+    who:"Autoriseret elinstallatør",
+    price:"Ca. 2.500–4.500 kr.",
+    desc:"Obligatorisk ved boligsalg. Rapporten dokumenterer el-installationernes tilstand og er nødvendig for, at køber kan tegne ejerskifteforsikring. Gyldighed: 1 år.",
+    where:"Find autoriserede elinstallatører på <a href=\"https://www.stifi.dk\" target=\"_blank\" rel=\"noopener\">stifi.dk</a> (Sikkerhedsstyringen) eller via din forsikrings­rådgiver."
+  },
+  {
+    id:"es2", icon:"🏠", label:"Tilstandsrapport",
+    who:"Beskikket bygningssagkyndig",
+    price:"Ca. 3.500–6.000 kr.",
+    desc:"Lovpligtig ved salg af hus (ikke ejerlejligheder). Rapporten gennemgår boligens synlige tilstand og er grundlag for huseforsikring til køber. Gyldighed: 6 måneder.",
+    where:"Find beskikkede bygningssagkyndige på <a href=\"https://www.boligejer.dk\" target=\"_blank\" rel=\"noopener\">boligejer.dk</a> (ejendomsmæglernes portal) eller <a href=\"https://www.tilstandsrapport.dk\" target=\"_blank\" rel=\"noopener\">tilstandsrapport.dk</a>."
+  },
+  {
+    id:"es3", icon:"🌿", label:"Energimærke (EPC)",
+    who:"Certificeret energimærkefirma",
+    price:"Ca. 2.500–5.000 kr.",
+    desc:"Skal foreligge ved annoncering af boligen. Energimærket vurderer boligens energiforbrug og giver forslag til forbedringer. Gyldighed: 10 år (eller 5 år for ældre bygninger).",
+    where:"Find certificerede firmaer via <a href=\"https://sparenergi.dk\" target=\"_blank\" rel=\"noopener\">sparenergi.dk</a> (Energistyrelsen) og sammenlign priser lokalt."
+  },
+  {
+    id:"es4", icon:"⚖️", label:"Advokats berigtigelse",
+    who:"Ejendomsadvokat",
+    price:"Ca. 8.000–15.000 kr.",
+    desc:"Advokaten udarbejder købsaftale, skøde og håndterer tinglysning og pengeoverførsler. Inddrag altid advokat <strong>inden</strong> underskrift af købsaftalen. Berigtigelse er normalt købers og sælgers fælles udgift.",
+    where:"Find ejendomsadvokater via <a href=\"https://www.advokatsamfundet.dk\" target=\"_blank\" rel=\"noopener\">advokatsamfundet.dk</a> (Advokatfind) — søg på 'fast ejendom' i dit postnummer."
+  },
+  {
+    id:"es5", icon:"📸", label:"Professionel fotograf",
+    who:"Boligfotograf",
+    price:"Ca. 2.000–5.000 kr.",
+    desc:"Professionelle billeder øger interessen for din bolig markant. Mange fotografer tilbyder pakker med indendørs, udendørs, drone og evt. 3D-rundvisning. Alternativt kan du bruge fotoguiden i salgspakken.",
+    where:"Find boligfotografer via lokale søgninger eller portaler som <a href=\"https://www.boligsiden.dk\" target=\"_blank\" rel=\"noopener\">Boligsiden</a>. Spørg din ejendomsmægler­kreds eller naboer om anbefalinger."
+  },
+  {
+    id:"es6", icon:"🖥️", label:"Boligportal-annoncering",
+    who:"Boligsiden.dk / Home.dk",
+    price:"Ca. 2.000–4.500 kr. (30 dages annonce)",
+    desc:"Du kan annoncere din bolig direkte på Boligsiden.dk og Home.dk som privatperson. Prisen afhænger af pakke og visninger. Tillæg for fremhævning og længere annoncetid.",
+    where:"Opret annonce direkte på <a href=\"https://www.boligsiden.dk/selvsalg\" target=\"_blank\" rel=\"noopener\">Boligsiden.dk/selvsalg</a> eller <a href=\"https://www.home.dk\" target=\"_blank\" rel=\"noopener\">Home.dk</a> under privatperson-oprettelse."
+  },
+  {
+    id:"es7", icon:"🛡️", label:"Forsikring og offentlige afgifter",
+    who:"Forsikringsselskab + Tinglysningsretten",
+    price:"Varierer (se nedenfor)",
+    desc:"<strong>Ejerskifteforsikring</strong> tegnes normalt af køber, men sælger betaler halvdelen (ca. 5.000–12.000 kr.). <strong>Tinglysningsafgift</strong> for skøde: 1.850 kr. + 0,6 % af handelsprisen. <strong>Ejendomsværdiskat</strong>: opgøres i forbindelse med overtagelsesdatoen.",
+    where:"Ejerskifteforsikring tilbydes af store forsikringsselskaber. Tinglysningsafgifter fremgår på <a href=\"https://www.tinglysning.dk\" target=\"_blank\" rel=\"noopener\">tinglysning.dk</a>."
+  },
+];
+
 const CHECKLIST_ITEMS = [
   { id:"c1", label:"Bestem salgspris", hint:"Undersøg sammenlignelige salg i dit område de seneste 6 måneder." },
   { id:"c2", label:"Indhent tilstandsrapport", hint:"Bestil hos en beskikket bygningssagkyndig — kræves for huseforsikring til køber." },
@@ -267,6 +326,7 @@ function initApp() {
   try { checks = JSON.parse(localStorage.getItem("sag_checks_" + sagId) || "{}"); } catch {}
 
   renderChecklist();
+  renderExtServices();
 
   if (SAG.betalt) {
     unlockPaid();
@@ -321,6 +381,25 @@ function renderChecklist() {
     div.querySelector(".check-box").addEventListener("keydown", e => { if (e.key===" "||e.key==="Enter") toggleCheck(item.id); });
   });
   updateProgress();
+}
+
+function renderExtServices() {
+  const container = document.getElementById("ext-services");
+  if (!container) return;
+  container.innerHTML = EXT_SERVICES.map(s => `
+    <details style="border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden">
+      <summary style="padding:14px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;font-weight:600;font-size:14px;list-style:none;background:white">
+        <span style="font-size:20px;line-height:1">${s.icon}</span>
+        <span style="flex:1">${s.label}</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:400;margin-right:8px">${s.price}</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;transition:transform .2s"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </summary>
+      <div style="padding:16px 18px 18px;background:#fafaf8;border-top:1px solid var(--line);font-size:13px;color:var(--muted);line-height:1.7">
+        <p style="margin:0 0 8px"><strong style="color:var(--ink)">Hvem:</strong> ${s.who} &nbsp;·&nbsp; <strong style="color:var(--ink)">Pris:</strong> ${s.price}</p>
+        <p style="margin:0 0 10px">${s.desc}</p>
+        <p style="margin:0">📍 ${s.where}</p>
+      </div>
+    </details>`).join("");
 }
 
 function toggleCheck(id) {
