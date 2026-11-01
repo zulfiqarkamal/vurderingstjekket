@@ -14,9 +14,16 @@
 .mb-card p{color:var(--muted);font-size:15px;margin-bottom:32px;line-height:1.7}
 .address-form{display:flex;flex-direction:column;gap:12px;text-align:left}
 .address-form label{font-size:13px;font-weight:700;color:var(--ink)}
-.address-input{width:100%;padding:14px 18px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:var(--paper);transition:border .15s;outline:none}
+.address-field-wrap{position:relative}
+.address-input{width:100%;padding:14px 18px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:var(--paper);transition:border .15s;outline:none;box-sizing:border-box}
 .address-input:focus{border-color:var(--green)}
 .address-form .btn{width:100%;justify-content:center;padding:15px;font-size:15px;margin-top:4px}
+.mb-dawa-drop{position:absolute;top:100%;left:0;right:0;z-index:99;background:#fff;border:1.5px solid var(--green);border-radius:10px;box-shadow:0 8px 24px rgba(26,79,63,.15);max-height:260px;overflow-y:auto;margin-top:3px;display:none}
+.mb-dawa-item{padding:11px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--line);line-height:1.4}
+.mb-dawa-item:last-child{border-bottom:none}
+.mb-dawa-item:hover,.mb-dawa-item.active{background:#e8f0e4;color:var(--green)}
+.mb-dawa-item strong{display:block;font-weight:700}
+.mb-dawa-item span{font-size:12px;color:var(--muted)}
 .form-note{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
 
 /* Dashboard shown after address entry */
@@ -57,15 +64,18 @@
     <p>Indtast din adresse én gang og få adgang til alle tre produkter – din ejendomsvurdering, dit boliglån og mulighed for at sælge selv.</p>
     <form class="address-form" id="addressForm" novalidate>
       <label for="adresseInput">Din boligadresse</label>
-      <input
-        class="address-input"
-        type="text"
-        id="adresseInput"
-        name="adresse"
-        placeholder="Fx Østerbrogade 24, 2100 København Ø"
-        autocomplete="street-address"
-        required
-      >
+      <div class="address-field-wrap">
+        <input
+          class="address-input"
+          type="text"
+          id="adresseInput"
+          name="adresse"
+          placeholder="Fx Østerbrogade 24, 2100 København Ø"
+          autocomplete="off"
+          required
+        >
+        <div class="mb-dawa-drop" id="mb-dawa-drop"></div>
+      </div>
       <button type="submit" class="btn btn-primary">Gem min adresse →</button>
     </form>
     <p class="form-note">Vi gemmer kun din adresse lokalt i din browser. Ingen konto krævet.</p>
@@ -149,7 +159,6 @@ function showDashboard(addr) {
   const dash = document.getElementById('dashboardStep');
   dash.style.display = 'flex';
   document.getElementById('savedAddress').textContent = addr;
-  // Append address to product links for convenience
   ['link-vurdering','link-laan','link-salg'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.href = appendAddress(el.href, addr);
@@ -170,6 +179,88 @@ document.getElementById('addressForm').addEventListener('submit', function(e) {
   if (!addr) { document.getElementById('adresseInput').focus(); return; }
   saveAddress(addr);
   showDashboard(addr);
+});
+
+// ── DAWA autocomplete ──────────────────────────────────────────────────────
+let mbDawaTimer = null;
+let mbDawaCursor = -1;
+let mbDawaResults = [];
+
+function mbDawaSearch(q) {
+  clearTimeout(mbDawaTimer);
+  const drop = document.getElementById('mb-dawa-drop');
+  if (q.length < 2) { drop.style.display = 'none'; return; }
+  mbDawaTimer = setTimeout(async () => {
+    try {
+      const url = 'https://api.dataforsyningen.dk/adresser/autocomplete?q=' + encodeURIComponent(q) + '&caretpos=' + q.length + '&per_side=8&fuzzy=';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const raw = await res.json();
+      mbDawaResults = Array.isArray(raw) ? raw.map(item => {
+        const adr = item.adresse || {};
+        return { label: item.tekst || '', postnr: adr.postnr || '', by: adr.postnrnavn || '' };
+      }).filter(d => d.label) : [];
+      mbDawaCursor = -1;
+      mbRenderDrop();
+    } catch(e) {
+      try {
+        const r2 = await fetch('/api/adresse?q=' + encodeURIComponent(q));
+        const data = await r2.json();
+        mbDawaResults = (data.suggestions || []);
+        mbDawaCursor = -1;
+        mbRenderDrop();
+      } catch(e2) { drop.style.display = 'none'; }
+    }
+  }, 200);
+}
+
+function mbRenderDrop() {
+  const drop = document.getElementById('mb-dawa-drop');
+  if (!mbDawaResults.length) { drop.style.display = 'none'; return; }
+  drop.innerHTML = mbDawaResults.map((d, i) => {
+    const linje1 = d.label.split(',')[0];
+    const linje2 = d.postnr ? (d.postnr + ' ' + d.by) : '';
+    return '<div class="mb-dawa-item" data-i="' + i + '" onmousedown="mbDawaPick(' + i + ')"><strong>' + linje1 + '</strong><span>' + linje2 + '</span></div>';
+  }).join('');
+  drop.style.display = 'block';
+}
+
+function mbDawaPick(i) {
+  const d = mbDawaResults[i];
+  if (!d) return;
+  document.getElementById('adresseInput').value = d.label;
+  document.getElementById('mb-dawa-drop').style.display = 'none';
+  saveAddress(d.label);
+  showDashboard(d.label);
+}
+
+function mbDawaKey(e) {
+  const drop = document.getElementById('mb-dawa-drop');
+  const items = drop.querySelectorAll('.mb-dawa-item');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    mbDawaCursor = Math.min(mbDawaCursor + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle('active', i === mbDawaCursor));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    mbDawaCursor = Math.max(mbDawaCursor - 1, 0);
+    items.forEach((el, i) => el.classList.toggle('active', i === mbDawaCursor));
+  } else if (e.key === 'Enter') {
+    if (mbDawaCursor >= 0 && mbDawaResults[mbDawaCursor]) {
+      e.preventDefault();
+      mbDawaPick(mbDawaCursor);
+    }
+  } else if (e.key === 'Escape') {
+    drop.style.display = 'none';
+  }
+}
+
+document.getElementById('adresseInput').addEventListener('input', function() { mbDawaSearch(this.value.trim()); });
+document.getElementById('adresseInput').addEventListener('keydown', mbDawaKey);
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.address-field-wrap')) {
+    document.getElementById('mb-dawa-drop').style.display = 'none';
+  }
 });
 
 // Check on load
