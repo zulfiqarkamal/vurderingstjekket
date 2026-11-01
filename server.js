@@ -55,6 +55,9 @@ app.get("/selvsalg/start", (_req, res) => {
 app.get("/selvsalg/sag/:id", (_req, res) => {
   res.set("Cache-Control", "no-store").sendFile(path.join(__dirname, "public", "selvsalg-sag.html"));
 });
+app.get("/min-bolig", (_req, res) => {
+  res.set("Cache-Control", "no-cache").sendFile(path.join(__dirname, "public", "min-bolig.html"));
+});
 // HTML må ikke caches, ellers ser folk en gammel version af siden efter en opdatering
 app.use(express.static(path.join(__dirname, "public"), {
   // Let the root handler recognize historical payment returns before serving home.
