@@ -821,10 +821,18 @@ app.get("/api/markedsvaerdi", async (req, res) => {
 
   try {
     const typeCode = apifyTypeCode(anvKode || "120");
-    const [comps, koord] = await Promise.all([
+    const [comps, aktive, koord] = await Promise.all([
       getSoldComps(postnr, typeCode),
+      getActiveListingsBoliga(postnr, typeCode).catch(e => { console.warn("Aktive annoncer fejlede:", e.message); return []; }),
       adresseId ? getAdresseKoordinater(adresseId).catch(() => null) : Promise.resolve(null),
     ]);
+
+    // Aktive annoncer: filtrer til sammenlignelige størrelser (50–180% af target m²)
+    const sammenligneligeAktive = aktive.filter(l =>
+      l.size >= m2Num * 0.5 && l.size <= m2Num * 1.8 && l.squareMeterPrice > 5000
+    );
+    const aktivePriserM2 = sammenligneligeAktive.map(l => l.squareMeterPrice).filter(Boolean).sort((a, b) => a - b);
+    const aktiveMedianPrisM2 = aktivePriserM2.length > 0 ? aktivePriserM2[Math.floor(aktivePriserM2.length / 2)] : null;
 
     if (!comps || comps.length < 3) {
       // DST fallback: use EJEN77 landsdel average kr/m² when Boliga has too few comps
@@ -843,6 +851,8 @@ app.get("/api/markedsvaerdi", async (req, res) => {
                 kilde: "dst",
                 landsdel,
                 landsdelnavn: LANDSDEL_NAVN[landsdel] || landsdel,
+                aktiveAnnoncer: sammenligneligeAktive.length,
+                aktiveMedianPrisM2,
               });
             }
           } catch (_) { /* fall through to null response */ }
@@ -870,6 +880,8 @@ app.get("/api/markedsvaerdi", async (req, res) => {
       compsCount: a.compsCount || 0,
       handler: topHandler,
       kilde: "boliga",
+      aktiveAnnoncer: sammenligneligeAktive.length,
+      aktiveMedianPrisM2,
     });
   } catch (err) {
     console.error("markedsvaerdi fejl:", err.message);
@@ -1622,6 +1634,48 @@ async function getSoldComps(zipCode, typeCode) {
   })();
   COMPS_INFLIGHT.set(key, job);
   try { return await job; } finally { COMPS_INFLIGHT.delete(key); }
+}
+
+// Aktive annoncer (til salg) fra Boligas for-sale API — samme domæne som solgte handler
+const ACTIVE_LISTINGS_CACHE = {};
+const ACTIVE_LISTINGS_TTL_MS = 2 * 60 * 60 * 1000; // 2 timer
+
+async function getActiveListingsBoliga(zipCode, typeCode) {
+  const key = `aktive|${zipCode}|${typeCode}`;
+  const cached = ACTIVE_LISTINGS_CACHE[key];
+  if (cached && Date.now() - cached.ts < ACTIVE_LISTINGS_TTL_MS) return cached.listings;
+
+  const url = page => "https://api.boliga.dk/api/v2/estate/search/results?searchTab=1" +
+    `&propertyType=${encodeURIComponent(typeCode)}` +
+    `&zipcodeFrom=${encodeURIComponent(zipCode)}&zipcodeTo=${encodeURIComponent(zipCode)}` +
+    `&sort=date-d&pageSize=50&page=${page}`;
+
+  const results = [];
+  for (let page = 1; page <= 2; page++) {
+    const r = await fetch(url(page), {
+      headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0 (Vurderingstjekket)" },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!r.ok) throw new Error(`Boliga estate HTTP ${r.status}`);
+    const data = await r.json();
+    if (!Array.isArray(data?.results)) throw new Error("Uventet Boliga estate-svar");
+    results.push(...data.results);
+    if (page >= (data.meta?.totalPages || 1)) break;
+  }
+
+  const listings = results.map(c => ({
+    guid:             c.guid,
+    address:          `${c.address || ""}, ${c.zipCode || ""} ${c.city || ""}`.trim(),
+    price:            c.price,
+    size:             c.size,
+    squareMeterPrice: c.sqmPrice ? Math.round(c.sqmPrice) : (c.price && c.size ? Math.round(c.price / c.size) : null),
+    agencyName:       c.estateAgent || c.agencyName || null,
+    latitude:         c.latitude,
+    longitude:        c.longitude,
+  })).filter(l => l.price > 0 && l.size > 0);
+
+  if (listings.length > 0) ACTIVE_LISTINGS_CACHE[key] = { ts: Date.now(), listings };
+  return listings;
 }
 
 // Reserve: samme handler via Apify-aktøren (koster pr. handel og har en månedsgrænse)
