@@ -811,6 +811,51 @@ function checkInputPlausibility({ evNum, m2Num, marketValue2022, erLejlighed }) 
   return warnings;
 }
 
+// ─── Markedsbaseret friværdi (boliglaanstjek) ─────────────────
+// GET /api/markedsvaerdi?postnr=X&m2=Y&anvKode=Z&adresseId=W
+app.get("/api/markedsvaerdi", async (req, res) => {
+  const { postnr, m2, anvKode, adresseId, kommunekode } = req.query;
+  const m2Num = Number(m2);
+  if (!postnr || !/^\d{4}$/.test(postnr)) return res.status(400).json({ error: "Mangler gyldigt postnr" });
+  if (!m2Num || m2Num < 20) return res.status(400).json({ error: "Mangler gyldigt boligareal (m²)" });
+
+  try {
+    const typeCode = apifyTypeCode(anvKode || "120");
+    const [comps, koord] = await Promise.all([
+      getSoldComps(postnr, typeCode),
+      adresseId ? getAdresseKoordinater(adresseId).catch(() => null) : Promise.resolve(null),
+    ]);
+
+    if (!comps || comps.length < 3) {
+      return res.status(200).json({ markedsvaerdi: null, compsCount: comps ? comps.length : 0, handler: [] });
+    }
+
+    // Use a neutral evNum (0) since we only need estimatedMarket from comps
+    const a = analyseComps(comps, m2Num, 0, { koord });
+    if (!a.estimatedMarket) {
+      return res.status(200).json({ markedsvaerdi: null, compsCount: a.compsCount || 0, handler: [] });
+    }
+
+    const topHandler = (a.topComps || []).slice(0, 5).map(c => ({
+      adresse: c.address || c.adresse || "",
+      dato: c.date || c.dato || "",
+      pris: c.price || c.pris || 0,
+      m2: c.size || c.m2 || 0,
+      prPerM2: c.sqmPrice || c.prPerM2 || 0,
+    }));
+
+    return res.json({
+      markedsvaerdi: Math.round(a.estimatedMarket),
+      compsCount: a.compsCount || 0,
+      handler: topHandler,
+      kilde: "boliga",
+    });
+  } catch (err) {
+    console.error("markedsvaerdi fejl:", err.message);
+    return res.status(500).json({ error: "Kunne ikke beregne markedsværdi" });
+  }
+});
+
 // ─── Free eligibility check ───────────────────────────────────
 // POST /api/free-check  body: { m2, kommunekode, anvKode, ev, address }
 app.post("/api/free-check", async (req, res) => {
