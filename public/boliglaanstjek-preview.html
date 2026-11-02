@@ -2532,7 +2532,6 @@ async function fetchMarkedsvaerdi(postnr, m2, anvKode, adresseId) {
       // Update hidden field so beregn() has it even as fallback
       const ejdField = document.getElementById('ejendomsvaerdi');
       if (ejdField && !ejdField.value) ejdField.value = data.markedsvaerdi;
-      // Auto-refresh results if already rendered with EV fallback
       if (window._beregningState) { try { renderResultat(window._beregningState); } catch(e) {} }
       if (badge && badgeTxt) badgeTxt.textContent = `Markedsværdi: ${Math.round(data.markedsvaerdi/1000)*1000 .toLocaleString('da-DK')} kr (${data.compsCount || '?'} handler)`;
     } else {
