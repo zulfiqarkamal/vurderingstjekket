@@ -968,7 +968,7 @@ body.blr-active body::before{background:var(--forest);}
   padding:11px 20px;border-radius:10px;font-size:.84rem;font-weight:600;cursor:pointer;
 }
 .blr-hero-btn-secondary:hover{background:#f0fdf4;}
-.blr-hero-right{width:340px;flex-shrink:0;position:relative;overflow:hidden;}
+.blr-hero-right{width:340px;flex-shrink:0;min-height:240px;position:relative;overflow:hidden;align-self:stretch;}
 .blr-hero-photo{
   width:100%;height:100%;object-fit:cover;object-position:center;
   display:block;
@@ -999,27 +999,9 @@ body.blr-active body::before{background:var(--forest);}
   background:#fff;border:1px solid #e2e8f0;border-radius:12px;
   padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05);
 }
-.blr-stat-icon{font-size:1.2rem;margin-bottom:8px;display:block;}
 .blr-stat-label{font-size:.72rem;color:#64748b;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;}
 .blr-stat-val{font-size:1.35rem;font-weight:800;color:#0f172a;line-height:1.2;margin-bottom:4px;}
 .blr-stat-sub{font-size:.75rem;color:#94a3b8;}
-/* Bottom insight cards */
-.blr-bottom-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:24px;}
-.blr-bottom-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
-.blr-bottom-card-title{font-size:.88rem;font-weight:700;color:#0f172a;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-.blr-gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;}
-.blr-gauge-svg{width:140px;height:76px;}
-.blr-gauge-val{font-size:1.6rem;font-weight:800;color:#0f172a;}
-.blr-gauge-label{font-size:.75rem;color:#94a3b8;text-align:center;}
-.blr-gevinst-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;}
-.blr-gevinst-row:last-child{border-bottom:none;}
-.blr-gevinst-label{font-size:.78rem;color:#64748b;}
-.blr-gevinst-val{font-size:.95rem;font-weight:700;color:#059669;}
-.blr-gevinst-val.neutral{color:#64748b;}
-.blr-marked-row{display:flex;align-items:center;gap:12px;padding:8px 0;}
-.blr-marked-icon{font-size:1.5rem;}
-.blr-marked-txt strong{font-size:.88rem;display:block;color:#0f172a;font-weight:700;}
-.blr-marked-txt span{font-size:.78rem;color:#64748b;}
 .blr-stat-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:.7rem;font-weight:700;margin-top:4px;}
 .blr-stat-badge.ok{background:#d1fae5;color:#065f46;}
 .blr-stat-badge.warn{background:#fef3c7;color:#92400e;}
@@ -1056,10 +1038,43 @@ body.blr-active body::before{background:var(--forest);}
 .blr-sc-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.7rem;font-weight:700;}
 .blr-sc-tag.conv{background:#d1fae5;color:#065f46;}
 .blr-sc-tag.hold{background:#e0e7ff;color:#3730a3;}
+.blr-sc-tag.flex{background:#fef3c7;color:#92400e;}
+.blr-sc-tag.afdrag{background:#ede9fe;color:#5b21b6;}
+.blr-sc-tag.af-fri{background:#fce7f3;color:#9d174d;}
+.blr-sc-note{font-size:.7rem;color:#64748b;margin-top:2px;}
+.blr-sc-lender{font-size:.68rem;color:#94a3b8;margin-top:1px;}
+.blr-scenario-foot{font-size:.72rem;color:#64748b;padding:10px 12px;border-top:1px solid #e2e8f0;line-height:1.5;}
 .blr-sc-pos{color:#059669;font-weight:700;}
 .blr-sc-neg{color:#dc2626;font-weight:700;}
 .blr-sc-best{background:#f0fdf4!important;}
 .blr-sc-best td:first-child{font-weight:700!important;color:var(--forest)!important;}
+
+/* Scenario tabs & cards */
+.blr-sc-tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:0;}
+.blr-sc-tab{background:none;border:none;padding:8px 14px;font-size:.8rem;font-weight:600;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:4px 4px 0 0;transition:all .15s;}
+.blr-sc-tab.active{color:#1e3a5f;border-bottom-color:#1e3a5f;background:#f8fafc;}
+.blr-sc-tab:hover:not(.active){color:#374151;background:#f1f5f9;}
+.blr-sc-highlights{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+.blr-sc-hcard{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;position:relative;}
+.blr-sc-hcard.best-deal{border-color:#10b981;background:#f0fdf4;}
+.blr-sc-hcard-label{font-size:.65rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.blr-sc-hcard-label.green{color:#059669;}
+.blr-sc-hcard-title{font-size:.82rem;font-weight:700;color:#0f172a;margin-bottom:8px;}
+.blr-sc-hcard-ydelse{font-size:1.1rem;font-weight:800;color:#0f172a;}
+.blr-sc-hcard-change{font-size:.78rem;margin-top:4px;}
+.blr-sc-hcard-change.neg{color:#dc2626;}
+.blr-sc-hcard-change.pos{color:#059669;}
+.blr-sc-hcard-change.neutral{color:#64748b;}
+.blr-sc-hcard-info{font-size:.72rem;color:#94a3b8;margin-top:6px;}
+.blr-sc-detail-toggle{font-size:.72rem;color:#3b82f6;cursor:pointer;text-decoration:underline;margin-top:8px;display:block;}
+.blr-sc-detail-box{display:none;margin-top:10px;padding:10px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;font-size:.76rem;color:#374151;line-height:1.55;}
+.blr-sc-detail-box.open{display:block;}
+.blr-sc-see-all{width:100%;background:none;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:.78rem;color:#3b82f6;cursor:pointer;margin-bottom:12px;transition:all .15s;}
+.blr-sc-see-all:hover{background:#f0f9ff;}
+.blr-sc-all-table{display:none;}
+.blr-sc-all-table.open{display:block;}
+.blr-afdrag-explain{background:#ede9fe;border:1px solid #c4b5fd;border-radius:8px;padding:12px 14px;font-size:.78rem;color:#3730a3;line-height:1.55;margin-bottom:16px;}
+@media(max-width:768px){.blr-sc-highlights{grid-template-columns:1fr;}}
 
 /* Sidebar */
 .blr-sidebar{display:flex;flex-direction:column;gap:16px;}
@@ -1143,7 +1158,6 @@ body.blr-active body::before{background:var(--forest);}
   .blr-nav-items{display:none;}
   .blr-nav-right{display:none;}
   .blr-page{padding:12px;}
-  .blr-bottom-cards{grid-template-columns:1fr;}
   /* scenario table: scroll horizontally on small screens */
   .blr-scenario-card{overflow-x:auto;padding:16px;}
   .blr-scenario-table{min-width:420px;}
@@ -1308,9 +1322,9 @@ body.blr-active body::before{background:var(--forest);}
       <span id="bbrBadgeIcon">🏠</span>
       <span id="bbrBadgeText"></span>
     </div>
-    <div id="markedsBadge" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(26,138,84,.08);border:1px solid rgba(26,138,84,.25);border-radius:8px;font-size:.82rem;color:var(--success);align-items:center;gap:8px;">
-      <span>📍</span>
-      <span id="markedsBadgeText">Henter markedsværdi...</span>
+    <div id="markedsBadge" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(26,138,84,.08);border:1px solid rgba(26,138,84,.25);border-radius:8px;font-size:.82rem;color:var(--success);align-items:center;gap:8px;overflow:hidden;">
+      <span style="flex-shrink:0;">📍</span>
+      <span id="markedsBadgeText" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Henter markedsværdi...</span>
     </div>
 
     <div id="manuelEvFallback" style="display:none;margin-top:12px">
@@ -1459,17 +1473,6 @@ body.blr-active body::before{background:var(--forest);}
     <div class="extracted-badge" id="extractedBadge" style="display:none;">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--success)"><path d="M8 0a8 8 0 110 16A8 8 0 018 0zm3.2 5.4L7 9.6 4.8 7.4 3.6 8.6l3.4 3.4 5.6-5.6-1.4-1z"/></svg>
       Udtrukket fra dit screenshot
-    </div>
-
-    <div class="field">
-      <label>Ejendomsværdi</label>
-      <div class="field-suffix">
-        <input type="number" id="ejendomsvaerdiP3" min="100000" max="50000000" step="10000"
-          placeholder="4200000"
-          oninput="document.getElementById('ejendomsvaerdi').value=this.value">
-        <span>kr</span>
-      </div>
-      <div class="field-hint">Seneste kendte vurdering eller markedsværdi</div>
     </div>
 
     <div class="field-row">
@@ -1968,7 +1971,7 @@ let currentStep = 1;
 function blrNavTo(el, target) {
   document.querySelectorAll('.blr-subnav-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  const offset = 120; // sticky header + subnav height
+  const offset = 120;
   const scrollTo = (sel) => {
     const el2 = document.querySelector(sel);
     if (el2) {
@@ -1987,16 +1990,31 @@ function blrNavTo(el, target) {
   }
 }
 
+// ── Scenario UI helpers ───────────────────────────────────────────────────
+function blrScTab(el, name) {
+  el.closest('.blr-scenario-card').querySelectorAll('.blr-sc-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  el.closest('.blr-scenario-card').querySelectorAll('.blr-sc-panel').forEach(p => p.style.display = 'none');
+  const panel = el.closest('.blr-scenario-card').querySelector('#blr-sc-' + name);
+  if (panel) panel.style.display = '';
+}
+function blrScToggleDetail(el) {
+  const box = el.nextElementSibling;
+  if (!box) return;
+  const open = box.classList.toggle('open');
+  el.textContent = open ? 'Skjul forklaring ▲' : 'Hvad betyder dette for mig? ▼';
+}
+function blrScToggleAll(btn) {
+  const table = btn.nextElementSibling;
+  if (!table) return;
+  const open = table.classList.toggle('open');
+  btn.textContent = open ? '▲ Skjul alle lånemuligheder' : '▼ Se alle lånemuligheder';
+}
+
 // ── Navigation ────────────────────────────────────────────────────────────
 function goTo(step) {
   document.querySelector(`#panel-${currentStep}`).classList.remove('active');
   document.querySelector(`#panel-${step}`).classList.add('active');
-  // Keep the step-3 ejendomsværdi field in sync with the step-1 source
-  if (step === 3) {
-    const src = document.getElementById('ejendomsvaerdi');
-    const dst = document.getElementById('ejendomsvaerdiP3');
-    if (src && dst && !dst.value) dst.value = src.value || '';
-  }
   document.querySelectorAll('.step').forEach((el, i) => {
     const n = i + 1;
     el.classList.toggle('done', n < step);
@@ -2141,11 +2159,7 @@ function restgaeldEfter(rest, samletRentePct, loebAar, efter) {
 
 // ── Main calculation (async pga. live renter) ────────────────────────────
 async function beregn() {
-  // ejendomsvaerdiP3 is the visible step-3 field; sync it back to the hidden step-1 field
-  const p3EjdField = document.getElementById('ejendomsvaerdiP3');
-  if (p3EjdField && +p3EjdField.value) document.getElementById('ejendomsvaerdi').value = p3EjdField.value;
-
-  const ejd   = +document.getElementById('ejendomsvaerdi').value;
+  let   ejd   = +document.getElementById('ejendomsvaerdi').value;
   const rest  = +document.getElementById('restgaeld').value;
   const rente = +document.getElementById('rente').value;
   const loeb  = +document.getElementById('loebetid').value;
@@ -2153,12 +2167,14 @@ async function beregn() {
   const mYdl  = +document.getElementById('maanedligYdelse').value || null;
   const afdrf = ltype === 'afdragsfri';
 
-  const missingFields = [];
-  if (!ejd)   missingFields.push('Ejendomsværdi');
-  if (!rest)  missingFields.push('Restgæld');
-  if (!rente) missingFields.push('Rente');
-  if (!loeb)  missingFields.push('Løbetid');
-  if (missingFields.length) return alert('Udfyld venligst: ' + missingFields.join(', '));
+  // Ejendomsværdi kan mangle hvis brugeren springer panel 2 over (f.eks. demo-flow).
+  // Brug markedsværdi hvis hentet, ellers estimér fra restgæld (antag 65% LTV).
+  if (!ejd) {
+    ejd = window._markedsvaerdi || Math.round(rest / 0.65);
+    document.getElementById('ejendomsvaerdi').value = ejd;
+  }
+
+  if (!rest || !rente || !loeb) return alert('Udfyld venligst Restgæld, Rente og Løbetid.');
 
   const renter = await hentMarkedsrenter();
   const mrente = renter[ltype] || renter.fastforrentet;
@@ -2214,9 +2230,41 @@ async function beregn() {
   const nyBidr = sc.type !== 'ingen' ? bidragssats((sc.nyRest / ejd) * 100) : bidr;
   const scener = scenarieBeregning(rest, rente, bidr, loeb, sc.nyRente, sc.nyRest, nyBidr, loeb);
 
+  // ── Udvidede lånetyper: F1/F3/F5, fastforrentet, afdragsfri toggle ──
+  const extScener = [];
+  const ltypeOptions = [
+    { key: 'F1',           label: 'F1 Flekslån',              note: 'Variabel — justeres hvert år',      kursNote: '≈100', lender: 'Realkredit Danmark / Nykredit' },
+    { key: 'F3',           label: 'F3 Flekslån',              note: 'Variabel — justeres hvert 3. år',   kursNote: '≈100', lender: 'Totalkredit / Realkredit Danmark' },
+    { key: 'F5',           label: 'F5 Flekslån',              note: 'Variabel — justeres hvert 5. år',   kursNote: '≈100', lender: 'Nykredit / NordeaKredit' },
+    { key: 'fastforrentet', label: 'Fastforrentet',           note: 'Fast rente i hele løbetiden',       kursNote: 'varierer', lender: 'Nykredit / Realkredit Danmark' },
+  ];
+  for (const lt of ltypeOptions) {
+    if (lt.key === ltype) continue;
+    const r = renter[lt.key] || renter.fastforrentet;
+    const nyB2 = bidragssats(ltvMarked);
+    const nyYd = mYdelse(rest, r, loeb, nyB2);
+    const bespar = Math.round(nuv - nyYd);
+    const omk2 = konvOmk(rest);
+    const tb = Math.abs(bespar) > 50 ? Math.ceil(omk2 / Math.abs(bespar)) : null;
+    extScener.push({ key: lt.key, label: lt.label, rente: r, ydelse: Math.round(nyYd), besparelse: bespar, omk: omk2, tb, note: lt.note, kursNote: lt.kursNote, lender: lt.lender });
+  }
+  if (ltype === 'afdragsfri') {
+    const r = renter.fastforrentet;
+    const nyB2 = bidragssats(ltvMarked);
+    const nyYd = mYdelse(rest, r, loeb, nyB2);
+    const bespar = Math.round(nuv - nyYd);
+    extScener.push({ key: 'afdrag', label: 'Skift til afdrag (fast rente)', rente: r, ydelse: Math.round(nyYd), besparelse: bespar, omk: konvOmk(rest), tb: null, note: 'Nedbringer restgæld — lavere saldo til indfrielse', kursNote: 'varierer', lender: 'Nykredit / Totalkredit' });
+  } else if (ltvMarked <= 60) {
+    const r = renter.afdragsfri || renter.fastforrentet;
+    const nyB2 = bidragssats(ltvMarked);
+    const nyYd = mYdelse(rest, r, loeb, nyB2, true);
+    const bespar = Math.round(nuv - nyYd);
+    extScener.push({ key: 'afdragsfri', label: 'Afdragsfri (LTV < 60%)', rente: r, ydelse: Math.round(nyYd), besparelse: bespar, omk: konvOmk(rest), tb: null, note: 'Du er under 60% — afdragsfrihed er mulig', kursNote: '≈100', lender: 'Nykredit / Totalkredit' });
+  }
+
   // ── Render panel-4 ─────────────────────────────────────────────────────
   renderResultat({ ejd, rest, rente, loeb, ltype, bidr, nuv, mrente, ltv: ltvMarked, frivaerdi, frivaerdiPct, sc, scener, renter,
-    markedsEjd, compsCount: window._markedsCompsCount, handler: window._markedsHandler });
+    extScener, markedsEjd, compsCount: window._markedsCompsCount, handler: window._markedsHandler });
   goTo(4);
 }
 
@@ -2356,16 +2404,16 @@ function renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, skatEjd, compsCo
 
 function renderResultat(d) {
   const { ejd, rest, rente, loeb, ltype, bidr, nuv, mrente, ltv, frivaerdi, frivaerdiPct, sc, scener, renter,
-          markedsEjd, compsCount, handler } = d;
+          extScener, markedsEjd, compsCount, handler } = d;
 
   // ── Hero messaging ──
   let heroH, heroP, heroBadge, heroBadgeClass;
   const hasConv = sc && sc.type !== 'ingen';
-  if (hasConv && sc.anbefalet && sc.besparelse > 0) {
-    heroBadge = '⊙ PERSONLIG ANBEFALING';
+  if (hasConv && sc.besparelse > 0) {
+    heroBadge = '◉ ANALYSE KLAR';
     heroBadgeClass = '';
-    heroH = 'Det kan være et godt tidspunkt at overveje omlægning';
-    heroP = `Baseret på din aktuelle rente og markedsrenter kan en omlægning spare dig op til <strong>${fmt(Math.round(sc.besparelse * 12))} kr./år</strong>. Beregningerne er vejledende — kontakt din bank for et bindende tilbud.`;
+    heroH = 'Dit lån er analyseret — se mulighederne nedenfor';
+    heroP = `Markedsrenten er <strong>${mrente.toFixed(2)}%</strong>. Beregningerne nedenfor er vejledende sammenligninger — kontakt din bank for et bindende tilbud.`;
   } else if (ltv > 80) {
     heroBadge = '⚠ BEMÆRK';
     heroBadgeClass = 'warn';
@@ -2420,26 +2468,143 @@ function renderResultat(d) {
   const ltvBadgeCls = ltv < 60 ? 'ok' : ltv <= 80 ? 'warn' : 'bad';
   const ltvBadgeTxt = ltv < 60 ? 'Lav risiko' : ltv <= 80 ? 'Moderat' : 'Høj LTV';
 
-  // ── Scenario rows ──
-  const newLtvPct = sc ? Math.round(((sc.nyRest || rest) / (markedsEjd || ejd)) * 100) : null;
-  const scLabelTxt = sc ? (newLtvPct !== null ? `Konverter (${newLtvPct}% LTV)` : 'Konvertering') : '';
-  const scRow = hasConv && sc ? `
-    <tr class="blr-sc-best">
-      <td><span class="blr-sc-tag conv">${scLabelTxt}</span></td>
-      <td>${sc.nyRente ? sc.nyRente.toFixed(2) + '%' : (mrente.toFixed(2) + '%')}</td>
-      <td>${fmt(Math.round(sc.nyYdelse || nuv))}</td>
-      <td class="${sc.besparelse >= 0 ? 'blr-sc-pos' : 'blr-sc-neg'}">${sc.besparelse >= 0 ? '+' : ''}${fmt(Math.round(sc.besparelse))} kr/md</td>
-      <td>${sc.omk ? Math.ceil(sc.omk / Math.max(1, Math.abs(sc.besparelse))) + ' md.' : '—'}</td>
-    </tr>` : '';
-  const currentLtvPct = Math.round(ltv);
-  const scHoldRow = `
-    <tr>
-      <td><span class="blr-sc-tag hold">Hold lån (${currentLtvPct}% LTV)</span></td>
-      <td>${rente.toFixed(2)}%</td>
-      <td>${fmt(Math.round(nuv))}</td>
-      <td style="color:#64748b;">—</td>
-      <td style="color:#64748b;">—</td>
+  // ── Unified scenario list (alleScenarier) ──
+  // Helper: break-even only when monthly payment genuinely decreases
+  function scenBreakEven(bespar, omk) {
+    if (!bespar || bespar <= 50) return null;
+    return Math.ceil((omk || 29800) / bespar);
+  }
+
+  // Build unified list from existing sc + extScener
+  const alleScenarier = [];
+
+  // "Hold lån" — baseline
+  alleScenarier.push({
+    key: 'hold',
+    label: 'Nuværende lån',
+    tag: 'hold',
+    tagLabel: 'Hold lån',
+    rente: rente,
+    ydelse: Math.round(nuv),
+    besparelse: 0,
+    breakEvenMd: null,
+    omk: 0,
+    note: ltype,
+    lender: '',
+    hcard: false,
+  });
+
+  // Main conversion scenario
+  if (hasConv && sc && sc.type !== 'ingen') {
+    const be = scenBreakEven(sc.besparelse, sc.omk);
+    alleScenarier.push({
+      key: 'conv',
+      label: sc.type === 'fastforrentet' ? 'Fastforrentet' : (sc.type || 'Konvertering'),
+      tag: 'conv',
+      tagLabel: 'Fast rente — budgetsikkerhed',
+      rente: sc.nyRente || mrente,
+      ydelse: Math.round(sc.nyYdelse || nuv),
+      besparelse: sc.besparelse,
+      breakEvenMd: be,
+      omk: sc.omk || 29800,
+      note: 'Vejledende markedsrente',
+      lender: '',
+      hcard: true,
+      hcardLabel: sc.besparelse > 50 ? 'Laveste månedlige ydelse' : 'Fast rente — budgetsikkerhed',
+      hcardLabelClass: sc.besparelse > 50 ? 'green' : '',
+      bestDeal: sc.besparelse > 50,
+    });
+  }
+
+  // Extended scenarios (F1/F3/F5/afdrag/afdragsfri etc.)
+  (extScener || []).forEach(e => {
+    const be = scenBreakEven(e.besparelse, e.omk || 29800);
+    const isAfdrag = e.key === 'afdrag';
+    const isAfdragsfri = e.key === 'afdragsfri';
+    let hcardLabel = e.label;
+    let hcardLabelClass = '';
+    if (isAfdrag) { hcardLabel = 'Størst reduktion i restgæld'; hcardLabelClass = ''; }
+    if (isAfdragsfri) { hcardLabel = 'Laveste månedlige ydelse'; hcardLabelClass = 'green'; }
+    alleScenarier.push({
+      key: e.key,
+      label: e.label,
+      tag: isAfdrag ? 'afdrag' : isAfdragsfri ? 'af-fri' : 'flex',
+      tagLabel: e.label,
+      rente: e.rente,
+      ydelse: e.ydelse,
+      besparelse: e.besparelse,
+      breakEvenMd: be,
+      omk: e.omk || 29800,
+      note: e.note || '',
+      lender: e.lender || '',
+      hcard: true,
+      hcardLabel,
+      hcardLabelClass,
+      bestDeal: false,
+      isAfdrag,
+      isAfdragsfri,
+    });
+  });
+
+  // Determine top 3 highlight cards
+  const hCards = alleScenarier.filter(s => s.hcard).slice(0, 3);
+
+  // Render a single highlight card
+  function renderHCard(s) {
+    const changeAmt = s.besparelse;
+    const changeSign = changeAmt > 50 ? '+' : changeAmt < -50 ? '' : '';
+    const changeCls = changeAmt > 50 ? 'pos' : changeAmt < -50 ? 'neg' : 'neutral';
+    const changeTxt = Math.abs(changeAmt) > 50
+      ? `${changeSign}${fmt(Math.round(changeAmt))} kr/md`
+      : '≈ uændret';
+    const beText = s.breakEvenMd ? `Break-even: ca. ${s.breakEvenMd} md.` : '';
+
+    let detailHtml = '';
+    if (s.isAfdrag && changeAmt < -50) {
+      // Payment increases — afdragsfri→afdrag explanation
+      const stigningAbs = fmt(Math.round(Math.abs(changeAmt)));
+      detailHtml = `<div class="blr-afdrag-explain">Din månedlige betaling stiger med ${stigningAbs} kr. En del af den højere betaling er afdrag — din restgæld reduceres gradvist, og du opbygger friværdi hurtigere.</div>`;
+    } else if (s.isAfdragsfri && changeAmt > 50) {
+      detailHtml = `Du sparer ${fmt(Math.round(changeAmt))} kr/md i ydelse. Bemærk: restgælden afdrages ikke — den forbliver på ${fmt(Math.round(rest))} kr.`;
+    } else if (s.breakEvenMd) {
+      detailHtml = `Omlægningsomkostninger er ca. ${fmt(s.omk)} kr. Du har tjent dem ind efter ca. ${s.breakEvenMd} måneder med lavere ydelse.`;
+    } else {
+      detailHtml = `Rente: ${s.rente.toFixed(2)}%. Vejledende beregning — kontakt din bank for et bindende tilbud.`;
+    }
+
+    return `<div class="blr-sc-hcard${s.bestDeal ? ' best-deal' : ''}">
+      <div class="blr-sc-hcard-label${s.hcardLabelClass ? ' ' + s.hcardLabelClass : ''}">${s.hcardLabel}</div>
+      <div class="blr-sc-hcard-title">${s.label}</div>
+      <div class="blr-sc-hcard-ydelse">${fmt(s.ydelse)} kr/md</div>
+      <div class="blr-sc-hcard-change ${changeCls}">${changeTxt}</div>
+      ${beText ? `<div class="blr-sc-hcard-info">${beText}</div>` : ''}
+      <span class="blr-sc-detail-toggle" onclick="blrScToggleDetail(this)">Hvad betyder dette for mig? ▼</span>
+      <div class="blr-sc-detail-box">${detailHtml}</div>
+    </div>`;
+  }
+
+  // Render scenario table row
+  function renderScRow(s) {
+    const sign = s.besparelse > 50 ? '+' : '';
+    const cls = s.besparelse > 50 ? 'blr-sc-pos' : s.besparelse < -50 ? 'blr-sc-neg' : '';
+    const beText = s.breakEvenMd ? s.breakEvenMd + ' md.' : 'Ikke relevant';
+    return `<tr${s.key === 'hold' ? '' : ''}>
+      <td>
+        <span class="blr-sc-tag ${s.tag}">${s.tagLabel}</span>
+        ${s.note ? `<div class="blr-sc-note">${s.note}</div>` : ''}
+        ${s.lender ? `<div class="blr-sc-lender">${s.lender}</div>` : ''}
+      </td>
+      <td>${s.rente.toFixed(2)}%</td>
+      <td>${fmt(s.ydelse)} kr</td>
+      <td class="${cls}">${s.besparelse !== 0 ? sign + fmt(Math.round(s.besparelse)) + ' kr' : '—'}</td>
+      <td>${s.key !== 'hold' ? beText : '—'}</td>
     </tr>`;
+  }
+
+  // Categorise for tabs
+  const rentetype = alleScenarier.filter(s => ['conv','hold','flex'].includes(s.key));
+  const afdragTab = alleScenarier.filter(s => s.isAfdrag || s.isAfdragsfri || s.key === 'hold');
+  const ltvTab = alleScenarier.filter(s => s.key === 'hold' || (s.ltvThreshold)); // extend later
 
   const p4 = document.getElementById('panel-4');
   p4.innerHTML = `
@@ -2453,7 +2618,7 @@ function renderResultat(d) {
       <h2 class="blr-hero-h">${heroH}</h2>
       <p class="blr-hero-p">${heroP}</p>
       <div class="blr-hero-actions">
-        <button class="blr-hero-btn-primary" onclick="document.querySelector('.blr-paywall-card').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>{var e=document.getElementById('overvagEmail');if(e)e.focus();},400)">Aktiver overvågning</button>
+        <button class="blr-hero-btn-primary" onclick="document.getElementById('blrPaywallCard').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>{var e=document.getElementById('overvagEmail');if(e)e.focus();},400)">Aktiver overvågning</button>
         <button class="blr-hero-btn-secondary" onclick="goTo(1)">Beregn igen</button>
       </div>
     </div>
@@ -2466,7 +2631,7 @@ function renderResultat(d) {
         </div>
         <div class="blr-hcard">
           <div><div class="blr-hcard-label">Ny rente (estimat)</div><div class="blr-hcard-val">${mrente.toFixed(2)}%</div></div>
-          <div><div class="blr-hcard-label">Break-even</div><div class="blr-hcard-val">${hasConv && sc.besparelse > 0 ? 'ca. ' + Math.ceil((sc.omk||29800)/Math.max(1,Math.abs(sc.besparelse))) + ' md.' : '—'}</div></div>
+          <div><div class="blr-hcard-label">Break-even</div><div class="blr-hcard-val">${hasConv && sc.besparelse > 50 ? 'ca. ' + Math.ceil((sc.omk||29800)/Math.max(1,sc.besparelse)) + ' md.' : 'Ikke relevant'}</div></div>
         </div>
       </div>
     </div>
@@ -2475,26 +2640,22 @@ function renderResultat(d) {
   <!-- ── 4 stat cards ── -->
   <div class="blr-stat-row">
     <div class="blr-stat">
-      <span class="blr-stat-icon">🏠</span>
-      <div class="blr-stat-label">Ejendomsværdi</div>
-      <div class="blr-stat-val">${fmt(Math.round((markedsEjd||ejd)/1000)*1000)} kr</div>
-      <div class="blr-stat-sub">${markedsEjd ? (compsCount ? compsCount + ' handler i nabolaget' : 'Senest estimeret') : 'Baseret på din indtastning'}</div>
+      <div class="blr-stat-label">🏠 Din ejendomsværdi</div>
+      <div class="blr-stat-val">${fmt(Math.round(ejd/1000)*1000)} kr</div>
+      <div class="blr-stat-sub">${markedsEjd ? (compsCount ? compsCount + ' handler i nabolaget' : 'Markedsestimeret') : (window._adressePostnr ? 'Ingen markedsdata fundet' : 'Manuel EV')}</div>
     </div>
     <div class="blr-stat">
-      <span class="blr-stat-icon">💰</span>
-      <div class="blr-stat-label">Restgæld</div>
+      <div class="blr-stat-label">💰 Restgæld</div>
       <div class="blr-stat-val">${fmt(Math.round(rest/1000)*1000)} kr</div>
       <div class="blr-stat-sub">${rente.toFixed(2)}% · ${loeb} år tilbage</div>
     </div>
     <div class="blr-stat">
-      <span class="blr-stat-icon">📊</span>
-      <div class="blr-stat-label">Belåningsgrad (LTV)</div>
+      <div class="blr-stat-label">📊 Belåningsgrad (LTV)</div>
       <div class="blr-stat-val">${ltv.toFixed(1)}%</div>
       <div class="blr-stat-sub"><span class="blr-stat-badge ${ltvBadgeCls}">${ltvBadgeTxt}</span></div>
     </div>
     <div class="blr-stat">
-      <span class="blr-stat-icon">📈</span>
-      <div class="blr-stat-label">Friværdi (estimat)</div>
+      <div class="blr-stat-label">✨ Friværdi (estimat)</div>
       <div class="blr-stat-val">${fmt(Math.round(frivaerdi/1000)*1000)} kr</div>
       <div class="blr-stat-sub">${frivaerdiPct.toFixed(1)}% af ejendomsværdi</div>
     </div>
@@ -2527,16 +2688,94 @@ function renderResultat(d) {
         <div class="blr-chart-src">${renteKilde}</div>
       </div>
 
-      <!-- Scenario table -->
+      <!-- Scenario section — 3-tab layout -->
       <div class="blr-scenario-card">
-        <div class="blr-scenario-title">Omlægningsscenarier</div>
-        <table class="blr-scenario-table">
-          <thead><tr><th>Scenarie</th><th>Ny rente</th><th>Ydelse/md.</th><th>Ændring</th><th>Break-even</th></tr></thead>
-          <tbody>
-            ${scRow}
-            ${scHoldRow}
-          </tbody>
-        </table>
+        <div class="blr-scenario-title">Lånemuligheder</div>
+
+        <!-- 3 tabs -->
+        <div class="blr-sc-tabs">
+          <button class="blr-sc-tab active" onclick="blrScTab(this,'rentetype')">Rentetype</button>
+          <button class="blr-sc-tab" onclick="blrScTab(this,'afdrag')">Afdrag</button>
+          <button class="blr-sc-tab" onclick="blrScTab(this,'ltv')">Belåningsgrad</button>
+        </div>
+
+        <!-- Tab: Rentetype -->
+        <div class="blr-sc-panel" id="blr-sc-rentetype">
+          ${hCards.length > 0 ? `<div class="blr-sc-highlights">${hCards.map(renderHCard).join('')}</div>` : ''}
+          <button class="blr-sc-see-all" onclick="blrScToggleAll(this)">▼ Se alle lånemuligheder</button>
+          <div class="blr-sc-all-table">
+            <table class="blr-scenario-table">
+              <thead><tr><th>Lånetype</th><th>Rente</th><th>Ydelse/md.</th><th>Ændring/md.</th><th>Break-even</th></tr></thead>
+              <tbody>${alleScenarier.map(renderScRow).join('')}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab: Afdrag -->
+        <div class="blr-sc-panel" id="blr-sc-afdrag" style="display:none">
+          ${afdragTab.length > 1 ? (() => {
+            const afdragScen = afdragTab.filter(s => s.isAfdrag || s.isAfdragsfri);
+            const holdScen = afdragTab.filter(s => s.key === 'hold');
+            const allAfdrag = [...afdragScen, ...holdScen];
+            if (afdragScen.length === 0) {
+              return `<p style="color:#64748b;font-size:.82rem;padding:12px 0;">Dine beregninger inkluderer ikke afdragsvarianter. Afdrag/afdragsfri-scenarier vises her, når du har et lån med afdrag eller afdragsfrit.</p>`;
+            }
+            const afdragFriScen = afdragTab.filter(s => s.isAfdragsfri)[0];
+            const afdragMedScen = afdragTab.filter(s => s.isAfdrag)[0];
+            if (afdragFriScen && afdragMedScen) {
+              const stigning = afdragMedScen.ydelse - afdragFriScen.ydelse;
+              return `<div class="blr-afdrag-explain">
+                Skift fra afdragsfrit til lån med afdrag: Din månedlige betaling stiger med <strong>${fmt(Math.abs(Math.round(stigning)))} kr</strong>.
+                En del af den højere betaling er afdrag — din restgæld reduceres gradvist, og du opbygger friværdi hurtigere.
+              </div>
+              <div class="blr-sc-highlights">${allAfdrag.slice(0,3).map(renderHCard).join('')}</div>`;
+            }
+            return `<div class="blr-sc-highlights">${afdragScen.slice(0,3).map(renderHCard).join('')}</div>`;
+          })() : `<p style="color:#64748b;font-size:.82rem;padding:12px 0;">Ingen afdragsvarianter beregnet. Disse vises baseret på dit lånetypen.</p>`}
+          <table class="blr-scenario-table" style="margin-top:12px;">
+            <thead><tr><th>Lånetype</th><th>Rente</th><th>Ydelse/md.</th><th>Ændring/md.</th><th>Break-even</th></tr></thead>
+            <tbody>${afdragTab.map(renderScRow).join('')}</tbody>
+          </table>
+        </div>
+
+        <!-- Tab: Belåningsgrad -->
+        <div class="blr-sc-panel" id="blr-sc-ltv" style="display:none">
+          <div style="padding:8px 0 16px;">
+            <div style="font-size:.82rem;font-weight:700;color:#0f172a;margin-bottom:8px;">Din nuværende belåningsgrad: <span class="blr-stat-badge ${ltv < 60 ? 'ok' : ltv <= 80 ? 'warn' : 'bad'}">${ltv.toFixed(1)}%</span></div>
+            <div style="font-size:.78rem;color:#374151;line-height:1.6;">
+              ${ltv > 80 ? `<p>⚠️ Med en LTV over 80% er en del af dit lån i banken til typisk højere rente. Overvej at nedbringe restgælden for at komme under 80%-grænsen.</p>` : ''}
+              ${ltv > 60 && ltv <= 80 ? `<p>Dit lån er i intervallet 60–80%. Yderligere afdrag kan bringe dig under 60%, hvilket typisk giver de bedste realkreditbetingelser.</p>` : ''}
+              ${ltv <= 60 ? `<p>✅ Din LTV er under 60% — du er i den favorable zone med de bedste realkreditbetingelser.</p>` : ''}
+              <p>Restgæld: <strong>${fmt(Math.round(rest))} kr</strong> · Ejendomsværdi: <strong>${fmt(Math.round(ejdvaerdi))} kr</strong></p>
+              <p style="margin-top:8px;font-size:.72rem;color:#94a3b8;">LTV-tærskelværdier: 0–60% (bedste vilkår) · 60–80% (standard) · over 80% (bankdel med højere rente)</p>
+            </div>
+          </div>
+          <table class="blr-scenario-table">
+            <thead><tr><th>Scenarie</th><th>Nødvendig restgæld</th><th>Forskel fra nu</th><th>Virkning</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="blr-sc-tag ok" style="background:#dcfce7;color:#166534">Under 60% LTV</span></td>
+                <td>${fmt(Math.round(ejdvaerdi * 0.60))} kr</td>
+                <td class="${rest > ejdvaerdi * 0.60 ? 'blr-sc-neg' : 'blr-sc-pos'}">${rest > ejdvaerdi * 0.60 ? '-' + fmt(Math.round(rest - ejdvaerdi * 0.60)) : '✓ Opfyldt'} kr</td>
+                <td style="font-size:.72rem;color:#374151;">Bedste realkreditvilkår</td>
+              </tr>
+              <tr>
+                <td><span class="blr-sc-tag flex">Under 80% LTV</span></td>
+                <td>${fmt(Math.round(ejdvaerdi * 0.80))} kr</td>
+                <td class="${rest > ejdvaerdi * 0.80 ? 'blr-sc-neg' : 'blr-sc-pos'}">${rest > ejdvaerdi * 0.80 ? '-' + fmt(Math.round(rest - ejdvaerdi * 0.80)) : '✓ Opfyldt'} kr</td>
+                <td style="font-size:.72rem;color:#374151;">Undgå bankdel med høj rente</td>
+              </tr>
+              <tr>
+                <td><span class="blr-sc-tag hold">Nuværende</span></td>
+                <td>${fmt(Math.round(rest))} kr</td>
+                <td style="color:#64748b;">—</td>
+                <td style="font-size:.72rem;color:#374151;">${ltv.toFixed(1)}% LTV</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="blr-scenario-foot">💡 Kursnotering: F1/F3/F5 handles altid tæt på kurs 100 — ingen kurstab ved omlægning. Fastforrentet: kurs varierer med markedsrenten. Alle beregninger er vejledende.</div>
       </div>
 
       <!-- LTV deep-dive -->
@@ -2555,11 +2794,12 @@ function renderResultat(d) {
           <span class="blr-mon-label">Ikke aktiveret</span>
         </div>
         <ul class="blr-monitoring-feat">
-          <li><span class="blr-feat-icon">✓</span>Månedlig renteanalyse</li>
-          <li><span class="blr-feat-icon">✓</span>Alert ved omlægningsmulighed</li>
-          <li><span class="blr-feat-icon">✓</span>Friværdiopdatering</li>
-          <li><span class="blr-feat-icon">✓</span>Bankpakke klar til møde</li>
-          <li><span class="blr-feat-icon">✓</span>Ingen binding</li>
+          <li><span class="blr-feat-icon">✓</span>Alert når du kan spare <strong>2.000+ kr/md</strong></li>
+          <li><span class="blr-feat-icon">✓</span>F1/F3/F5 vs. fastforrentet — bedste lån opdateres løbende</li>
+          <li><span class="blr-feat-icon">✓</span>Termin-timing: vi varsler inden næste termin</li>
+          <li><span class="blr-feat-icon">✓</span>Lendersammenligning: Nykredit, Totalkredit, NordeaKredit</li>
+          <li><span class="blr-feat-icon">✓</span>Månedlig friværdiopdatering baseret på nabolaget</li>
+          <li><span class="blr-feat-icon">✓</span>Ingen binding — opsig når som helst</li>
         </ul>
       </div>
 
@@ -2590,7 +2830,7 @@ function renderResultat(d) {
       </div>
 
       <!-- Paywall / subscription CTA -->
-      <div class="blr-paywall-card">
+      <div class="blr-paywall-card" id="blrPaywallCard">
         <div class="blr-paywall-lock">🔔</div>
         <div class="blr-paywall-h">Få besked, når dit lån kan forbedres</div>
         <p class="blr-paywall-p">Vi overvåger markedet og sender dig en alert, når det er tid til at handle. Ingen binding.</p>
@@ -2614,109 +2854,6 @@ function renderResultat(d) {
     </aside><!-- /sidebar -->
   </div><!-- /blr-layout -->
 
-  <!-- ── Bottom insight cards ── -->
-  ${(()=>{
-    // LTV gauge SVG (arc from 180° to 0°, colored by zone)
-    const gaugeR = 58, cx = 70, cy = 70;
-    const ltvClamped = Math.min(Math.max(ltv, 0), 100);
-    const angle = 180 - (ltvClamped / 100) * 180; // degrees from left
-    const rad = (angle * Math.PI) / 180;
-    const needleX = cx + gaugeR * Math.cos(rad);
-    const needleY = cy - gaugeR * Math.sin(rad);
-    const gaugeColor = ltv < 60 ? '#10b981' : ltv <= 80 ? '#f59e0b' : '#ef4444';
-    // Rate trend
-    const rateArr = (renter && renter.data) ? renter.data.slice(-6) : [];
-    const rateTrendUp = rateArr.length >= 2 && rateArr[rateArr.length-1].rente > rateArr[0].rente;
-    const rateTrendFlat = rateArr.length >= 2 && Math.abs(rateArr[rateArr.length-1].rente - rateArr[0].rente) < 0.1;
-    const trendIcon = rateTrendFlat ? '➡️' : rateTrendUp ? '📈' : '📉';
-    const trendTxt = rateTrendFlat ? 'Stabil' : rateTrendUp ? 'Stigende' : 'Faldende';
-    const trendDesc = rateTrendFlat
-      ? 'Markedsrenten er stabil. Gode betingelser for at afvente det rette tidspunkt.'
-      : rateTrendUp
-      ? 'Markedsrenten er steget de seneste måneder. Overvej at konvertere til fast rente nu.'
-      : 'Markedsrenten er faldet de seneste måneder. Mulighed for nedkonvertering kan opstå.';
-    const bespar = hasConv && sc && sc.besparelse > 0 ? sc.besparelse : 0;
-    const aarligBespar = Math.round(bespar * 12);
-    const aarRest = sc && sc.tb ? sc.tb : 0;
-    const livtidsBespar = Math.round(bespar * (loeb * 12));
-    return `
-  <div class="blr-bottom-cards">
-
-    <!-- Belåningsgrad gauge -->
-    <div class="blr-bottom-card">
-      <div class="blr-bottom-card-title">📊 Belåningsgrad</div>
-      <div class="blr-gauge-wrap">
-        <svg class="blr-gauge-svg" viewBox="0 0 140 76" xmlns="http://www.w3.org/2000/svg">
-          <!-- background arc -->
-          <path d="M10,70 A60,60,0,0,1,130,70" fill="none" stroke="#e2e8f0" stroke-width="12" stroke-linecap="round"/>
-          <!-- green zone 0-60 -->
-          <path d="M10,70 A60,60,0,0,1,${(cx+gaugeR*Math.cos((180-60/100*180)*Math.PI/180)).toFixed(1)},${(cy-gaugeR*Math.sin((180-60/100*180)*Math.PI/180)).toFixed(1)}" fill="none" stroke="#10b981" stroke-width="12" stroke-linecap="round"/>
-          <!-- yellow zone 60-80 -->
-          ${ltv > 60 ? `<path d="M${(cx+gaugeR*Math.cos((180-60/100*180)*Math.PI/180)).toFixed(1)},${(cy-gaugeR*Math.sin((180-60/100*180)*Math.PI/180)).toFixed(1)} A60,60,0,0,1,${(cx+gaugeR*Math.cos((180-Math.min(ltv,80)/100*180)*Math.PI/180)).toFixed(1)},${(cy-gaugeR*Math.sin((180-Math.min(ltv,80)/100*180)*Math.PI/180)).toFixed(1)}" fill="none" stroke="#f59e0b" stroke-width="12" stroke-linecap="round"/>` : ''}
-          <!-- red zone 80+ -->
-          ${ltv > 80 ? `<path d="M${(cx+gaugeR*Math.cos((180-80/100*180)*Math.PI/180)).toFixed(1)},${(cy-gaugeR*Math.sin((180-80/100*180)*Math.PI/180)).toFixed(1)} A60,60,0,0,1,${needleX.toFixed(1)},${needleY.toFixed(1)}" fill="none" stroke="#ef4444" stroke-width="12" stroke-linecap="round"/>` : ''}
-          <!-- needle -->
-          <line x1="${cx}" y1="${cy}" x2="${needleX.toFixed(1)}" y2="${needleY.toFixed(1)}" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="${cx}" cy="${cy}" r="4" fill="#1e293b"/>
-          <!-- labels -->
-          <text x="8" y="76" font-size="8" fill="#94a3b8">0%</text>
-          <text x="62" y="12" font-size="8" fill="#94a3b8" text-anchor="middle">60%</text>
-          <text x="122" y="76" font-size="8" fill="#94a3b8" text-anchor="end">100%</text>
-        </svg>
-        <div class="blr-gauge-val" style="color:${gaugeColor}">${ltv.toFixed(1)}%</div>
-        <div class="blr-gauge-label"><span class="blr-stat-badge ${ltvBadgeCls}">${ltvBadgeTxt}</span></div>
-      </div>
-    </div>
-
-    <!-- Økonomisk gevinst -->
-    <div class="blr-bottom-card">
-      <div class="blr-bottom-card-title">💰 Din økonomiske gevinst</div>
-      ${bespar > 0 ? `
-      <div class="blr-gevinst-row">
-        <span class="blr-gevinst-label">Månedlig besparelse</span>
-        <span class="blr-gevinst-val">+${fmt(Math.round(bespar))} kr</span>
-      </div>
-      <div class="blr-gevinst-row">
-        <span class="blr-gevinst-label">Årlig besparelse</span>
-        <span class="blr-gevinst-val">+${fmt(aarligBespar)} kr</span>
-      </div>
-      <div class="blr-gevinst-row">
-        <span class="blr-gevinst-label">Potentielt over lånetid</span>
-        <span class="blr-gevinst-val">+${fmt(livtidsBespar)} kr</span>
-      </div>
-      <div class="blr-gevinst-row">
-        <span class="blr-gevinst-label">Omlægningsomkostning</span>
-        <span class="blr-gevinst-val neutral">${fmt(sc.omk||29800)} kr</span>
-      </div>
-      ` : `
-      <div style="text-align:center;padding:20px 0;color:#94a3b8;font-size:.85rem;">
-        <div style="font-size:2rem;margin-bottom:8px;">🔍</div>
-        Ingen omlægningsmulighed p.t.<br>
-        <span style="font-size:.78rem;">Vi holder øje og giver besked når markedet ændrer sig.</span>
-      </div>
-      `}
-    </div>
-
-    <!-- Markedsforventning -->
-    <div class="blr-bottom-card">
-      <div class="blr-bottom-card-title">🌡️ Markedsforventning</div>
-      <div class="blr-marked-row">
-        <div class="blr-marked-icon">${trendIcon}</div>
-        <div class="blr-marked-txt">
-          <strong>Rentetrend: ${trendTxt}</strong>
-          <span>${trendDesc}</span>
-        </div>
-      </div>
-      <div style="margin-top:16px;padding-top:16px;border-top:1px solid #f1f5f9;">
-        <div style="font-size:.72rem;color:#94a3b8;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;">Nuværende markedsrente</div>
-        <div style="font-size:1.4rem;font-weight:800;color:#3b82f6;">${mrente.toFixed(2)}%</div>
-        <div style="font-size:.75rem;color:#94a3b8;margin-top:2px;">Din rente: ${rente.toFixed(2)}% ${rente > mrente + 0.5 ? '⚠️ Markant over markedet' : rente > mrente ? '· Lidt over markedet' : '· På niveau med markedet'}</div>
-      </div>
-    </div>
-
-  </div>`;
-  })()}
-
 </div><!-- /blr-page -->
 </div><!-- /bg wrapper -->
 
@@ -2738,7 +2875,7 @@ function overvagToggle(p) {
 
 async function startOvervagning() {
   const email = (document.getElementById('overvagEmail')||{}).value || '';
-  if (!email || !email.includes('@')) { alert('Angiv en gyldig e-mail adresse.'); return; }
+  if (!email || !email.includes('@')) { goToPanel8(); return; }
   const d = window._beregningState || {};
   const alertYdelseKr   = +(document.getElementById('alertYdelse')||{}).value || 1000;
   const alertRestgaeldKr= +(document.getElementById('alertRestgaeld')||{}).value || 200000;
@@ -2877,6 +3014,7 @@ async function lookupBBRForLoan(husnummerId, adresseId, kommunekode) {
       document.getElementById('bbrBadgeIcon').textContent = '🏠';
       badgeText.textContent = `${data.boligtypeLabel} · ${data.m2} m² · Kommunekode ${data.kommunekode || kommunekode}`;
       window._adresseAnvKode = data.anvKode || '120';
+      window._adresseM2 = data.m2;
       // Fetch market value in background — result stored for beregn()
       fetchMarkedsvaerdi(window._adressePostnr, data.m2, data.anvKode, adresseId, data.kommunekode);
     } else {
@@ -2911,8 +3049,6 @@ async function fetchMarkedsvaerdi(postnr, m2, anvKode, adresseId, kommunekode) {
       // Update ejd field and re-run full calculation with market value
       const ejdField = document.getElementById('ejendomsvaerdi');
       if (ejdField) ejdField.value = data.markedsvaerdi;
-      const ejdFieldP3 = document.getElementById('ejendomsvaerdiP3');
-      if (ejdFieldP3) ejdFieldP3.value = data.markedsvaerdi;
       if (window._beregningState) { try { if (typeof beregn === 'function') beregn(); } catch(e) {} }
       const aktiveStr = data.aktiveAnnoncer > 0 ? ` · ${data.aktiveAnnoncer} til salg nu` : '';
       const kildeLabel = data.kilde === 'dst' ? `DST statistisk estimat (${data.landsdelnavn || 'landsdel'})${aktiveStr}` : `${data.compsCount || '?'} handler i nabolaget${aktiveStr}`;
@@ -2995,7 +3131,12 @@ function confirmManuel() {
     document.getElementById('ejendomsvaerdi').value = window._markedsvaerdi;
   } else {
     const manuelEv = document.getElementById('ejendomsvaerdiM');
-    if (manuelEv && manuelEv.value) document.getElementById('ejendomsvaerdi').value = manuelEv.value;
+    if (manuelEv && manuelEv.value) {
+      document.getElementById('ejendomsvaerdi').value = manuelEv.value;
+    } else {
+      // Clear stale placeholder (e.g. 4200000 from vtCard) so beregn() requires real input
+      document.getElementById('ejendomsvaerdi').value = '';
+    }
   }
   goTo(2);
 }
