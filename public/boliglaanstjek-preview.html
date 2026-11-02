@@ -1925,7 +1925,7 @@ function renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, skatEjd, compsCo
   <div class="ltv-sektion">
     <div class="ltv-top">
       <div class="ltv-top-kilde">
-        <div class="ltv-kilde-label">${erMarked ? (window._markedsKilde === 'dst' ? `📊 Statistisk estimat (DST ${window._markedsLandsdelnavn || 'landsdel'} — ingen handler i nabolaget)` : `📍 Markedsbaseret estimat (${compsCount || '?'} handler i nabolaget)`) : '📋 Baseret på indtastet ejendomsværdi'}</div>
+        <div class="ltv-kilde-label">${erMarked ? (window._markedsKilde === 'dst' ? `📊 Statistisk estimat (DST ${window._markedsLandsdelnavn || 'landsdel'} — ingen handler i nabolaget)${window._markedsAktiveAnnoncer > 0 ? ` · ${window._markedsAktiveAnnoncer} til salg nu` : ''}` : `📍 Markedsbaseret estimat (${compsCount || '?'} handler i nabolaget${window._markedsAktiveAnnoncer > 0 ? ` · ${window._markedsAktiveAnnoncer} til salg nu` : ''})`) : '📋 Baseret på indtastet ejendomsværdi'}</div>
         <div class="ltv-kilde-vaerdi">${fmtKr(ejd)} kr</div>
         <div class="ltv-kilde-sub">Restgæld: ${fmtKr(rest)} kr · Friværdi: ${fmtKr(Math.max(0, ejd - rest))} kr · LTV: ${ltvNu.toFixed(1)}%</div>
       </div>
@@ -2471,6 +2471,7 @@ window._markedsCompsCount = 0;
 window._markedsHandler = [];
 window._markedsKilde = null; // 'boliga' | 'dst' | null
 window._markedsLandsdelnavn = null;
+window._markedsAktiveAnnoncer = 0;
 window._adressePostnr = null;
 window._adresseAnvKode = null;
 window._adresseId = null;
@@ -2534,11 +2535,13 @@ async function fetchMarkedsvaerdi(postnr, m2, anvKode, adresseId, kommunekode) {
       window._markedsHandler = data.handler || [];
       window._markedsKilde = data.kilde || 'boliga';
       window._markedsLandsdelnavn = data.landsdelnavn || null;
+      window._markedsAktiveAnnoncer = data.aktiveAnnoncer || 0;
       // Update ejd field and re-run full calculation with market value
       const ejdField = document.getElementById('ejendomsvaerdi');
       if (ejdField) ejdField.value = data.markedsvaerdi;
       if (window._beregningState) { try { if (typeof beregn === 'function') beregn(); } catch(e) {} }
-      const kildeLabel = data.kilde === 'dst' ? `DST statistisk estimat (${data.landsdelnavn || 'landsdel'})` : `${data.compsCount || '?'} handler i nabolaget`;
+      const aktiveStr = data.aktiveAnnoncer > 0 ? ` · ${data.aktiveAnnoncer} til salg nu` : '';
+      const kildeLabel = data.kilde === 'dst' ? `DST statistisk estimat (${data.landsdelnavn || 'landsdel'})${aktiveStr}` : `${data.compsCount || '?'} handler i nabolaget${aktiveStr}`;
       if (badge && badgeTxt) badgeTxt.textContent = `Markedsværdi: ${Math.round(data.markedsvaerdi/1000)*1000 .toLocaleString('da-DK')} kr (${kildeLabel})`;
     } else {
       if (badge && badgeTxt) { badgeTxt.textContent = 'Ingen handler fundet — udfyld ejendomsværdi manuelt'; badge.style.background = 'rgba(192,48,48,.07)'; badge.style.borderColor = 'rgba(192,48,48,.25)'; badge.style.color = 'var(--danger)'; }
