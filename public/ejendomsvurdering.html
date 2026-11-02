@@ -1153,11 +1153,19 @@ async function sendKlageByEmail() {
   document.querySelectorAll(".copybtn").forEach(function(btn){
     btn.addEventListener("click", copyKlage);
   });
-  // Pre-fill address from Min bolig
+  // Pre-fill address from Min bolig and auto-trigger BBR lookup
   (function(){
     var params = new URLSearchParams(window.location.search);
     var addr = params.get('adresse') || (function(){ try { return localStorage.getItem('mb_adresse') || ''; } catch(e) { return ''; } })();
-    if (addr && inp) { inp.value = addr; }
+    if (addr && inp) {
+      inp.value = addr;
+      fetchSuggestions(addr).then(function() {
+        if (currentSuggestions.length > 0) {
+          var exact = currentSuggestions.find(function(s) { return s.label === addr; }) || currentSuggestions[0];
+          selectSuggestion(exact);
+        }
+      }).catch(function(){});
+    }
   })();
 })();
 </script>
