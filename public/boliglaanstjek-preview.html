@@ -967,7 +967,7 @@ body.blr-active body::before{background:var(--forest);}
   padding:11px 20px;border-radius:10px;font-size:.84rem;font-weight:600;cursor:pointer;
 }
 .blr-hero-btn-secondary:hover{background:#f0fdf4;}
-.blr-hero-right{width:340px;flex-shrink:0;position:relative;overflow:hidden;}
+.blr-hero-right{width:340px;flex-shrink:0;position:relative;overflow:visible;}
 .blr-hero-photo{
   width:100%;height:100%;object-fit:cover;object-position:center;
   display:block;
@@ -2440,7 +2440,7 @@ function renderResultat(d) {
       <h2 class="blr-hero-h">${heroH}</h2>
       <p class="blr-hero-p">${heroP}</p>
       <div class="blr-hero-actions">
-        <button class="blr-hero-btn-primary" onclick="document.getElementById('blrMonitoringSection').scrollIntoView({behavior:'smooth'})">Aktiver overvågning</button>
+        <button class="blr-hero-btn-primary" onclick="goToPanel8()">Aktiver overvågning</button>
         <button class="blr-hero-btn-secondary" onclick="goTo(1)">Beregn igen</button>
       </div>
     </div>
@@ -2464,7 +2464,7 @@ function renderResultat(d) {
     <div class="blr-stat">
       <div class="blr-stat-label">🏠 Din ejendomsværdi</div>
       <div class="blr-stat-val">${fmt(Math.round(ejd/1000)*1000)} kr</div>
-      <div class="blr-stat-sub">${markedsEjd ? (compsCount ? compsCount + ' handler i nabolaget' : 'Markedsestimeret') : 'Indtastet'}</div>
+      <div class="blr-stat-sub">${markedsEjd ? (compsCount ? compsCount + ' handler i nabolaget' : 'Markedsestimeret') : '<span style="color:#f59e0b;cursor:pointer;" onclick="goTo(1)" title="Indtast adresse for at hente markedsværdi fra nabolaget">⚠️ Manuelt — <u>tilføj adresse</u></span>'}</div>
     </div>
     <div class="blr-stat">
       <div class="blr-stat-label">💰 Restgæld</div>
