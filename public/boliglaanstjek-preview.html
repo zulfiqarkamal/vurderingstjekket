@@ -2087,7 +2087,7 @@ function restgaeldEfter(rest, samletRentePct, loebAar, efter) {
 
 // ── Main calculation (async pga. live renter) ────────────────────────────
 async function beregn() {
-  const ejd   = +document.getElementById('ejendomsvaerdi').value;
+  let   ejd   = +document.getElementById('ejendomsvaerdi').value;
   const rest  = +document.getElementById('restgaeld').value;
   const rente = +document.getElementById('rente').value;
   const loeb  = +document.getElementById('loebetid').value;
@@ -2095,7 +2095,14 @@ async function beregn() {
   const mYdl  = +document.getElementById('maanedligYdelse').value || null;
   const afdrf = ltype === 'afdragsfri';
 
-  if (!ejd || !rest || !rente || !loeb) return alert('Udfyld alle felter.');
+  // Ejendomsværdi kan mangle hvis brugeren springer panel 2 over (f.eks. demo-flow).
+  // Brug markedsværdi hvis hentet, ellers estimér fra restgæld (antag 65% LTV).
+  if (!ejd) {
+    ejd = window._markedsvaerdi || Math.round(rest / 0.65);
+    document.getElementById('ejendomsvaerdi').value = ejd;
+  }
+
+  if (!rest || !rente || !loeb) return alert('Udfyld venligst Restgæld, Rente og Løbetid.');
 
   const renter = await hentMarkedsrenter();
   const mrente = renter[ltype] || renter.fastforrentet;
