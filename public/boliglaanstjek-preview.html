@@ -1461,6 +1461,17 @@ body.blr-active body::before{background:var(--forest);}
       Udtrukket fra dit screenshot
     </div>
 
+    <div class="field">
+      <label>Ejendomsværdi</label>
+      <div class="field-suffix">
+        <input type="number" id="ejendomsvaerdiP3" min="100000" max="50000000" step="10000"
+          placeholder="4200000"
+          oninput="document.getElementById('ejendomsvaerdi').value=this.value">
+        <span>kr</span>
+      </div>
+      <div class="field-hint">Seneste kendte vurdering eller markedsværdi</div>
+    </div>
+
     <div class="field-row">
       <div class="field">
         <label>Restgæld</label>
@@ -1980,6 +1991,12 @@ function blrNavTo(el, target) {
 function goTo(step) {
   document.querySelector(`#panel-${currentStep}`).classList.remove('active');
   document.querySelector(`#panel-${step}`).classList.add('active');
+  // Keep the step-3 ejendomsværdi field in sync with the step-1 source
+  if (step === 3) {
+    const src = document.getElementById('ejendomsvaerdi');
+    const dst = document.getElementById('ejendomsvaerdiP3');
+    if (src && dst && !dst.value) dst.value = src.value || '';
+  }
   document.querySelectorAll('.step').forEach((el, i) => {
     const n = i + 1;
     el.classList.toggle('done', n < step);
@@ -2124,6 +2141,10 @@ function restgaeldEfter(rest, samletRentePct, loebAar, efter) {
 
 // ── Main calculation (async pga. live renter) ────────────────────────────
 async function beregn() {
+  // ejendomsvaerdiP3 is the visible step-3 field; sync it back to the hidden step-1 field
+  const p3EjdField = document.getElementById('ejendomsvaerdiP3');
+  if (p3EjdField && +p3EjdField.value) document.getElementById('ejendomsvaerdi').value = p3EjdField.value;
+
   const ejd   = +document.getElementById('ejendomsvaerdi').value;
   const rest  = +document.getElementById('restgaeld').value;
   const rente = +document.getElementById('rente').value;
@@ -2132,7 +2153,12 @@ async function beregn() {
   const mYdl  = +document.getElementById('maanedligYdelse').value || null;
   const afdrf = ltype === 'afdragsfri';
 
-  if (!ejd || !rest || !rente || !loeb) return alert('Udfyld alle felter.');
+  const missingFields = [];
+  if (!ejd)   missingFields.push('Ejendomsværdi');
+  if (!rest)  missingFields.push('Restgæld');
+  if (!rente) missingFields.push('Rente');
+  if (!loeb)  missingFields.push('Løbetid');
+  if (missingFields.length) return alert('Udfyld venligst: ' + missingFields.join(', '));
 
   const renter = await hentMarkedsrenter();
   const mrente = renter[ltype] || renter.fastforrentet;
@@ -2885,6 +2911,8 @@ async function fetchMarkedsvaerdi(postnr, m2, anvKode, adresseId, kommunekode) {
       // Update ejd field and re-run full calculation with market value
       const ejdField = document.getElementById('ejendomsvaerdi');
       if (ejdField) ejdField.value = data.markedsvaerdi;
+      const ejdFieldP3 = document.getElementById('ejendomsvaerdiP3');
+      if (ejdFieldP3) ejdFieldP3.value = data.markedsvaerdi;
       if (window._beregningState) { try { if (typeof beregn === 'function') beregn(); } catch(e) {} }
       const aktiveStr = data.aktiveAnnoncer > 0 ? ` · ${data.aktiveAnnoncer} til salg nu` : '';
       const kildeLabel = data.kilde === 'dst' ? `DST statistisk estimat (${data.landsdelnavn || 'landsdel'})${aktiveStr}` : `${data.compsCount || '?'} handler i nabolaget${aktiveStr}`;
