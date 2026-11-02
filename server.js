@@ -2155,6 +2155,18 @@ app.post("/api/laanovervagning/start", async (req, res) => {
   }
 });
 
+// ─── Subscription status (server-side premium gate) ───────────
+// Returns whether an email has an active BoligLånsRadar subscription.
+// Never exposes PII beyond what the caller already has (email is caller-supplied).
+app.post("/api/subscription-status", (req, res) => {
+  const { email } = req.body || {};
+  if (!email || typeof email !== "string") return res.status(400).json({ error: "Mangler email" });
+  const normalised = email.trim().toLowerCase();
+  const abonnent = ABONNENTER.find(a => a.email?.trim().toLowerCase() === normalised);
+  if (!abonnent) return res.json({ active: false });
+  res.json({ active: true, periode: abonnent.periode || "maanedlig", createdAt: abonnent.createdAt });
+});
+
 // ─── Bankpakke betaling ────────────────────────────────────────
 // 299 kr engangsbetaling for dokumentpakke sendt til udvalgte banker.
 app.post("/api/bankpakke/start", async (req, res) => {
