@@ -916,6 +916,7 @@ body.blr-active body::before{background:var(--forest);}
   padding:0 max(32px,env(safe-area-inset-left,0px));
   padding-right:max(32px,env(safe-area-inset-right,0px));
   display:none;align-items:center;gap:0;height:52px;
+  position:sticky;top:64px;z-index:99;
 }
 .blr-subnav.visible{display:flex;}
 .blr-subnav-brand{font-weight:800;font-size:.9rem;color:var(--forest);margin-right:28px;white-space:nowrap;}
@@ -998,9 +999,27 @@ body.blr-active body::before{background:var(--forest);}
   background:#fff;border:1px solid #e2e8f0;border-radius:12px;
   padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05);
 }
+.blr-stat-icon{font-size:1.2rem;margin-bottom:8px;display:block;}
 .blr-stat-label{font-size:.72rem;color:#64748b;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;}
 .blr-stat-val{font-size:1.35rem;font-weight:800;color:#0f172a;line-height:1.2;margin-bottom:4px;}
 .blr-stat-sub{font-size:.75rem;color:#94a3b8;}
+/* Bottom insight cards */
+.blr-bottom-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:24px;}
+.blr-bottom-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.blr-bottom-card-title{font-size:.88rem;font-weight:700;color:#0f172a;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.blr-gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.blr-gauge-svg{width:140px;height:76px;}
+.blr-gauge-val{font-size:1.6rem;font-weight:800;color:#0f172a;}
+.blr-gauge-label{font-size:.75rem;color:#94a3b8;text-align:center;}
+.blr-gevinst-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;}
+.blr-gevinst-row:last-child{border-bottom:none;}
+.blr-gevinst-label{font-size:.78rem;color:#64748b;}
+.blr-gevinst-val{font-size:.95rem;font-weight:700;color:#059669;}
+.blr-gevinst-val.neutral{color:#64748b;}
+.blr-marked-row{display:flex;align-items:center;gap:12px;padding:8px 0;}
+.blr-marked-icon{font-size:1.5rem;}
+.blr-marked-txt strong{font-size:.88rem;display:block;color:#0f172a;font-weight:700;}
+.blr-marked-txt span{font-size:.78rem;color:#64748b;}
 .blr-stat-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:.7rem;font-weight:700;margin-top:4px;}
 .blr-stat-badge.ok{background:#d1fae5;color:#065f46;}
 .blr-stat-badge.warn{background:#fef3c7;color:#92400e;}
@@ -1124,6 +1143,7 @@ body.blr-active body::before{background:var(--forest);}
   .blr-nav-items{display:none;}
   .blr-nav-right{display:none;}
   .blr-page{padding:12px;}
+  .blr-bottom-cards{grid-template-columns:1fr;}
   /* scenario table: scroll horizontally on small screens */
   .blr-scenario-card{overflow-x:auto;padding:16px;}
   .blr-scenario-table{min-width:420px;}
@@ -1186,11 +1206,11 @@ body.blr-active body::before{background:var(--forest);}
 <div class="blr-subnav" id="blrSubnav">
   <span class="blr-subnav-brand">BoligLånsRadar</span>
   <div class="blr-subnav-tabs">
-    <a class="blr-subnav-tab active" href="#"><span class="blr-subnav-tab-icon">📊</span> Mit overblik</a>
-    <a class="blr-subnav-tab" href="#"><span class="blr-subnav-tab-icon">🔄</span> Scenarier</a>
-    <a class="blr-subnav-tab" href="#"><span class="blr-subnav-tab-icon">📈</span> Rente &amp; marked</a>
-    <a class="blr-subnav-tab" href="#"><span class="blr-subnav-tab-icon">📋</span> Lån &amp; vilkår</a>
-    <a class="blr-subnav-tab" href="#"><span class="blr-subnav-tab-icon">📁</span> Dokumenter</a>
+    <a class="blr-subnav-tab active" href="#" onclick="blrNavTo(this,'top');return false;"><span class="blr-subnav-tab-icon">📊</span> Mit overblik</a>
+    <a class="blr-subnav-tab" href="#" onclick="blrNavTo(this,'scenarier');return false;"><span class="blr-subnav-tab-icon">🔄</span> Scenarier</a>
+    <a class="blr-subnav-tab" href="#" onclick="blrNavTo(this,'rente');return false;"><span class="blr-subnav-tab-icon">📈</span> Rente &amp; marked</a>
+    <a class="blr-subnav-tab" href="#" onclick="blrNavTo(this,'ltv');return false;"><span class="blr-subnav-tab-icon">📋</span> Lån &amp; vilkår</a>
+    <a class="blr-subnav-tab" href="#" onclick="blrNavTo(this,'dok');return false;"><span class="blr-subnav-tab-icon">📁</span> Dokumenter</a>
   </div>
 </div>
 
@@ -1933,6 +1953,29 @@ body.blr-active body::before{background:var(--forest);}
 // ── State ─────────────────────────────────────────────────────────────────
 let currentStep = 1;
 
+// ── Sub-nav scroll ────────────────────────────────────────────────────────
+function blrNavTo(el, target) {
+  document.querySelectorAll('.blr-subnav-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const offset = 120; // sticky header + subnav height
+  const scrollTo = (sel) => {
+    const el2 = document.querySelector(sel);
+    if (el2) {
+      const y = el2.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({top: Math.max(0, y), behavior:'smooth'});
+    }
+  };
+  if (target === 'top') window.scrollTo({top:0, behavior:'smooth'});
+  else if (target === 'rente') scrollTo('.blr-chart-card');
+  else if (target === 'scenarier') scrollTo('.blr-scenario-card');
+  else if (target === 'ltv') scrollTo('.ltv-sektion');
+  else if (target === 'dok') {
+    alert('Dokumenter — kommer snart. Her vil du kunne downloade din bankpakke og analyserapport.');
+    el.classList.remove('active');
+    document.querySelector('.blr-subnav-tab').classList.add('active');
+  }
+}
+
 // ── Navigation ────────────────────────────────────────────────────────────
 function goTo(step) {
   document.querySelector(`#panel-${currentStep}`).classList.remove('active');
@@ -2352,17 +2395,20 @@ function renderResultat(d) {
   const ltvBadgeTxt = ltv < 60 ? 'Lav risiko' : ltv <= 80 ? 'Moderat' : 'Høj LTV';
 
   // ── Scenario rows ──
+  const newLtvPct = sc ? Math.round(((sc.nyRest || rest) / (markedsEjd || ejd)) * 100) : null;
+  const scLabelTxt = sc ? (newLtvPct !== null ? `Konverter (${newLtvPct}% LTV)` : 'Konvertering') : '';
   const scRow = hasConv && sc ? `
     <tr class="blr-sc-best">
-      <td><span class="blr-sc-tag conv">Konvertering</span></td>
+      <td><span class="blr-sc-tag conv">${scLabelTxt}</span></td>
       <td>${sc.nyRente ? sc.nyRente.toFixed(2) + '%' : (mrente.toFixed(2) + '%')}</td>
       <td>${fmt(Math.round(sc.nyYdelse || nuv))}</td>
       <td class="${sc.besparelse >= 0 ? 'blr-sc-pos' : 'blr-sc-neg'}">${sc.besparelse >= 0 ? '+' : ''}${fmt(Math.round(sc.besparelse))} kr/md</td>
       <td>${sc.omk ? Math.ceil(sc.omk / Math.max(1, Math.abs(sc.besparelse))) + ' md.' : '—'}</td>
     </tr>` : '';
+  const currentLtvPct = Math.round(ltv);
   const scHoldRow = `
     <tr>
-      <td><span class="blr-sc-tag hold">Hold lån</span></td>
+      <td><span class="blr-sc-tag hold">Hold lån (${currentLtvPct}% LTV)</span></td>
       <td>${rente.toFixed(2)}%</td>
       <td>${fmt(Math.round(nuv))}</td>
       <td style="color:#64748b;">—</td>
@@ -2381,7 +2427,7 @@ function renderResultat(d) {
       <h2 class="blr-hero-h">${heroH}</h2>
       <p class="blr-hero-p">${heroP}</p>
       <div class="blr-hero-actions">
-        <button class="blr-hero-btn-primary" onclick="document.getElementById('blrMonitoringSection').scrollIntoView({behavior:'smooth'})">Aktiver overvågning</button>
+        <button class="blr-hero-btn-primary" onclick="document.querySelector('.blr-paywall-card').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>{var e=document.getElementById('overvagEmail');if(e)e.focus();},400)">Aktiver overvågning</button>
         <button class="blr-hero-btn-secondary" onclick="goTo(1)">Beregn igen</button>
       </div>
     </div>
@@ -2403,21 +2449,25 @@ function renderResultat(d) {
   <!-- ── 4 stat cards ── -->
   <div class="blr-stat-row">
     <div class="blr-stat">
-      <div class="blr-stat-label">Din ejendomsværdi</div>
-      <div class="blr-stat-val">${fmt(Math.round(ejd/1000)*1000)} kr</div>
-      <div class="blr-stat-sub">${markedsEjd ? (compsCount ? compsCount + ' handler i nabolaget' : 'Markedsestimeret') : 'Indtastet'}</div>
+      <span class="blr-stat-icon">🏠</span>
+      <div class="blr-stat-label">Ejendomsværdi</div>
+      <div class="blr-stat-val">${fmt(Math.round((markedsEjd||ejd)/1000)*1000)} kr</div>
+      <div class="blr-stat-sub">${markedsEjd ? (compsCount ? compsCount + ' handler i nabolaget' : 'Senest estimeret') : 'Baseret på din indtastning'}</div>
     </div>
     <div class="blr-stat">
+      <span class="blr-stat-icon">💰</span>
       <div class="blr-stat-label">Restgæld</div>
       <div class="blr-stat-val">${fmt(Math.round(rest/1000)*1000)} kr</div>
       <div class="blr-stat-sub">${rente.toFixed(2)}% · ${loeb} år tilbage</div>
     </div>
     <div class="blr-stat">
+      <span class="blr-stat-icon">📊</span>
       <div class="blr-stat-label">Belåningsgrad (LTV)</div>
       <div class="blr-stat-val">${ltv.toFixed(1)}%</div>
       <div class="blr-stat-sub"><span class="blr-stat-badge ${ltvBadgeCls}">${ltvBadgeTxt}</span></div>
     </div>
     <div class="blr-stat">
+      <span class="blr-stat-icon">📈</span>
       <div class="blr-stat-label">Friværdi (estimat)</div>
       <div class="blr-stat-val">${fmt(Math.round(frivaerdi/1000)*1000)} kr</div>
       <div class="blr-stat-sub">${frivaerdiPct.toFixed(1)}% af ejendomsværdi</div>
@@ -2537,6 +2587,109 @@ function renderResultat(d) {
 
     </aside><!-- /sidebar -->
   </div><!-- /blr-layout -->
+
+  <!-- ── Bottom insight cards ── -->
+  ${(()=>{
+    // LTV gauge SVG (arc from 180° to 0°, colored by zone)
+    const gaugeR = 58, cx = 70, cy = 70;
+    const ltvClamped = Math.min(Math.max(ltv, 0), 100);
+    const angle = 180 - (ltvClamped / 100) * 180; // degrees from left
+    const rad = (angle * Math.PI) / 180;
+    const needleX = cx + gaugeR * Math.cos(rad);
+    const needleY = cy - gaugeR * Math.sin(rad);
+    const gaugeColor = ltv < 60 ? '#10b981' : ltv <= 80 ? '#f59e0b' : '#ef4444';
+    // Rate trend
+    const rateArr = (renter && renter.data) ? renter.data.slice(-6) : [];
+    const rateTrendUp = rateArr.length >= 2 && rateArr[rateArr.length-1].rente > rateArr[0].rente;
+    const rateTrendFlat = rateArr.length >= 2 && Math.abs(rateArr[rateArr.length-1].rente - rateArr[0].rente) < 0.1;
+    const trendIcon = rateTrendFlat ? '➡️' : rateTrendUp ? '📈' : '📉';
+    const trendTxt = rateTrendFlat ? 'Stabil' : rateTrendUp ? 'Stigende' : 'Faldende';
+    const trendDesc = rateTrendFlat
+      ? 'Markedsrenten er stabil. Gode betingelser for at afvente det rette tidspunkt.'
+      : rateTrendUp
+      ? 'Markedsrenten er steget de seneste måneder. Overvej at konvertere til fast rente nu.'
+      : 'Markedsrenten er faldet de seneste måneder. Mulighed for nedkonvertering kan opstå.';
+    const bespar = hasConv && sc && sc.besparelse > 0 ? sc.besparelse : 0;
+    const aarligBespar = Math.round(bespar * 12);
+    const aarRest = sc && sc.tb ? sc.tb : 0;
+    const livtidsBespar = Math.round(bespar * (loeb * 12));
+    return `
+  <div class="blr-bottom-cards">
+
+    <!-- Belåningsgrad gauge -->
+    <div class="blr-bottom-card">
+      <div class="blr-bottom-card-title">📊 Belåningsgrad</div>
+      <div class="blr-gauge-wrap">
+        <svg class="blr-gauge-svg" viewBox="0 0 140 76" xmlns="http://www.w3.org/2000/svg">
+          <!-- background arc -->
+          <path d="M10,70 A60,60,0,0,1,130,70" fill="none" stroke="#e2e8f0" stroke-width="12" stroke-linecap="round"/>
+          <!-- green zone 0-60 -->
+          <path d="M10,70 A60,60,0,0,1,${(cx+gaugeR*Math.cos((180-60/100*180)*Math.PI/180)).toFixed(1)},${(cy-gaugeR*Math.sin((180-60/100*180)*Math.PI/180)).toFixed(1)}" fill="none" stroke="#10b981" stroke-width="12" stroke-linecap="round"/>
+          <!-- yellow zone 60-80 -->
+          ${ltv > 60 ? `<path d="M${(cx+gaugeR*Math.cos((180-60/100*180)*Math.PI/180)).toFixed(1)},${(cy-gaugeR*Math.sin((180-60/100*180)*Math.PI/180)).toFixed(1)} A60,60,0,0,1,${(cx+gaugeR*Math.cos((180-Math.min(ltv,80)/100*180)*Math.PI/180)).toFixed(1)},${(cy-gaugeR*Math.sin((180-Math.min(ltv,80)/100*180)*Math.PI/180)).toFixed(1)}" fill="none" stroke="#f59e0b" stroke-width="12" stroke-linecap="round"/>` : ''}
+          <!-- red zone 80+ -->
+          ${ltv > 80 ? `<path d="M${(cx+gaugeR*Math.cos((180-80/100*180)*Math.PI/180)).toFixed(1)},${(cy-gaugeR*Math.sin((180-80/100*180)*Math.PI/180)).toFixed(1)} A60,60,0,0,1,${needleX.toFixed(1)},${needleY.toFixed(1)}" fill="none" stroke="#ef4444" stroke-width="12" stroke-linecap="round"/>` : ''}
+          <!-- needle -->
+          <line x1="${cx}" y1="${cy}" x2="${needleX.toFixed(1)}" y2="${needleY.toFixed(1)}" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="${cx}" cy="${cy}" r="4" fill="#1e293b"/>
+          <!-- labels -->
+          <text x="8" y="76" font-size="8" fill="#94a3b8">0%</text>
+          <text x="62" y="12" font-size="8" fill="#94a3b8" text-anchor="middle">60%</text>
+          <text x="122" y="76" font-size="8" fill="#94a3b8" text-anchor="end">100%</text>
+        </svg>
+        <div class="blr-gauge-val" style="color:${gaugeColor}">${ltv.toFixed(1)}%</div>
+        <div class="blr-gauge-label"><span class="blr-stat-badge ${ltvBadgeCls}">${ltvBadgeTxt}</span></div>
+      </div>
+    </div>
+
+    <!-- Økonomisk gevinst -->
+    <div class="blr-bottom-card">
+      <div class="blr-bottom-card-title">💰 Din økonomiske gevinst</div>
+      ${bespar > 0 ? `
+      <div class="blr-gevinst-row">
+        <span class="blr-gevinst-label">Månedlig besparelse</span>
+        <span class="blr-gevinst-val">+${fmt(Math.round(bespar))} kr</span>
+      </div>
+      <div class="blr-gevinst-row">
+        <span class="blr-gevinst-label">Årlig besparelse</span>
+        <span class="blr-gevinst-val">+${fmt(aarligBespar)} kr</span>
+      </div>
+      <div class="blr-gevinst-row">
+        <span class="blr-gevinst-label">Potentielt over lånetid</span>
+        <span class="blr-gevinst-val">+${fmt(livtidsBespar)} kr</span>
+      </div>
+      <div class="blr-gevinst-row">
+        <span class="blr-gevinst-label">Omlægningsomkostning</span>
+        <span class="blr-gevinst-val neutral">${fmt(sc.omk||29800)} kr</span>
+      </div>
+      ` : `
+      <div style="text-align:center;padding:20px 0;color:#94a3b8;font-size:.85rem;">
+        <div style="font-size:2rem;margin-bottom:8px;">🔍</div>
+        Ingen omlægningsmulighed p.t.<br>
+        <span style="font-size:.78rem;">Vi holder øje og giver besked når markedet ændrer sig.</span>
+      </div>
+      `}
+    </div>
+
+    <!-- Markedsforventning -->
+    <div class="blr-bottom-card">
+      <div class="blr-bottom-card-title">🌡️ Markedsforventning</div>
+      <div class="blr-marked-row">
+        <div class="blr-marked-icon">${trendIcon}</div>
+        <div class="blr-marked-txt">
+          <strong>Rentetrend: ${trendTxt}</strong>
+          <span>${trendDesc}</span>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid #f1f5f9;">
+        <div style="font-size:.72rem;color:#94a3b8;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;">Nuværende markedsrente</div>
+        <div style="font-size:1.4rem;font-weight:800;color:#3b82f6;">${mrente.toFixed(2)}%</div>
+        <div style="font-size:.75rem;color:#94a3b8;margin-top:2px;">Din rente: ${rente.toFixed(2)}% ${rente > mrente + 0.5 ? '⚠️ Markant over markedet' : rente > mrente ? '· Lidt over markedet' : '· På niveau med markedet'}</div>
+      </div>
+    </div>
+
+  </div>`;
+  })()}
 
 </div><!-- /blr-page -->
 </div><!-- /bg wrapper -->
