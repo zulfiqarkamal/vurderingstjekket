@@ -827,6 +827,27 @@ app.get("/api/markedsvaerdi", async (req, res) => {
     ]);
 
     if (!comps || comps.length < 3) {
+      // DST fallback: use EJEN77 landsdel average kr/m² when Boliga has too few comps
+      if (kommunekode) {
+        const landsdel = KOMMUNEKODE_TO_LANDSDEL[String(kommunekode).padStart(4, "0")] || null;
+        if (landsdel) {
+          const erLejlighed = isEjerlejlighed(anvKode || "120");
+          const ejendomskate = erLejlighed ? EJENDOMSKATE_EJERLEJLIGHED : EJENDOMSKATE_ENFAMILIE;
+          try {
+            const dst = await getEJEN77Avg2020_2022(landsdel, ejendomskate);
+            if (dst && dst.krPerM2 && m2Num) {
+              return res.json({
+                markedsvaerdi: Math.round(dst.krPerM2 * m2Num),
+                compsCount: 0,
+                handler: [],
+                kilde: "dst",
+                landsdel,
+                landsdelnavn: LANDSDEL_NAVN[landsdel] || landsdel,
+              });
+            }
+          } catch (_) { /* fall through to null response */ }
+        }
+      }
       return res.status(200).json({ markedsvaerdi: null, compsCount: comps ? comps.length : 0, handler: [] });
     }
 
