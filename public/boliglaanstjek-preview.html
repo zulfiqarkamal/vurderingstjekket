@@ -1897,11 +1897,10 @@ function renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, skatEjd, compsCo
     const nyYdelse = mYdelse(Math.max(targetRest, 10000), rente, loeb, newBidr);
     const ydelsesDiff = nyYdelse - nuvaerende;
     const beloeb = Math.abs(targetRest - rest);
-    const beloebLabel = retning === 'ned' ? 'skal indbetales' : 'kan optages';
     const cls = pct <= 60 ? 'ltv-row-green' : pct <= 75 ? 'ltv-row-blue' : 'ltv-row-warn';
     return `<tr class="${cls}">
       <td><strong>${pct}%</strong></td>
-      <td>${fmtKr(beloeb)} kr<br><small style="color:var(--muted);font-size:.72rem">${beloebLabel}</small></td>
+      <td>${fmtKr(beloeb)} kr</td>
       <td>${fmtKr(nyYdelse)} kr/md</td>
       <td style="font-weight:700;color:${ydelsesDiff <= 0 ? 'var(--success)' : 'var(--danger)'}">${ydelsesDiff >= 0 ? '+' : ''}${fmtKr(ydelsesDiff)} kr/md</td>
     </tr>`;
@@ -2533,6 +2532,7 @@ async function fetchMarkedsvaerdi(postnr, m2, anvKode, adresseId) {
       // Update hidden field so beregn() has it even as fallback
       const ejdField = document.getElementById('ejendomsvaerdi');
       if (ejdField && !ejdField.value) ejdField.value = data.markedsvaerdi;
+      if (window._beregningState) { try { renderResultat(window._beregningState); } catch(e) {} }
       if (badge && badgeTxt) badgeTxt.textContent = `Markedsværdi: ${Math.round(data.markedsvaerdi/1000)*1000 .toLocaleString('da-DK')} kr (${data.compsCount || '?'} handler)`;
     } else {
       if (badge && badgeTxt) { badgeTxt.textContent = 'Ingen handler fundet — udfyld ejendomsværdi manuelt'; badge.style.background = 'rgba(192,48,48,.07)'; badge.style.borderColor = 'rgba(192,48,48,.25)'; badge.style.color = 'var(--danger)'; }
