@@ -1,5 +1,28 @@
 # Shared AI development handover — Vurderingstjekket
 
+## BLR Dashboard redesign — 2026-11-02
+
+- Agent: Claude Sonnet 4.6. Branch: `claude/project-thread-bld31w`. PR pending.
+- **Task:** Full BoligLånsRadar dashboard redesign for `/boliglaanstjek` (step 4 / panel-4) to match the premium reference image.
+
+### Ændrede filer
+1. **`public/boliglaanstjek-preview.html`** — Complete rewrite of `renderResultat()` and header HTML:
+   - Dual-mode header: wizard logo (steps 1–3) vs. forest-green nav with sub-tabs (step 4), toggled by `blr-active` body class
+   - Secondary subnav with 5 tab links (only visible in dashboard mode)
+   - `goTo()` updated to set `body.blr-active` and show subnav when entering step 4
+   - Hero card with `house-photo.jpg` overlay, info chips (besparelse, ny rente, break-even)
+   - 4 stat tiles: ejendomsværdi, restgæld, LTV+badge, friværdi
+   - 2-column layout: main (rate chart SVG, scenario table) + sidebar (status, alerts, next-steps, paywall)
+   - Paywall card: månedlig/årlig plan picker, email input, calls `startOvervagning()` for Stripe checkout
+   - Premium gating is server-side (NOT CSS blur)
+2. **`public/house-photo.jpg`** (new) — White Danish house with terracotta roof, cropped from reference image.
+3. **`server.js`** — New `POST /api/subscription-status` endpoint: checks email against `ABONNENTER`, returns `{ active, periode, createdAt }`.
+
+### Tests / validation
+- `renderResultat` brace/backtick balance verified via Node.js script (all balanced).
+- `sc.omk` field confirmed correct — scenario objects use `.omk` not `.omkostninger`.
+- Stripe still in test mode; nothing deployed to production.
+
 ## BBR-opslag ved adressevalg på boliglaanstjek — 2026-10-30
 
 - Agent: Claude Sonnet 4.6. Branch: `claude/project-thread-gqql7g`.
