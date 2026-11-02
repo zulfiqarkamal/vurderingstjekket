@@ -1,0 +1,38 @@
+.blr-layout{grid-template-columns:minmax(0,1fr) 300px}.blr-main,.blr-sidebar{min-width:0}
+.blr-chart-card>svg{max-height:125px}.blr-chart-card{padding:16px 24px}
+.blr-subnav{position:sticky;top:64px;z-index:99}
+.blr-scenario-card,.blr-chart-card,.ltv-sektion{scroll-margin-top:132px}
+.blr-scenario-intro,.blr-help,.blr-empty{font-size:.8rem;color:#475569;line-height:1.6}
+.blr-scenario-tabs{display:flex;gap:6px;margin:14px 0;background:#f1f5f9;padding:5px;border-radius:24px}
+.blr-scenario-tabs button{flex:1;min-width:0;border:0;border-radius:20px;padding:10px 6px;background:transparent;color:#334155;font:600 .82rem inherit;cursor:pointer}
+.blr-scenario-tabs button[aria-selected=true]{background:#0b4d39;color:white}
+.blr-scenario-tabs button:focus-visible,summary:focus-visible{outline:3px solid #3b82f6;outline-offset:3px}
+.blr-help{margin:12px 0}.blr-help summary,details>summary{cursor:pointer}.blr-help p{margin:8px 0}
+.blr-scenario-table{table-layout:fixed}.blr-scenario-table td,.blr-scenario-table th{padding:10px 6px;overflow-wrap:anywhere}
+.blr-responsive th{font-size:.64rem}.blr-responsive td{font-size:.76rem}
+.blr-scenario-card [hidden]{display:none!important}
+.blr-value{background:#ecfdf5;border:1px solid #a7d6bf;border-radius:12px;padding:14px;font-size:.82rem;line-height:1.6;margin-bottom:12px}
+.blr-value p{margin:6px 0}.blr-stat-val{overflow-wrap:anywhere}
+.blr-bottom-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:20px}
+.blr-bottom-cards strong{display:block;font-size:1.15rem;margin:8px 0;color:#0b4d39}
+.blr-hero-right{min-height:240px}.blr-hero-cards{max-width:calc(100% - 24px)}
+@media(max-width:1050px){.blr-layout{grid-template-columns:minmax(0,1fr)}.blr-sidebar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.blr-sidebar,.blr-bottom-cards{grid-template-columns:minmax(0,1fr)}.blr-scenario-card{overflow:visible;padding:14px}.blr-responsive{min-width:0!important;table-layout:auto}.blr-responsive thead{display:none}.blr-responsive,.blr-responsive tbody,.blr-responsive tr,.blr-responsive td{display:block;width:auto}.blr-responsive tr{border:1px solid #e2e8f0;border-radius:10px;padding:8px;margin:12px 0}.blr-responsive td{display:flex;justify-content:space-between;gap:16px;border:0;text-align:right;overflow-wrap:anywhere}.blr-responsive td:before{content:attr(data-label);font-weight:600;color:#64748b;text-align:left;flex:0 0 43%}.blr-scenario-tabs button{font-size:.76rem;padding:10px 2px}.blr-hero-right{min-height:220px}.blr-hero-left{min-width:0}.blr-active .app-header{padding-left:12px;padding-right:12px}.blr-nav-brand-text{font-size:.8rem}.blr-nav-right{gap:4px}.blr-nav-btn{white-space:normal;font-size:.7rem;padding:6px}.ltv-handler-row{grid-template-columns:minmax(0,1fr);overflow-wrap:anywhere}}
+
+.blr-photo-frame{position:absolute;inset:0;overflow:hidden;border-radius:0 14px 14px 0}
+.blr-photo-frame .blr-hero-photo{position:absolute;width:210%;height:140%;max-width:none;left:-10%;top:-15%;object-fit:cover;object-position:left center}
+.blr-chart-card>svg{height:110px;width:100%;max-height:110px}
+.blr-subnav{max-width:100%;box-sizing:border-box;overflow-x:auto}.blr-subnav-tabs{flex-shrink:0}
+.blr-active .app-header{z-index:100}
+@media(max-width:1000px){
+ body.blr-active .app-header{height:104px;flex-wrap:wrap;align-items:center;gap:0}
+ body.blr-active .blr-nav-items.blr-show-on-active{display:flex!important;order:3;flex:0 0 100%;width:100%;min-width:0;height:40px;margin:0;overflow-x:auto}
+ .blr-nav-item{flex-shrink:0;padding:0 12px;font-size:.74rem}
+ .blr-nav-right{margin-left:auto}.blr-nav-brand{height:64px}
+ .blr-subnav{top:104px;padding:0 12px}.blr-subnav-brand{display:none}
+ .blr-scenario-card,.blr-chart-card,.ltv-sektion{scroll-margin-top:168px}
+}
+@media(max-width:768px){.blr-hero-right{height:280px;min-height:280px}.blr-photo-frame{bottom:80px;border-radius:0}.blr-hero-cards{position:absolute;bottom:10px;left:0;right:0;padding:0 12px;margin:0;max-width:none;flex-wrap:nowrap}.blr-hcard{flex:1;min-width:0;gap:8px;flex-wrap:wrap}.blr-hcard-label{font-size:.62rem}.blr-hcard-val{font-size:.78rem}}
+
+.blr-subnav{overflow-y:hidden}.blr-subnav-tabs{height:100%;box-sizing:border-box}.blr-subnav-tab{box-sizing:border-box}
+.blr-scenario-tabs button{font-family:inherit;font-size:.82rem;font-weight:600}

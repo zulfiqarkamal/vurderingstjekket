@@ -1166,7 +1166,8 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
   .blr-paywall-plans{gap:6px;}
   .blr-paywall-email{font-size:.85rem;}
 }
-</style></head><body>
+</style><link rel="stylesheet" href="/mortgage-scenarios.css">
+</head><body>
 
 <!-- ── App header ─────────────────────────────────────────────────────────── -->
 <header class="app-header">
@@ -1204,11 +1205,11 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
 <div class="blr-subnav" id="blrSubnav">
   <span class="blr-subnav-brand">BoligLånsRadar</span>
   <div class="blr-subnav-tabs">
-    <a class="blr-subnav-tab active" href="#"><span class="blr-subnav-tab-icon">📊</span> Mit overblik</a>
-    <a class="blr-subnav-tab" href="#"><span class="blr-subnav-tab-icon">🔄</span> Scenarier</a>
-    <a class="blr-subnav-tab" href="#"><span class="blr-subnav-tab-icon">📈</span> Rente &amp; marked</a>
-    <a class="blr-subnav-tab" href="#"><span class="blr-subnav-tab-icon">📋</span> Lån &amp; vilkår</a>
-    <a class="blr-subnav-tab" href="#"><span class="blr-subnav-tab-icon">📁</span> Dokumenter</a>
+    <a class="blr-subnav-tab active" href="#" onclick="blrNavTo(this,'top');return false;"><span class="blr-subnav-tab-icon">📊</span> Mit overblik</a>
+    <a class="blr-subnav-tab" href="#" onclick="blrNavTo(this,'scenarier');return false;"><span class="blr-subnav-tab-icon">🔄</span> Scenarier</a>
+    <a class="blr-subnav-tab" href="#" onclick="blrNavTo(this,'rente');return false;"><span class="blr-subnav-tab-icon">📈</span> Rente &amp; marked</a>
+    <a class="blr-subnav-tab" href="#" onclick="blrNavTo(this,'ltv');return false;"><span class="blr-subnav-tab-icon">📋</span> Lån &amp; vilkår</a>
+    <a class="blr-subnav-tab" href="#" onclick="blrNavTo(this,'dok');return false;"><span class="blr-subnav-tab-icon">📁</span> Dokumenter</a>
   </div>
 </div>
 
@@ -2245,7 +2246,7 @@ function renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, skatEjd, compsCo
         <div class="ltv-seg-icon">💡</div>
         <div class="ltv-seg-body">
           <div class="ltv-seg-h">Hvad koster det at komme ned til 60%?</div>
-          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}%. Du betaler bidragssats ~${bidragNu.toFixed(2)}% p.a. — mod ~${bidrag60.toFixed(2)}% under 60%. Det er ca. <strong>${fmtKr(Math.round(bidragBespar))} kr/md i forskel</strong>. Nedsparing kræver ekstra afdrag på <strong>${fmtKr(til60)} kr</strong>${maanedligExtra > 100 ? ` (~${fmtKr(maanedligExtra)} kr/md ekstra)` : ''}.</div>
+          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}%. Du betaler bidragssats ~${bidragNu.toFixed(2)}% p.a. — mod ~${bidrag60.toFixed(2)}% under 60%. Det er ca. <strong>${fmtKr(Math.round(bidragBespar))} kr/md i forskel</strong>. Nedsparing kræver ekstra afdrag på <strong>${fmtKr(til60)} kr</strong>${maanedligExtra > 100 ? ` (ydelsen falder med ca. ${fmtKr(maanedligExtra)} kr/md i modellen)` : ''}.</div>
           <div class="ltv-seg-feats">
             <span class="ltv-feat ltv-locked">🔒 Afdragsfrihed (kræver &lt;60%)</span>
             <span class="ltv-feat ltv-locked">🔒 Laveste bidragssats (kræver &lt;60%)</span>
@@ -2268,33 +2269,6 @@ function renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, skatEjd, compsCo
       </div>`;
   }
 
-  // 2 mini tables: ned (going down) and op (going up)
-  const nuvaerende = mYdelse(rest, rente, loeb, bidragssats(ltvNu));
-  const allPcts = [0,10,20,30,40,50,55,60,65,70,75,80];
-
-  function makeRow(pct, retning) {
-    const targetRest = ejd * (pct / 100);
-    const newBidr = bidragssats(pct);
-    const nyYdelse = mYdelse(Math.max(targetRest, 10000), rente, loeb, newBidr);
-    const ydelsesDiff = nyYdelse - nuvaerende;
-    const beloeb = Math.abs(targetRest - rest);
-    const cls = pct <= 60 ? 'ltv-row-green' : pct <= 75 ? 'ltv-row-blue' : 'ltv-row-warn';
-    return `<tr class="${cls}">
-      <td><strong>${pct}%</strong></td>
-      <td>${fmtKr(beloeb)} kr</td>
-      <td>${fmtKr(nyYdelse)} kr/md</td>
-      <td style="font-weight:700;color:${ydelsesDiff <= 0 ? 'var(--success)' : 'var(--danger)'}">${ydelsesDiff >= 0 ? '+' : ''}${fmtKr(ydelsesDiff)} kr/md</td>
-    </tr>`;
-  }
-
-  // Ned-targets: nearest 5% steps going DOWN from current LTV
-  const nedTargets = allPcts.filter(p => p < ltvNu - 2).slice(-5).reverse();
-  // Op-targets: nearest 5% steps going UP from current LTV, max 80%
-  const opTargets = allPcts.filter(p => p > ltvNu + 2 && p <= 80).slice(0, 5);
-
-  const nedRows = nedTargets.map(p => makeRow(p, 'ned')).join('');
-  const opRows = opTargets.map(p => makeRow(p, 'op')).join('');
-
   // Handler list
   const handlerHtml = handler && handler.length > 0 ? `
     <div class="ltv-handler">
@@ -2312,27 +2286,7 @@ function renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, skatEjd, compsCo
       </div>
     </div>
     ${segmentHtml}
-    ${(nedRows || opRows) ? `
-    <div class="ltv-tabel-wrap">
-      <div class="ltv-tabel-title">Hvad ændres din ydelse ved andre belåningsgrader?</div>
-      <div style="font-size:.85rem;color:var(--muted);margin:6px 0 12px;">Nuværende ydelse: <strong style="color:var(--text)">${fmtKr(nuvaerende)} kr/md</strong></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        ${nedRows ? `<div>
-          <div style="font-size:.78rem;font-weight:700;color:var(--success);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">↓ Betal ned</div>
-          <table class="ltv-tabel" style="width:100%">
-            <thead><tr><th>Belåning</th><th>Beløb indbetalt</th><th>Fremtidig ydelse/md</th><th>Ydelse ændring/md</th></tr></thead>
-            <tbody>${nedRows}</tbody>
-          </table>
-        </div>` : `<div></div>`}
-        ${opRows ? `<div>
-          <div style="font-size:.78rem;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">↑ Lån op</div>
-          <table class="ltv-tabel" style="width:100%">
-            <thead><tr><th>Belåning</th><th>Beløb udbetalt</th><th>Fremtidig ydelse/md</th><th>Ydelse ændring/md</th></tr></thead>
-            <tbody>${opRows}</tbody>
-          </table>
-        </div>` : `<div></div>`}
-      </div>
-    </div>` : ''}
+    <p>Se indbetaling, udbetaling og ny samlet ydelse under fanerne Lån op og Betal ned ovenfor.</p>
     ${handlerHtml}
     <div class="ltv-bankpakke-cta" onclick="startBankpakke()">
       <div>
@@ -2368,7 +2322,15 @@ function renderResultat(d) {
     heroP = sc ? (sc.txt || 'Dit lån er vurderet til at være konkurrencedygtigt på nuværende tidspunkt.') + ' Overvåg markedet — renterne kan ændre sig.' : 'Overvåg markedet — renterne kan ændre sig.';
   }
 
-  const ejdvaerdi = Math.round(rest / (ltv / 100));
+  const scenarioModel = blrScenarioModel(d);
+  const best = scenarioModel.best;
+  if (ltv <= 80) {
+  heroBadge = '◉ ANALYSE KLAR';
+  heroBadgeClass = '';
+  heroH = best.delta < 0 ? 'Se dine muligheder for lavere ydelse' : 'Dit lån er analyseret';
+  heroP = best.delta < 0 ? `${best.label}: <strong>${blrMoney(best.payment)}/md</strong> — ${blrMoney(-best.delta)} lavere betaling end nu. Anslåede omkostninger: ${blrMoney(best.fee)}. Se forudsætninger nedenfor.` : 'Sammenlign lånetyper, undersøg ekstra lån eller se effekten af at betale ned. Alle tal er vejledende.';
+  }
+  const ejdvaerdi = markedsEjd || ejd;
 
   // ── Rente kilde ──
   const renteKilde = renter && renter.source === 'Danmarks Nationalbank'
@@ -2393,9 +2355,8 @@ function renderResultat(d) {
       pts = data.map((_,i) => `${xOf(i)},${yOf(rente)}`).join(' ');
       return { mPts, pts, mRates, labels, minR, maxR, yOf, xOf, n: data.length };
     } else {
-      const months = ['Jan','Mar','Maj','Jul','Sep','Okt'];
-      const mStart = Math.min(mrente + 1.5, 6.0);
-      const mRates = months.map((_,i) => { const t=i/(months.length-1); return +(mStart+(mrente-mStart)*t+Math.sin(t*Math.PI*1.5)*0.1).toFixed(2); });
+      const months = ['Nu','Estimat'];
+      const mRates = months.map(() => mrente);
       const minR = Math.min(...mRates, rente) - .3, maxR = Math.max(...mRates, rente) + .3;
       const yOf = r => 12 + (maxR - r) / (maxR - minR) * 68;
       const xOf = i => 22 + i * (196 / (months.length - 1));
@@ -2409,24 +2370,6 @@ function renderResultat(d) {
   // ── LTV badge ──
   const ltvBadgeCls = ltv < 60 ? 'ok' : ltv <= 80 ? 'warn' : 'bad';
   const ltvBadgeTxt = ltv < 60 ? 'Lav risiko' : ltv <= 80 ? 'Moderat' : 'Høj LTV';
-
-  // ── Scenario rows ──
-  const scRow = hasConv && sc ? `
-    <tr class="blr-sc-best">
-      <td><span class="blr-sc-tag conv">Konvertering</span></td>
-      <td>${sc.nyRente ? sc.nyRente.toFixed(2) + '%' : (mrente.toFixed(2) + '%')}</td>
-      <td>${fmt(Math.round(sc.nyYdelse || nuv))}</td>
-      <td class="${sc.besparelse >= 0 ? 'blr-sc-pos' : 'blr-sc-neg'}">${sc.besparelse >= 0 ? '+' : ''}${fmt(Math.round(sc.besparelse))} kr/md</td>
-      <td>${sc.omk ? Math.ceil(sc.omk / Math.max(1, Math.abs(sc.besparelse))) + ' md.' : '—'}</td>
-    </tr>` : '';
-  const scHoldRow = `
-    <tr>
-      <td><span class="blr-sc-tag hold">Hold lån</span></td>
-      <td>${rente.toFixed(2)}%</td>
-      <td>${fmt(Math.round(nuv))}</td>
-      <td style="color:#64748b;">—</td>
-      <td style="color:#64748b;">—</td>
-    </tr>`;
 
   const p4 = document.getElementById('panel-4');
   p4.innerHTML = `
@@ -2445,15 +2388,15 @@ function renderResultat(d) {
       </div>
     </div>
     <div class="blr-hero-right">
-      <img src="/house-photo.jpg" alt="Ejendom" class="blr-hero-photo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-      <div class="blr-hero-photo-placeholder" style="display:none">🏠</div>
+      <div class="blr-photo-frame"><img src="/house-photo.jpg" alt="Ejendom" class="blr-hero-photo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="blr-hero-photo-placeholder" style="display:none">🏠</div></div>
       <div class="blr-hero-cards">
         <div class="blr-hcard">
-          <div><div class="blr-hcard-label">Mulig besparelse</div><div class="blr-hcard-val green">${hasConv && sc.besparelse > 0 ? '~' + fmt(Math.round(sc.besparelse * 12)) + ' kr./år' : 'Ingen p.t.'}</div></div>
+          <div><div class="blr-hcard-label">Lavere betaling før omk.</div><div class="blr-hcard-val green">${best.delta < 0 ? blrMoney(-best.delta*12)+'/år' : 'Ingen p.t.'}</div></div>
         </div>
         <div class="blr-hcard">
-          <div><div class="blr-hcard-label">Ny rente (estimat)</div><div class="blr-hcard-val">${mrente.toFixed(2)}%</div></div>
-          <div><div class="blr-hcard-label">Break-even</div><div class="blr-hcard-val">${hasConv && sc.besparelse > 0 ? 'ca. ' + Math.ceil((sc.omk||29800)/Math.max(1,Math.abs(sc.besparelse))) + ' md.' : '—'}</div></div>
+          <div><div class="blr-hcard-label">Ny rente (estimat)</div><div class="blr-hcard-val">${best.rate.toFixed(2)}%</div></div>
+          <div><div class="blr-hcard-label">Break-even</div><div class="blr-hcard-val">${best.breakEven ? best.breakEven+' md.' : 'Ikke relevant'}</div></div>
         </div>
       </div>
     </div>
@@ -2463,7 +2406,7 @@ function renderResultat(d) {
   <div class="blr-stat-row">
     <div class="blr-stat">
       <div class="blr-stat-label">🏠 Din ejendomsværdi</div>
-      <div class="blr-stat-val">${fmt(Math.round(ejd/1000)*1000)} kr</div>
+      <div class="blr-stat-val">${fmt(Math.round(ejdvaerdi))} kr</div>
       <div class="blr-stat-sub">${markedsEjd ? (compsCount ? compsCount + ' handler i nabolaget' : 'Markedsestimeret') : '<span style="color:#f59e0b;cursor:pointer;" onclick="goTo(1)" title="Indtast adresse for at hente markedsværdi fra nabolaget">⚠️ Manuelt — <u>tilføj adresse</u></span>'}</div>
     </div>
     <div class="blr-stat">
@@ -2507,85 +2450,13 @@ function renderResultat(d) {
           <div class="blr-chart-legend-item"><div class="blr-chart-legend-dot" style="background:#3b82f6"></div>Markedsrente</div>
           <div class="blr-chart-legend-item"><div class="blr-chart-legend-dot" style="background:#10b981;border:2px dashed #10b981;background:transparent"></div>Din rente</div>
         </div>
-        <div class="blr-chart-src">${renteKilde}</div>
+        <div class="blr-chart-src">${renteKilde}${renter && renter.data && renter.data.length >= 4 ? '' : ' · Historik ikke tilgængelig; kun aktuelt niveau vises'}</div>
       </div>
 
-      <!-- Scenario section -->
-      <div class="blr-scenario-card">
-        <div class="blr-scenario-title">Omlægningsscenarier</div>
-        <div style="font-size:.72rem;color:#64748b;margin-bottom:12px;">Beregningerne er vejledende og baseret på dine indtastede data og aktuelle markedsrenter. Kontakt din långiver for et bindende tilbud.</div>
-
-        <!-- 3 top scenario cards -->
-        ${(() => {
-          // Scenario 1: Hold dit nuværende lån
-          const holdCard = `<div class="blr-top-sc-card hold">
-            <div class="blr-top-sc-label">Behold nuværende lån</div>
-            <div class="blr-top-sc-type">${ltype === 'fastforrentet' ? 'Fastforrentet' : ltype.toUpperCase()}</div>
-            <div class="blr-top-sc-ydelse">${fmt(Math.round(nuv))} kr/md</div>
-            <div class="blr-top-sc-note">Rente: ${rente.toFixed(2)}% — ingen ændring</div>
-          </div>`;
-
-          // Find scenario with lowest monthly payment
-          const allScener = [...(extScener||[])];
-          const laveste = allScener.reduce((best, e) => (!best || e.ydelse < best.ydelse) ? e : best, null);
-          const lavesteCard = laveste ? `<div class="blr-top-sc-card${laveste.besparelse > 0 ? ' green' : ''}">
-            <div class="blr-top-sc-label">Laveste månedlige ydelse</div>
-            <div class="blr-top-sc-type">${laveste.label}</div>
-            <div class="blr-top-sc-ydelse">${fmt(laveste.ydelse)} kr/md</div>
-            <div class="blr-top-sc-note">Rente: ${laveste.rente.toFixed(2)}% · ${laveste.besparelse > 0 ? fmt(laveste.besparelse)+' kr/md lavere' : fmt(Math.abs(laveste.besparelse))+' kr/md højere'}</div>
-          </div>` : '';
-
-          // Find fastforrentet scenario
-          const fast = allScener.find(e => e.key === 'fastforrentet');
-          const fastCard = fast ? `<div class="blr-top-sc-card">
-            <div class="blr-top-sc-label">Fast rente og større budgetsikkerhed</div>
-            <div class="blr-top-sc-type">Fastforrentet</div>
-            <div class="blr-top-sc-ydelse">${fmt(fast.ydelse)} kr/md</div>
-            <div class="blr-top-sc-note">Rente: ${fast.rente.toFixed(2)}% — fast i hele løbetiden</div>
-          </div>` : '';
-
-          return `<div class="blr-top-sc-row">${holdCard}${lavesteCard}${fastCard}</div>`;
-        })()}
-
-        <!-- Collapsible full table -->
-        <details class="blr-all-sc-details">
-          <summary class="blr-all-sc-toggle">Se alle lånemuligheder</summary>
-          <table class="blr-scenario-table" style="margin-top:10px;">
-            <thead><tr><th>Lånetype</th><th>Rente</th><th>Ydelse/md.</th><th>Ændring/md.</th><th>Break-even</th></tr></thead>
-            <tbody>
-              ${scRow}
-              ${(extScener||[]).map(e => {
-                const sign = e.besparelse >= 0 ? '+' : '';
-                const cls = e.besparelse >= 0 ? 'blr-sc-pos' : 'blr-sc-neg';
-                let tbTxt;
-                if (e.tb === 'afdrag') {
-                  tbTxt = '<span title="Ydelsen stiger, men en del er afdrag på lånet — ikke en ren omkostning">Ikke relevant*</span>';
-                } else if (e.tb) {
-                  tbTxt = e.tb + ' md.';
-                } else {
-                  tbTxt = '—';
-                }
-                const tag = e.key === 'afdrag' ? 'afdrag' : e.key === 'afdragsfri' ? 'af-fri' : 'flex';
-                return `<tr>
-                  <td>
-                    <span class="blr-sc-tag ${tag}">${e.label}</span>
-                    <div class="blr-sc-note">${e.note}</div>
-                  </td>
-                  <td>${e.rente.toFixed(2)}%</td>
-                  <td>${fmt(e.ydelse)} kr</td>
-                  <td class="${cls}">${sign}${fmt(e.besparelse)} kr</td>
-                  <td>${tbTxt}</td>
-                </tr>`;
-              }).join('')}
-              ${scHoldRow}
-            </tbody>
-          </table>
-          <div class="blr-scenario-foot">💡 Kursnotering: F1/F3/F5 handles tæt på kurs 100 — typisk ingen kurstab ved omlægning. Fastforrentet: kurs varierer med markedsrenten.<br>* Break-even er ikke relevant ved skift til afdrag: den højere ydelse indeholder afdrag der reducerer din restgæld og øger din friværdi.</div>
-        </details>
-      </div>
+      <div class="blr-scenario-card">${blrScenarioMarkup(d)}</div>
 
       <!-- LTV deep-dive -->
-      ${renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, ejd, compsCount, handler)}
+      <details class="blr-ltv-details"><summary>Ejendom, belåning og bankpakke</summary>${renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, ejd, compsCount, handler)}</details>
 
     </div><!-- /blr-main -->
 
@@ -2636,16 +2507,17 @@ function renderResultat(d) {
       </div>
 
       <!-- Paywall / subscription CTA -->
-      <div class="blr-paywall-card">
+      <div class="blr-paywall-card" id="blrPaywallCard">
+        <div class="blr-value"><p><strong>Gratis: dit overblik nu</strong><br>Analyse, F1/F3/F5/fast rente og scenarier for lån op/ned.</p><p><strong>Abonnement: løbende opfølgning</strong><br>Overvågning, personlig status og besked ved relevante ændringer. 49 kr/md eller 399 kr/år.</p><p>De gratis beregninger kræver ikke abonnement.</p></div>
         <div class="blr-paywall-lock">🔔</div>
         <div class="blr-paywall-h">Få besked, når dit lån kan forbedres</div>
         <p class="blr-paywall-p">Vi overvåger markedet og sender dig en alert, når det er tid til at handle. Ingen binding.</p>
         <div class="blr-paywall-plans">
-          <div class="blr-paywall-plan selected" onclick="window._blrPlan='maaned';document.querySelectorAll('.blr-paywall-plan').forEach(e=>e.classList.remove('selected'));this.classList.add('selected');">
+          <div class="blr-paywall-plan selected" onclick="window._blrPlan='maaned';window._overvagPeriode='maaned';document.querySelectorAll('.blr-paywall-plan').forEach(e=>e.classList.remove('selected'));this.classList.add('selected');">
             <span class="blr-paywall-plan-name">Månedlig</span>
             <span class="blr-paywall-plan-price">49 kr./md</span>
           </div>
-          <div class="blr-paywall-plan best" onclick="window._blrPlan='aar';document.querySelectorAll('.blr-paywall-plan').forEach(e=>e.classList.remove('selected'));this.classList.add('selected');">
+          <div class="blr-paywall-plan best" onclick="window._blrPlan='aar';window._overvagPeriode='aar';document.querySelectorAll('.blr-paywall-plan').forEach(e=>e.classList.remove('selected'));this.classList.add('selected');">
             <span class="blr-paywall-plan-name">Årlig<span class="blr-paywall-plan-badge">Mest værdi</span></span>
             <span class="blr-paywall-plan-price">399 kr./år</span>
           </div>
@@ -2659,6 +2531,11 @@ function renderResultat(d) {
 
     </aside><!-- /sidebar -->
   </div><!-- /blr-layout -->
+  <div class="blr-bottom-cards">
+    <div class="blr-sidebar-card">Belåningsgrad<strong>${ltv.toFixed(1)}% LTV</strong>Friværdi: ${blrMoney(frivaerdi)}. Se mulighederne i Lån op / Betal ned.</div>
+    <div class="blr-sidebar-card">Din månedlige ændring<strong>${blrMoney(best.delta,true)}/md</strong>${best.label}, før skat. Omkostninger ${blrMoney(best.fee)} betales særskilt.</div>
+    <div class="blr-sidebar-card">Rente og marked<strong>${best.rate.toFixed(2)}%</strong>Estimat for ${best.label}. ${renteKilde}. Variabel rente kan ændre sig.</div>
+  </div>
 
 </div><!-- /blr-page -->
 </div><!-- /bg wrapper -->
@@ -3363,4 +3240,5 @@ async function payCard() {
   }
 })();
 </script>
+<script src="/mortgage-scenarios.js"></script>
 </body></html>

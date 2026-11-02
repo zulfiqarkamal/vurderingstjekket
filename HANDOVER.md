@@ -268,3 +268,16 @@ The older inspection below is retained as historical context; its statement that
 - Agent: Claude Sonnet 4.6. Branch: `claude/fix-dev-banner`.
 - Fjerner hardkodet "Lokal forhåndsvisning"-banner fra toppen af `boliglaanstjek-preview.html`.
 - **KRITISK:** `www.vurderingstjekket.dk` peger stadig DNS-mæssigt på den gamle Cloudflare Worker, ikke Railway. Alle Railway-rettelser er usynlige for kunder. Kræver Zulfiqars godkendelse til DNS-skift. Afventer Railway-appens URL fra Zulfiqar.
+
+
+## Interactive mortgage scenarios — Codex — 2026-11-03
+- Branch: codex/interactive-mortgage-scenarios, based on origin/main 72a7b14. Inspected PR75 (open/overlapping), merged PR78 and PR79. No changes to Claude branches.
+- Preserve green compact dashboard; add accessible lower-payment / borrow-more / pay-down tabs, touch help and responsive table cards. Retain property data, bank package, extra afdragsfri/afdrag alternatives, existing subscription flow and PR79 panel-8 CTA. Restore missing PR75 sticky subnav/navigation and summary cards without its stale recommendations/sign conventions.
+- One baseline (entered payment where available), signed monthly changes, gross vs net cash, fees paid upfront or deducted from payout. Reuse existing mYdelse, bidragssats and konvOmk; model assumptions are disclosed, not lender quotations. Main headline uses the same four-type scenario model. No invented redemption quote or future rate forecast.
+- No payment/auth/backend/deployment changes. Full repayment model fee is zero but actual redemption charges are unknown. Existing model limitations remain (simplified contribution/rate amortization and tier assumptions).
+- Validation results and remaining actions recorded after checks below. No merge/deployment authorized.
+
+- Final validation: 11 focused mortgage tests PASS (node --test test/mortgage-scenarios.test.cjs); inline compilation, server syntax and git diff --check PASS. Browser clicks verified the three panels and touch help using synthetic data with outbound connections blocked. At 390px viewport document width was 376px excluding scrollbar; no page overflow. Desktop/mobile screenshots saved outside Git.
+- Existing npm test is NOT green: 14 security tests fail due to an outdated Express mock (urlencoded missing) and old disconnected-preview expectations. Pristine origin/main reproduces 14 failures and 2 passes. Local Express integration also cannot run here because dependencies are absent. No dependency download, live API, real payment or paid generation.
+- Fixed annual/monthly selector state to match the existing handler; no backend/payment-provider change. CSS frames the existing house photo to hide embedded example amounts. Missing rate history now shows only current levels instead of fabricated history. Existing monitoring cron exists in server.js; scheduling and mail delivery not verified.
+- Actual redemption prices and fees require a lender quote; simplified existing engine retained. PR75 remains open and untouched; relevant equivalent fixes implemented here, with PR79 panel-8 CTA retained. Review ready locally. No merge/deployment. Public branch/PR publication awaits owner confirmation under the ask-before-publication rule.
