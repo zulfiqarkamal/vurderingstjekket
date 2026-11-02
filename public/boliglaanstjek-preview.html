@@ -2529,10 +2529,10 @@ async function fetchMarkedsvaerdi(postnr, m2, anvKode, adresseId) {
       window._markedsvaerdi = data.markedsvaerdi;
       window._markedsCompsCount = data.compsCount || 0;
       window._markedsHandler = data.handler || [];
-      // Update hidden field so beregn() has it even as fallback
+      // Update ejd field and re-run full calculation with market value
       const ejdField = document.getElementById('ejendomsvaerdi');
-      if (ejdField && !ejdField.value) ejdField.value = data.markedsvaerdi;
-      if (window._beregningState) { try { window._beregningState.markedsEjd = data.markedsvaerdi; window._beregningState.ejd = data.markedsvaerdi; window._beregningState.compsCount = data.compsCount || 0; renderResultat(window._beregningState); } catch(e) {} }
+      if (ejdField) ejdField.value = data.markedsvaerdi;
+      if (window._beregningState) { try { if (typeof beregn === 'function') beregn(); } catch(e) {} }
       if (badge && badgeTxt) badgeTxt.textContent = `Markedsværdi: ${Math.round(data.markedsvaerdi/1000)*1000 .toLocaleString('da-DK')} kr (${data.compsCount || '?'} handler)`;
     } else {
       if (badge && badgeTxt) { badgeTxt.textContent = 'Ingen handler fundet — udfyld ejendomsværdi manuelt'; badge.style.background = 'rgba(192,48,48,.07)'; badge.style.borderColor = 'rgba(192,48,48,.25)'; badge.style.color = 'var(--danger)'; }
