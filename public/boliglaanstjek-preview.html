@@ -819,6 +819,47 @@ body::before{
   .res4-vh-tile{border-right:none;border-bottom:1px solid var(--border);}
   .res4-vh-tile:last-child{border-bottom:none;}
 }
+
+/* ── LTV / Friværdi sektion ──────────────────────────────── */
+.ltv-sektion{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px 24px;margin:0 0 24px;display:flex;flex-direction:column;gap:20px;}
+.ltv-top-kilde{text-align:center;padding-bottom:4px;}
+.ltv-kilde-label{font-size:.78rem;color:var(--muted);margin-bottom:4px;}
+.ltv-kilde-vaerdi{font-size:2rem;font-weight:900;color:var(--navy);line-height:1.1;}
+.ltv-kilde-sub{font-size:.82rem;color:var(--muted);margin-top:4px;}
+.ltv-segment{display:flex;gap:16px;padding:16px;border-radius:12px;align-items:flex-start;}
+.ltv-groen{background:color-mix(in srgb,var(--success) 8%,transparent);border:1px solid color-mix(in srgb,var(--success) 25%,transparent);}
+.ltv-gul{background:color-mix(in srgb,var(--warn) 8%,transparent);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);}
+.ltv-roed{background:color-mix(in srgb,var(--danger) 8%,transparent);border:1px solid color-mix(in srgb,var(--danger) 25%,transparent);}
+.ltv-seg-icon{font-size:1.6rem;line-height:1;flex-shrink:0;}
+.ltv-seg-h{font-weight:800;font-size:1rem;color:var(--navy);margin-bottom:6px;}
+.ltv-seg-p{font-size:.85rem;color:var(--text);line-height:1.5;margin-bottom:10px;}
+.ltv-seg-feats{display:flex;flex-wrap:wrap;gap:6px;}
+.ltv-feat{font-size:.76rem;padding:3px 10px;border-radius:20px;background:var(--surface-2,color-mix(in srgb,var(--navy) 6%,transparent));color:var(--navy);font-weight:600;}
+.ltv-feat.ltv-locked{background:color-mix(in srgb,var(--muted) 12%,transparent);color:var(--muted);font-weight:400;}
+.ltv-tabel-wrap{overflow-x:auto;}
+.ltv-tabel-title{font-size:.85rem;font-weight:700;color:var(--navy);margin-bottom:10px;}
+.ltv-tabel{width:100%;border-collapse:collapse;font-size:.82rem;}
+.ltv-tabel thead tr{border-bottom:2px solid var(--border);}
+.ltv-tabel th{text-align:left;padding:6px 10px;font-size:.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.ltv-tabel td{padding:10px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.ltv-tabel tr:last-child td{border-bottom:none;}
+.ltv-row-green td:first-child{color:var(--success);font-weight:800;}
+.ltv-row-blue td:first-child{color:var(--sky,var(--navy));font-weight:700;}
+.ltv-row-warn td:first-child{color:var(--warn);font-weight:700;}
+.ltv-handler{border-top:1px solid var(--border);padding-top:16px;}
+.ltv-handler-title{font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;}
+.ltv-handler-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;font-size:.82rem;padding:5px 0;border-bottom:1px solid var(--border);}
+.ltv-handler-row:last-child{border-bottom:none;}
+.ltv-bankpakke-cta{display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--navy);color:#fff;border-radius:12px;padding:18px 20px;cursor:pointer;transition:opacity .15s;}
+.ltv-bankpakke-cta:hover{opacity:.9;}
+.ltv-bp-h{font-weight:800;font-size:.95rem;margin-bottom:4px;}
+.ltv-bp-sub{font-size:.78rem;opacity:.8;line-height:1.4;}
+.ltv-bp-price{font-size:1.2rem;font-weight:900;white-space:nowrap;flex-shrink:0;}
+@media(max-width:640px){
+  .ltv-sektion{padding:20px 16px;}
+  .ltv-tabel th,.ltv-tabel td{padding:8px 6px;}
+  .ltv-bankpakke-cta{flex-direction:column;align-items:flex-start;}
+}
 </style></head><body>
 
 <!-- ── App header ─────────────────────────────────────────────────────────── -->
@@ -1752,9 +1793,12 @@ async function beregn() {
   const omk       = konvOmk(rest);
   const kursDiff  = kurstabEstimat(rente, mrente, rest, loeb);
 
-  // Friværdi
-  const frivaerdi = Math.max(0, ejd - rest);
-  const frivaerdiPct = (frivaerdi / ejd) * 100;
+  // Friværdi — brug markedsbaseret estimat hvis tilgængeligt, ellers SKAT-værdi
+  const markedsEjd = window._markedsvaerdi || null;
+  const vaerdiBase = markedsEjd || ejd;
+  const frivaerdi = Math.max(0, vaerdiBase - rest);
+  const frivaerdiPct = (frivaerdi / vaerdiBase) * 100;
+  const ltvMarked = (rest / vaerdiBase) * 100;
 
   let sc = { type:'ingen', nyRente:mrente, nyYdelse:nuv, nyRest:rest, besparelse:0, omk:0, tb:null, anbefalet:false, txt:'', kurstab:0, kursgevinst:0 };
 
@@ -1793,12 +1837,132 @@ async function beregn() {
   const scener = scenarieBeregning(rest, rente, bidr, loeb, sc.nyRente, sc.nyRest, nyBidr, loeb);
 
   // ── Render panel-4 ─────────────────────────────────────────────────────
-  renderResultat({ ejd, rest, rente, loeb, ltype, bidr, nuv, mrente, ltv, frivaerdi, frivaerdiPct, sc, scener, renter });
+  renderResultat({ ejd, rest, rente, loeb, ltype, bidr, nuv, mrente, ltv: ltvMarked, frivaerdi, frivaerdiPct, sc, scener, renter,
+    markedsEjd, compsCount: window._markedsCompsCount, handler: window._markedsHandler });
   goTo(4);
 }
 
+function renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, skatEjd, compsCount, handler) {
+  const ejd = markedsEjd || skatEjd;
+  const ltvNu = (rest / ejd) * 100;
+  const erMarked = !!markedsEjd;
+  const fmtKr = v => Math.round(v).toLocaleString('da-DK');
+
+  // LTV segment
+  let segmentHtml;
+  if (ltvNu < 60) {
+    segmentHtml = `
+      <div class="ltv-segment ltv-groen">
+        <div class="ltv-seg-icon">✅</div>
+        <div class="ltv-seg-body">
+          <div class="ltv-seg-h">Du har allerede gode kort</div>
+          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}% — under 60%-grænsen. Det giver dig adgang til de bedste vilkår: afdragsfrihed, lavere bidragssats og lettere bankskifte.</div>
+          <div class="ltv-seg-feats">
+            <span class="ltv-feat">✓ Afdragsfrihed mulig</span>
+            <span class="ltv-feat">✓ Laveste bidragssats</span>
+            <span class="ltv-feat">✓ Lettere bankskifte</span>
+            <span class="ltv-feat">✓ Flex-lån uden for­be­hold</span>
+          </div>
+        </div>
+      </div>`;
+  } else if (ltvNu <= 80) {
+    const til60 = Math.max(0, rest - ejd * 0.60);
+    const maanedligExtra = til60 > 0 ? mYdelse(rest, rente, loeb, bidragssats(ltvNu)) - mYdelse(rest - til60, rente, loeb, bidragssats(59)) : 0;
+    segmentHtml = `
+      <div class="ltv-segment ltv-gul">
+        <div class="ltv-seg-icon">💡</div>
+        <div class="ltv-seg-body">
+          <div class="ltv-seg-h">Hvad koster det at komme ned til 60%?</div>
+          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}%. Nedsparing til 60%-grænsen kræver ekstra afdrag på <strong>${fmtKr(til60)} kr.</strong>${maanedligExtra > 100 ? ` Det svarer til ~${fmtKr(maanedligExtra)} kr/md ekstra.` : ''}</div>
+          <div class="ltv-seg-feats">
+            <span class="ltv-feat ltv-locked">🔒 Afdragsfrihed (kræver &lt;60%)</span>
+            <span class="ltv-feat ltv-locked">🔒 Bedste rentemargin</span>
+            <span class="ltv-feat">✓ Nuværende niveau OK til de fleste banker</span>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    segmentHtml = `
+      <div class="ltv-segment ltv-roed">
+        <div class="ltv-seg-icon">⚠️</div>
+        <div class="ltv-seg-body">
+          <div class="ltv-seg-h">Pas på — du er over 80%-grænsen</div>
+          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}%. Over 80% kræver banklån i tillæg til realkreditten og koster markant mere. Prioritér nedbringelse.</div>
+          <div class="ltv-seg-feats">
+            <span class="ltv-feat ltv-locked">🔒 Realkreditlån begrænset til 80%</span>
+            <span class="ltv-feat ltv-locked">🔒 Banklån krævet — højere rente</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // LTV scenario table: current → 60 → 65 → 70 → 75 → 80
+  const targets = [
+    { pct: 60, label: '60%', note: 'Afdragsfri + laveste bidrag' },
+    { pct: 65, label: '65%', note: 'Fri friværdi til banksamtale' },
+    { pct: 70, label: '70%', note: 'God forhandlingsposition' },
+    { pct: 75, label: '75%', note: 'Standardvilkår' },
+    { pct: 80, label: '80%', note: 'Maksimalt realkreditlån' },
+  ].filter(t => Math.abs(t.pct - ltvNu) > 1); // skip if already at that level
+
+  const scenRows = targets.map(t => {
+    const targetRest = ejd * (t.pct / 100);
+    const diff = targetRest - rest; // positive = can borrow more, negative = must pay down
+    const newBidr = bidragssats(t.pct);
+    const nuvaerende = mYdelse(rest, rente, loeb, bidragssats(ltvNu));
+    const nyYdelse = mYdelse(Math.max(targetRest, 10000), rente, loeb, newBidr);
+    const ydelsesDiff = nyYdelse - nuvaerende;
+    const retning = diff >= 0 ? 'optage' : 'nedbringe';
+    const beloeb = Math.abs(diff);
+    const cls = t.pct <= 60 ? 'ltv-row-green' : t.pct <= 75 ? 'ltv-row-blue' : 'ltv-row-warn';
+    return `
+      <tr class="${cls}">
+        <td><strong>${t.label}</strong></td>
+        <td>${fmtKr(beloeb)} kr<br><small style="color:var(--muted)">${retning === 'optage' ? 'kan frigøres' : 'skal betales ned'}</small></td>
+        <td>${ydelsesDiff >= 0 ? '+' : ''}${fmtKr(ydelsesDiff)} kr/md</td>
+        <td style="font-size:.78rem;color:var(--muted)">${t.note}</td>
+      </tr>`;
+  }).join('');
+
+  // Handler list
+  const handlerHtml = handler && handler.length > 0 ? `
+    <div class="ltv-handler">
+      <div class="ltv-handler-title">Seneste handler i nabolaget</div>
+      ${handler.map(h => `<div class="ltv-handler-row"><span>${h.adresse || '—'}</span><span>${h.dato || ''}</span><span style="font-weight:700">${h.pris ? fmtKr(h.pris) + ' kr' : '—'}</span></div>`).join('')}
+    </div>` : '';
+
+  return `
+  <div class="ltv-sektion">
+    <div class="ltv-top">
+      <div class="ltv-top-kilde">
+        <div class="ltv-kilde-label">${erMarked ? `📍 Markedsbaseret estimat (${compsCount || '?'} handler i nabolaget)` : '⚠ SKAT-baseret (ingen adresse angivet)'}</div>
+        <div class="ltv-kilde-vaerdi">${fmtKr(ejd)} kr</div>
+        <div class="ltv-kilde-sub">Restgæld: ${fmtKr(rest)} kr · Friværdi: ${fmtKr(Math.max(0, ejd - rest))} kr · LTV: ${ltvNu.toFixed(1)}%</div>
+      </div>
+    </div>
+    ${segmentHtml}
+    ${scenRows.length > 0 ? `
+    <div class="ltv-tabel-wrap">
+      <div class="ltv-tabel-title">Hvad hvis du ændrer belåningsgraden?</div>
+      <table class="ltv-tabel">
+        <thead><tr><th>Belåning</th><th>Beløb</th><th>Ydelse ændring</th><th>Hvad det giver</th></tr></thead>
+        <tbody>${scenRows}</tbody>
+      </table>
+    </div>` : ''}
+    ${handlerHtml}
+    <div class="ltv-bankpakke-cta" onclick="startBankpakke()">
+      <div>
+        <div class="ltv-bp-h">Bankpakke: markedsdata + budget klar til mødet</div>
+        <div class="ltv-bp-sub">Friværdi baseret på nabolagets handler · Budget banken kan bruge · 5 konkrete spørgsmål</div>
+      </div>
+      <div class="ltv-bp-price">299 kr →</div>
+    </div>
+  </div>`;
+}
+
 function renderResultat(d) {
-  const { ejd, rest, rente, loeb, ltype, bidr, nuv, mrente, ltv, frivaerdi, frivaerdiPct, sc, scener, renter } = d;
+  const { ejd, rest, rente, loeb, ltype, bidr, nuv, mrente, ltv, frivaerdi, frivaerdiPct, sc, scener, renter,
+          markedsEjd, compsCount, handler } = d;
 
   // ── Verdict logic ──
   let vhCls, badge, vh_h, vh_p;
@@ -2117,7 +2281,10 @@ function renderResultat(d) {
     </div>
   </div>
 
-  <!-- ── 5. CTA banner (open, no blur) ── -->
+  <!-- ── 5. Markedsbaseret friværdi + LTV scenarier ── -->
+  ${renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, ejd, compsCount, handler)}
+
+  <!-- ── 6. CTA banner (open, no blur) ── -->
   <div class="res4-cta-banner">
     <div class="res4-cta-bell">🔔</div>
     <div class="res4-cta-left">
@@ -2295,12 +2462,23 @@ function dawaSearch(q) {
   }, 180);
 }
 
+// Market value state (set after BBR + Boliga comps)
+window._markedsvaerdi = null;
+window._markedsCompsCount = 0;
+window._markedsHandler = [];
+window._adressePostnr = null;
+window._adresseAnvKode = null;
+window._adresseId = null;
+
 function dawaPick(i) {
   const d = dawaResults[i];
   if (!d) return;
   document.getElementById('adresseM').value = d.label;
   document.getElementById('dawaDrop').style.display = 'none';
   dawaCursor = -1;
+  window._adressePostnr = d.postnr || null;
+  window._adresseId = d.adresseId || null;
+  window._markedsvaerdi = null; // reset until BBR returns
   if (d.husnummerId) {
     lookupBBRForLoan(d.husnummerId, d.adresseId, d.kommunekode);
   }
@@ -2320,6 +2498,9 @@ async function lookupBBRForLoan(husnummerId, adresseId, kommunekode) {
     if (data.found && data.m2 > 0) {
       document.getElementById('bbrBadgeIcon').textContent = '🏠';
       badgeText.textContent = `${data.boligtypeLabel} · ${data.m2} m² · Kommunekode ${data.kommunekode || kommunekode}`;
+      window._adresseAnvKode = data.anvKode || '120';
+      // Fetch market value in background — result stored for beregn()
+      fetchMarkedsvaerdi(window._adressePostnr, data.m2, data.anvKode, adresseId);
     } else {
       document.getElementById('bbrBadgeIcon').textContent = 'ℹ️';
       badgeText.textContent = 'Ingen bygningsdata fundet i BBR — udfyld tallene manuelt';
@@ -2327,6 +2508,23 @@ async function lookupBBRForLoan(husnummerId, adresseId, kommunekode) {
   } catch(e) {
     badge.style.display = 'none';
   }
+}
+
+async function fetchMarkedsvaerdi(postnr, m2, anvKode, adresseId) {
+  if (!postnr || !m2) return;
+  try {
+    const params = new URLSearchParams({ postnr, m2 });
+    if (anvKode) params.set('anvKode', anvKode);
+    if (adresseId) params.set('adresseId', adresseId);
+    const r = await fetch('/api/markedsvaerdi?' + params);
+    if (!r.ok) return;
+    const data = await r.json();
+    if (data.markedsvaerdi) {
+      window._markedsvaerdi = data.markedsvaerdi;
+      window._markedsCompsCount = data.compsCount || 0;
+      window._markedsHandler = data.handler || [];
+    }
+  } catch(e) { /* silent — SKAT fallback used if this fails */ }
 }
 
 function dawaKey(e) {
