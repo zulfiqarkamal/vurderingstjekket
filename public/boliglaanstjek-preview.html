@@ -959,17 +959,7 @@ body::before{
   <!-- Manuel mode -->
   <div class="card" id="manuelCard">
     <div class="card-title">Din ejendom</div>
-    <div class="card-sub">Udfyld din adresse og ejendomsværdi. Du finder tallene på <strong>vurdering.dk</strong> eller på din seneste årsopgørelse fra SKAT.</div>
-
-    <div class="info-box">
-      <div class="info-box-title">📍 Sådan finder du dine tal</div>
-      <ol class="info-steps">
-        <li>Gå til <strong>vurdering.dk</strong> og søg på din adresse</li>
-        <li>Find <strong>Ejendomsværdi</strong> — det er den samlede vurdering af din bolig</li>
-        <li>Find <strong>Grundværdi</strong> — det er værdien af grunden alene</li>
-        <li>Alternativt: Se årsopgørelsen fra SKAT under "Ejendomsværdiskat"</li>
-      </ol>
-    </div>
+    <div class="card-sub">Skriv din adresse — vi henter automatisk boligareal fra BBR og beregner markedsværdi fra seneste handler i dit nabolag.</div>
 
     <div class="field" style="position:relative">
       <label>Adresse</label>
@@ -980,26 +970,23 @@ body::before{
       <span id="bbrBadgeIcon">🏠</span>
       <span id="bbrBadgeText"></span>
     </div>
-    <div class="field-row">
+    <div id="markedsBadge" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(26,138,84,.08);border:1px solid rgba(26,138,84,.25);border-radius:8px;font-size:.82rem;color:var(--success);align-items:center;gap:8px;">
+      <span>📍</span>
+      <span id="markedsBadgeText">Henter markedsværdi...</span>
+    </div>
+
+    <div id="manuelEvFallback" style="display:none;margin-top:12px">
       <div class="field">
-        <label>Ejendomsværdi</label>
+        <label>Ejendomsværdi (manuel)</label>
         <div class="field-suffix">
-          <input type="number" id="ejendomsvaerdiM" placeholder="3000000" min="100000" max="50000000" step="10000" oninput="syncManuel()">
+          <input type="number" id="ejendomsvaerdiM" placeholder="3000000" min="100000" max="50000000" step="10000" oninput="if(this.value) document.getElementById('ejendomsvaerdi').value=this.value">
           <span>kr</span>
         </div>
-        <div class="field-hint">Fra vurdering.dk</div>
-      </div>
-      <div class="field">
-        <label>Grundværdi</label>
-        <div class="field-suffix">
-          <input type="number" id="grundvaerdiM" placeholder="800000" min="10000" max="20000000" step="10000" oninput="syncManuel()">
-          <span>kr</span>
-        </div>
-        <div class="field-hint">Fra vurdering.dk</div>
+        <div class="field-hint">Vi kunne ikke hente markedsværdi — skriv den manuelt</div>
       </div>
     </div>
 
-    <div class="vt-cta">
+    <div class="vt-cta" style="margin-top:16px">
       <div style="font-size:.82rem;color:var(--muted);line-height:1.55;">
         💡 <strong>Tip:</strong> Brug <a href="https://vurderingstjekket.dk" target="_blank" style="color:var(--accent)">Vurderingstjekket.dk</a> til at tjekke om din vurdering er korrekt — og få tallene pre-udfyldt her automatisk.
       </div>
@@ -1850,33 +1837,37 @@ function renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, skatEjd, compsCo
 
   // LTV segment
   let segmentHtml;
+  const bidragNu = bidragssats(ltvNu);
+  const bidrag60 = bidragssats(59);
+
   if (ltvNu < 60) {
     segmentHtml = `
       <div class="ltv-segment ltv-groen">
         <div class="ltv-seg-icon">✅</div>
         <div class="ltv-seg-body">
-          <div class="ltv-seg-h">Du har allerede gode kort</div>
-          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}% — under 60%-grænsen. Det giver dig adgang til de bedste vilkår: afdragsfrihed, lavere bidragssats og lettere bankskifte.</div>
+          <div class="ltv-seg-h">Du har allerede de bedste vilkår</div>
+          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}% — under 60%-grænsen. Det giver adgang til: <strong>afdragsfrihed op til 10 år ad gangen</strong> (kan fornyes), bidragssats på ca. <strong>${bidragNu.toFixed(2)}% p.a.</strong>, og lettere bankskifte (banken har mere sikkerhed → bedre forhandlingsposition for dig).</div>
           <div class="ltv-seg-feats">
-            <span class="ltv-feat">✓ Afdragsfrihed mulig</span>
-            <span class="ltv-feat">✓ Laveste bidragssats</span>
+            <span class="ltv-feat">✓ Afdragsfrihed op til 10 år</span>
+            <span class="ltv-feat">✓ Bidragssats ~${bidragNu.toFixed(2)}% p.a.</span>
             <span class="ltv-feat">✓ Lettere bankskifte</span>
-            <span class="ltv-feat">✓ Flex-lån uden for­be­hold</span>
+            <span class="ltv-feat">✓ F1/F3/F5 flex-lån tilgængeligt</span>
           </div>
         </div>
       </div>`;
   } else if (ltvNu <= 80) {
     const til60 = Math.max(0, rest - ejd * 0.60);
     const maanedligExtra = til60 > 0 ? mYdelse(rest, rente, loeb, bidragssats(ltvNu)) - mYdelse(rest - til60, rente, loeb, bidragssats(59)) : 0;
+    const bidragBespar = ((bidragNu - bidrag60) / 100) * rest / 12;
     segmentHtml = `
       <div class="ltv-segment ltv-gul">
         <div class="ltv-seg-icon">💡</div>
         <div class="ltv-seg-body">
           <div class="ltv-seg-h">Hvad koster det at komme ned til 60%?</div>
-          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}%. Nedsparing til 60%-grænsen kræver ekstra afdrag på <strong>${fmtKr(til60)} kr.</strong>${maanedligExtra > 100 ? ` Det svarer til ~${fmtKr(maanedligExtra)} kr/md ekstra.` : ''}</div>
+          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}%. Du betaler bidragssats ~${bidragNu.toFixed(2)}% p.a. — mod ~${bidrag60.toFixed(2)}% under 60%. Det er ca. <strong>${fmtKr(Math.round(bidragBespar))} kr/md i forskel</strong>. Nedsparing kræver ekstra afdrag på <strong>${fmtKr(til60)} kr</strong>${maanedligExtra > 100 ? ` (~${fmtKr(maanedligExtra)} kr/md ekstra)` : ''}.</div>
           <div class="ltv-seg-feats">
             <span class="ltv-feat ltv-locked">🔒 Afdragsfrihed (kræver &lt;60%)</span>
-            <span class="ltv-feat ltv-locked">🔒 Bedste rentemargin</span>
+            <span class="ltv-feat ltv-locked">🔒 Laveste bidragssats (kræver &lt;60%)</span>
             <span class="ltv-feat">✓ Nuværende niveau OK til de fleste banker</span>
           </div>
         </div>
@@ -1887,7 +1878,7 @@ function renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, skatEjd, compsCo
         <div class="ltv-seg-icon">⚠️</div>
         <div class="ltv-seg-body">
           <div class="ltv-seg-h">Pas på — du er over 80%-grænsen</div>
-          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}%. Over 80% kræver banklån i tillæg til realkreditten og koster markant mere. Prioritér nedbringelse.</div>
+          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}%. Over 80% dækker realkreditten ikke — du har en del af boliglånet i banken til højere rente. Bidragssatsen er ~${bidragNu.toFixed(2)}% p.a. Prioritér nedbringelse til 80% for at konvertere til rent realkreditlån.</div>
           <div class="ltv-seg-feats">
             <span class="ltv-feat ltv-locked">🔒 Realkreditlån begrænset til 80%</span>
             <span class="ltv-feat ltv-locked">🔒 Banklån krævet — højere rente</span>
@@ -1918,7 +1909,7 @@ function renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, skatEjd, compsCo
     return `
       <tr class="${cls}">
         <td><strong>${t.label}</strong></td>
-        <td>${fmtKr(beloeb)} kr<br><small style="color:var(--muted)">${retning === 'optage' ? 'kan frigøres' : 'skal betales ned'}</small></td>
+        <td>${fmtKr(beloeb)} kr<br><small style="color:var(--muted)">${retning === 'optage' ? 'kan optages' : 'skal indbetales'}</small></td>
         <td>${ydelsesDiff >= 0 ? '+' : ''}${fmtKr(ydelsesDiff)} kr/md</td>
         <td style="font-size:.78rem;color:var(--muted)">${t.note}</td>
       </tr>`;
@@ -1935,7 +1926,7 @@ function renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, skatEjd, compsCo
   <div class="ltv-sektion">
     <div class="ltv-top">
       <div class="ltv-top-kilde">
-        <div class="ltv-kilde-label">${erMarked ? `📍 Markedsbaseret estimat (${compsCount || '?'} handler i nabolaget)` : '⚠ SKAT-baseret (ingen adresse angivet)'}</div>
+        <div class="ltv-kilde-label">${erMarked ? `📍 Markedsbaseret estimat (${compsCount || '?'} handler i nabolaget)` : '📋 Baseret på indtastet ejendomsværdi'}</div>
         <div class="ltv-kilde-vaerdi">${fmtKr(ejd)} kr</div>
         <div class="ltv-kilde-sub">Restgæld: ${fmtKr(rest)} kr · Friværdi: ${fmtKr(Math.max(0, ejd - rest))} kr · LTV: ${ltvNu.toFixed(1)}%</div>
       </div>
@@ -1945,7 +1936,7 @@ function renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, skatEjd, compsCo
     <div class="ltv-tabel-wrap">
       <div class="ltv-tabel-title">Hvad hvis du ændrer belåningsgraden?</div>
       <table class="ltv-tabel">
-        <thead><tr><th>Belåning</th><th>Beløb</th><th>Ydelse ændring</th><th>Hvad det giver</th></tr></thead>
+        <thead><tr><th>Belåning</th><th>Beløb / retning</th><th>Ydelse ændring</th><th>Hvad det giver</th></tr></thead>
         <tbody>${scenRows}</tbody>
       </table>
     </div>` : ''}
@@ -2512,6 +2503,9 @@ async function lookupBBRForLoan(husnummerId, adresseId, kommunekode) {
 
 async function fetchMarkedsvaerdi(postnr, m2, anvKode, adresseId) {
   if (!postnr || !m2) return;
+  const badge = document.getElementById('markedsBadge');
+  const badgeTxt = document.getElementById('markedsBadgeText');
+  if (badge) { badge.style.display = 'flex'; if (badgeTxt) badgeTxt.textContent = 'Henter markedsværdi fra nabolaget...'; }
   try {
     const params = new URLSearchParams({ postnr, m2 });
     if (anvKode) params.set('anvKode', anvKode);
@@ -2523,8 +2517,18 @@ async function fetchMarkedsvaerdi(postnr, m2, anvKode, adresseId) {
       window._markedsvaerdi = data.markedsvaerdi;
       window._markedsCompsCount = data.compsCount || 0;
       window._markedsHandler = data.handler || [];
+      // Update hidden field so beregn() has it even as fallback
+      const ejdField = document.getElementById('ejendomsvaerdi');
+      if (ejdField && !ejdField.value) ejdField.value = data.markedsvaerdi;
+      if (badge && badgeTxt) badgeTxt.textContent = `Markedsværdi: ${Math.round(data.markedsvaerdi/1000)*1000 .toLocaleString('da-DK')} kr (${data.compsCount || '?'} handler)`;
+    } else {
+      if (badge && badgeTxt) { badgeTxt.textContent = 'Ingen handler fundet — udfyld ejendomsværdi manuelt'; badge.style.background = 'rgba(192,48,48,.07)'; badge.style.borderColor = 'rgba(192,48,48,.25)'; badge.style.color = 'var(--danger)'; }
+      const fb = document.getElementById('manuelEvFallback'); if (fb) fb.style.display = '';
     }
-  } catch(e) { /* silent — SKAT fallback used if this fails */ }
+  } catch(e) {
+    if (badge && badgeTxt) { badgeTxt.textContent = 'Markedsværdi utilgængelig — udfyld manuelt'; }
+    const fb = document.getElementById('manuelEvFallback'); if (fb) fb.style.display = '';
+  }
 }
 
 function dawaKey(e) {
@@ -2562,23 +2566,18 @@ function setSource(mode) {
   document.getElementById('manuelCard').style.display = mode === 'manuel' ? '' : 'none';
 }
 
-function syncManuel() {
-  const ev = document.getElementById('ejendomsvaerdiM').value;
-  const gv = document.getElementById('grundvaerdiM').value;
-  if (ev) document.getElementById('ejendomsvaerdi').value = ev;
-  if (gv) document.getElementById('grundvaerdi').value = gv;
-}
+function syncManuel() {} // EV/GV no longer synced manually — uses markedsvaerdi
 
 function confirmManuel() {
   const adr = document.getElementById('adresseM').value.trim();
-  const ev  = document.getElementById('ejendomsvaerdiM').value;
-  const gv  = document.getElementById('grundvaerdiM').value;
   if (!adr) { alert('Udfyld venligst din adresse'); return; }
-  if (!ev || parseInt(ev) < 100000) { alert('Udfyld en gyldig ejendomsværdi'); return; }
-  // Sync to main hidden fields
   document.getElementById('adresse').value = adr;
-  document.getElementById('ejendomsvaerdi').value = ev || 0;
-  document.getElementById('grundvaerdi').value = gv || 0;
+  if (window._markedsvaerdi) {
+    document.getElementById('ejendomsvaerdi').value = window._markedsvaerdi;
+  } else {
+    const manuelEv = document.getElementById('ejendomsvaerdiM');
+    if (manuelEv && manuelEv.value) document.getElementById('ejendomsvaerdi').value = manuelEv.value;
+  }
   goTo(2);
 }
 
