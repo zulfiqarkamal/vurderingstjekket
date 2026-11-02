@@ -1041,8 +1041,20 @@ body.blr-active body::before{background:var(--forest);}
 .blr-sc-tag.afdrag{background:#ede9fe;color:#5b21b6;}
 .blr-sc-tag.af-fri{background:#fce7f3;color:#9d174d;}
 .blr-sc-note{font-size:.7rem;color:#64748b;margin-top:2px;}
-.blr-sc-lender{font-size:.68rem;color:#94a3b8;margin-top:1px;}
 .blr-scenario-foot{font-size:.72rem;color:#64748b;padding:10px 12px;border-top:1px solid #e2e8f0;line-height:1.5;}
+.blr-top-sc-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.blr-top-sc-card{flex:1 1 140px;min-width:130px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px 10px;cursor:default;}
+.blr-top-sc-card.green{border-color:#10b981;background:#f0fdf4;}
+.blr-top-sc-card.hold{border-color:#94a3b8;}
+.blr-top-sc-label{font-size:.67rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.blr-top-sc-type{font-size:.82rem;font-weight:700;color:#1e293b;margin-bottom:2px;}
+.blr-top-sc-ydelse{font-size:1.15rem;font-weight:800;color:#0f172a;margin-bottom:4px;}
+.blr-top-sc-note{font-size:.68rem;color:#64748b;}
+.blr-all-sc-details{margin-top:4px;}
+.blr-all-sc-toggle{cursor:pointer;font-size:.8rem;font-weight:600;color:#3b82f6;list-style:none;padding:6px 0;}
+.blr-all-sc-toggle::-webkit-details-marker{display:none;}
+.blr-all-sc-toggle::before{content:'▶ ';}
+details[open] .blr-all-sc-toggle::before{content:'▼ ';}
 .blr-sc-pos{color:#059669;font-weight:700;}
 .blr-sc-neg{color:#dc2626;font-weight:700;}
 .blr-sc-best{background:#f0fdf4!important;}
@@ -2161,10 +2173,10 @@ async function beregn() {
   // ── Udvidede lånetyper: F1/F3/F5, fastforrentet, afdragsfri toggle ──
   const extScener = [];
   const ltypeOptions = [
-    { key: 'F1',           label: 'F1 Flekslån',              note: 'Variabel — justeres hvert år',      kursNote: '≈100', lender: 'Realkredit Danmark / Nykredit' },
-    { key: 'F3',           label: 'F3 Flekslån',              note: 'Variabel — justeres hvert 3. år',   kursNote: '≈100', lender: 'Totalkredit / Realkredit Danmark' },
-    { key: 'F5',           label: 'F5 Flekslån',              note: 'Variabel — justeres hvert 5. år',   kursNote: '≈100', lender: 'Nykredit / NordeaKredit' },
-    { key: 'fastforrentet', label: 'Fastforrentet',           note: 'Fast rente i hele løbetiden',       kursNote: 'varierer', lender: 'Nykredit / Realkredit Danmark' },
+    { key: 'F1',            label: 'F1 Flekslån',   note: 'Variabel — justeres hvert år',      kursNote: '≈100' },
+    { key: 'F3',            label: 'F3 Flekslån',   note: 'Variabel — justeres hvert 3. år',   kursNote: '≈100' },
+    { key: 'F5',            label: 'F5 Flekslån',   note: 'Variabel — justeres hvert 5. år',   kursNote: '≈100' },
+    { key: 'fastforrentet', label: 'Fastforrentet', note: 'Fast rente i hele løbetiden',        kursNote: 'varierer' },
   ];
   for (const lt of ltypeOptions) {
     if (lt.key === ltype) continue;
@@ -2173,21 +2185,23 @@ async function beregn() {
     const nyYd = mYdelse(rest, r, loeb, nyB2);
     const bespar = Math.round(nuv - nyYd);
     const omk2 = konvOmk(rest);
-    const tb = Math.abs(bespar) > 50 ? Math.ceil(omk2 / Math.abs(bespar)) : null;
-    extScener.push({ key: lt.key, label: lt.label, rente: r, ydelse: Math.round(nyYd), besparelse: bespar, omk: omk2, tb, note: lt.note, kursNote: lt.kursNote, lender: lt.lender });
+    // Break-even: only meaningful when payments decrease (bespar > 0)
+    const tb = bespar > 50 ? Math.ceil(omk2 / bespar) : null;
+    extScener.push({ key: lt.key, label: lt.label, rente: r, ydelse: Math.round(nyYd), besparelse: bespar, omk: omk2, tb, note: lt.note, kursNote: lt.kursNote });
   }
   if (ltype === 'afdragsfri') {
     const r = renter.fastforrentet;
     const nyB2 = bidragssats(ltvMarked);
     const nyYd = mYdelse(rest, r, loeb, nyB2);
-    const bespar = Math.round(nuv - nyYd);
-    extScener.push({ key: 'afdrag', label: 'Skift til afdrag (fast rente)', rente: r, ydelse: Math.round(nyYd), besparelse: bespar, omk: konvOmk(rest), tb: null, note: 'Nedbringer restgæld — lavere saldo til indfrielse', kursNote: 'varierer', lender: 'Nykredit / Totalkredit' });
+    const bespar = Math.round(nuv - nyYd); // negative: payment increases
+    // No break-even: higher payment includes principal repayment (debt reduction), not a cost
+    extScener.push({ key: 'afdrag', label: 'Skift til afdrag (fast rente)', rente: r, ydelse: Math.round(nyYd), besparelse: bespar, omk: konvOmk(rest), tb: 'afdrag', note: 'Ydelsen stiger, men en del er afdrag — reducerer din restgæld løbende', kursNote: 'varierer' });
   } else if (ltvMarked <= 60) {
     const r = renter.afdragsfri || renter.fastforrentet;
     const nyB2 = bidragssats(ltvMarked);
     const nyYd = mYdelse(rest, r, loeb, nyB2, true);
     const bespar = Math.round(nuv - nyYd);
-    extScener.push({ key: 'afdragsfri', label: 'Afdragsfri (LTV < 60%)', rente: r, ydelse: Math.round(nyYd), besparelse: bespar, omk: konvOmk(rest), tb: null, note: 'Du er under 60% — afdragsfrihed er mulig', kursNote: '≈100', lender: 'Nykredit / Totalkredit' });
+    extScener.push({ key: 'afdragsfri', label: 'Afdragsfri (LTV < 60%)', rente: r, ydelse: Math.round(nyYd), besparelse: bespar, omk: konvOmk(rest), tb: bespar > 50 ? Math.ceil(konvOmk(rest)/bespar) : null, note: 'Du er under 60% — afdragsfrihed er mulig', kursNote: '≈100' });
   }
 
   // ── Render panel-4 ─────────────────────────────────────────────────────
@@ -2496,34 +2510,78 @@ function renderResultat(d) {
         <div class="blr-chart-src">${renteKilde}</div>
       </div>
 
-      <!-- Scenario table -->
+      <!-- Scenario section -->
       <div class="blr-scenario-card">
         <div class="blr-scenario-title">Omlægningsscenarier</div>
-        <table class="blr-scenario-table">
-          <thead><tr><th>Lånetype</th><th>Rente</th><th>Ydelse/md.</th><th>Ændring/md.</th><th>Break-even</th></tr></thead>
-          <tbody>
-            ${scRow}
-            ${(extScener||[]).map(e => {
-              const sign = e.besparelse >= 0 ? '+' : '';
-              const cls = e.besparelse >= 0 ? 'blr-sc-pos' : 'blr-sc-neg';
-              const tb = e.tb ? e.tb + ' md.' : '—';
-              const tag = e.key === 'afdrag' ? 'afdrag' : e.key === 'afdragsfri' ? 'af-fri' : 'flex';
-              return `<tr>
-                <td>
-                  <span class="blr-sc-tag ${tag}">${e.label}</span>
-                  <div class="blr-sc-note">${e.note}</div>
-                  <div class="blr-sc-lender">${e.lender}</div>
-                </td>
-                <td>${e.rente.toFixed(2)}%</td>
-                <td>${fmt(e.ydelse)} kr</td>
-                <td class="${cls}">${sign}${fmt(e.besparelse)} kr</td>
-                <td>${tb}</td>
-              </tr>`;
-            }).join('')}
-            ${scHoldRow}
-          </tbody>
-        </table>
-        <div class="blr-scenario-foot">💡 Kursnotering: F1/F3/F5 handles altid tæt på kurs 100 — ingen kurstab ved omlægning. Fastforrentet: kurs varierer med markedsrenten.</div>
+        <div style="font-size:.72rem;color:#64748b;margin-bottom:12px;">Beregningerne er vejledende og baseret på dine indtastede data og aktuelle markedsrenter. Kontakt din långiver for et bindende tilbud.</div>
+
+        <!-- 3 top scenario cards -->
+        ${(() => {
+          // Scenario 1: Hold dit nuværende lån
+          const holdCard = `<div class="blr-top-sc-card hold">
+            <div class="blr-top-sc-label">Behold nuværende lån</div>
+            <div class="blr-top-sc-type">${ltype === 'fastforrentet' ? 'Fastforrentet' : ltype.toUpperCase()}</div>
+            <div class="blr-top-sc-ydelse">${fmt(Math.round(nuv))} kr/md</div>
+            <div class="blr-top-sc-note">Rente: ${rente.toFixed(2)}% — ingen ændring</div>
+          </div>`;
+
+          // Find scenario with lowest monthly payment
+          const allScener = [...(extScener||[])];
+          const laveste = allScener.reduce((best, e) => (!best || e.ydelse < best.ydelse) ? e : best, null);
+          const lavesteCard = laveste ? `<div class="blr-top-sc-card${laveste.besparelse > 0 ? ' green' : ''}">
+            <div class="blr-top-sc-label">Laveste månedlige ydelse</div>
+            <div class="blr-top-sc-type">${laveste.label}</div>
+            <div class="blr-top-sc-ydelse">${fmt(laveste.ydelse)} kr/md</div>
+            <div class="blr-top-sc-note">Rente: ${laveste.rente.toFixed(2)}% · ${laveste.besparelse > 0 ? fmt(laveste.besparelse)+' kr/md lavere' : fmt(Math.abs(laveste.besparelse))+' kr/md højere'}</div>
+          </div>` : '';
+
+          // Find fastforrentet scenario
+          const fast = allScener.find(e => e.key === 'fastforrentet');
+          const fastCard = fast ? `<div class="blr-top-sc-card">
+            <div class="blr-top-sc-label">Fast rente og større budgetsikkerhed</div>
+            <div class="blr-top-sc-type">Fastforrentet</div>
+            <div class="blr-top-sc-ydelse">${fmt(fast.ydelse)} kr/md</div>
+            <div class="blr-top-sc-note">Rente: ${fast.rente.toFixed(2)}% — fast i hele løbetiden</div>
+          </div>` : '';
+
+          return `<div class="blr-top-sc-row">${holdCard}${lavesteCard}${fastCard}</div>`;
+        })()}
+
+        <!-- Collapsible full table -->
+        <details class="blr-all-sc-details">
+          <summary class="blr-all-sc-toggle">Se alle lånemuligheder</summary>
+          <table class="blr-scenario-table" style="margin-top:10px;">
+            <thead><tr><th>Lånetype</th><th>Rente</th><th>Ydelse/md.</th><th>Ændring/md.</th><th>Break-even</th></tr></thead>
+            <tbody>
+              ${scRow}
+              ${(extScener||[]).map(e => {
+                const sign = e.besparelse >= 0 ? '+' : '';
+                const cls = e.besparelse >= 0 ? 'blr-sc-pos' : 'blr-sc-neg';
+                let tbTxt;
+                if (e.tb === 'afdrag') {
+                  tbTxt = '<span title="Ydelsen stiger, men en del er afdrag på lånet — ikke en ren omkostning">Ikke relevant*</span>';
+                } else if (e.tb) {
+                  tbTxt = e.tb + ' md.';
+                } else {
+                  tbTxt = '—';
+                }
+                const tag = e.key === 'afdrag' ? 'afdrag' : e.key === 'afdragsfri' ? 'af-fri' : 'flex';
+                return `<tr>
+                  <td>
+                    <span class="blr-sc-tag ${tag}">${e.label}</span>
+                    <div class="blr-sc-note">${e.note}</div>
+                  </td>
+                  <td>${e.rente.toFixed(2)}%</td>
+                  <td>${fmt(e.ydelse)} kr</td>
+                  <td class="${cls}">${sign}${fmt(e.besparelse)} kr</td>
+                  <td>${tbTxt}</td>
+                </tr>`;
+              }).join('')}
+              ${scHoldRow}
+            </tbody>
+          </table>
+          <div class="blr-scenario-foot">💡 Kursnotering: F1/F3/F5 handles tæt på kurs 100 — typisk ingen kurstab ved omlægning. Fastforrentet: kurs varierer med markedsrenten.<br>* Break-even er ikke relevant ved skift til afdrag: den højere ydelse indeholder afdrag der reducerer din restgæld og øger din friværdi.</div>
+        </details>
       </div>
 
       <!-- LTV deep-dive -->
@@ -2542,11 +2600,11 @@ function renderResultat(d) {
           <span class="blr-mon-label">Ikke aktiveret</span>
         </div>
         <ul class="blr-monitoring-feat">
-          <li><span class="blr-feat-icon">✓</span>Alert når du kan spare <strong>2.000+ kr/md</strong></li>
-          <li><span class="blr-feat-icon">✓</span>F1/F3/F5 vs. fastforrentet — bedste lån opdateres løbende</li>
-          <li><span class="blr-feat-icon">✓</span>Termin-timing: vi varsler inden næste termin</li>
-          <li><span class="blr-feat-icon">✓</span>Lendersammenligning: Nykredit, Totalkredit, NordeaKredit</li>
-          <li><span class="blr-feat-icon">✓</span>Månedlig friværdiopdatering baseret på nabolaget</li>
+          <li><span class="blr-feat-icon">✓</span>Vi holder øje med dit lån, så du ikke behøver gøre det selv</li>
+          <li><span class="blr-feat-icon">✓</span>Besked når markedsrenter ændrer sig markant ift. dit lån</li>
+          <li><span class="blr-feat-icon">✓</span>F1/F3/F5 vs. fastforrentet opdateres løbende</li>
+          <li><span class="blr-feat-icon">✓</span>Termin-timing: varsling inden næste termin</li>
+          <li><span class="blr-feat-icon">✓</span>Månedlig rapport med friværdi og renteudvikling</li>
           <li><span class="blr-feat-icon">✓</span>Ingen binding — opsig når som helst</li>
         </ul>
       </div>
