@@ -1122,11 +1122,31 @@ body.blr-active body::before{background:var(--forest);}
   .blr-hero-right{width:100%;height:220px;}
   .blr-stat-row{grid-template-columns:repeat(2,1fr);}
   .blr-nav-items{display:none;}
-  .blr-page{padding:16px;}
+  .blr-nav-right{display:none;}
+  .blr-page{padding:12px;}
+  /* scenario table: scroll horizontally on small screens */
+  .blr-scenario-card{overflow-x:auto;padding:16px;}
+  .blr-scenario-table{min-width:420px;}
+  /* chart card */
+  .blr-chart-card{padding:16px;}
+  /* hero cards: stack below the photo on mobile */
+  .blr-hero-cards{position:static;flex-direction:row;flex-wrap:wrap;justify-content:flex-start;gap:8px;margin-top:10px;padding:0;}
+  .blr-hcard{border-radius:8px;padding:8px 12px;background:#fff;border:1px solid #e2e8f0;box-shadow:none;}
 }
 @media(max-width:460px){
   .blr-stat-row{grid-template-columns:1fr 1fr;}
   .blr-stat-val{font-size:1.1rem;}
+  /* subnav: scroll horizontally on narrow phones */
+  .blr-subnav{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .blr-subnav-tabs{flex-wrap:nowrap;}
+  .blr-subnav-brand{display:none;}
+  .blr-subnav-tab{white-space:nowrap;font-size:.72rem;padding:0 10px;}
+  /* hero left: more breathing room */
+  .blr-hero-left{padding:16px;}
+  .blr-hero-h{font-size:1.05rem;}
+  /* paywall card: full width inputs */
+  .blr-paywall-plans{gap:6px;}
+  .blr-paywall-email{font-size:.85rem;}
 }
 </style></head><body>
 
