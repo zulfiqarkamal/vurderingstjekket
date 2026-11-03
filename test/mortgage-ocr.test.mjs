@@ -88,3 +88,11 @@ test('copied payments use only stated periods and unknown frequencies never divi
  assert.equal(normalizeClaudeLoanResponse({naesteBetaling:25030,betalingsperiode:'ukendt'}).maanedligYdelse,null);
  assert.equal(normalizeClaudeLoanResponse({naesteBetaling:0,maanedligYdelse:0,betalingsperiode:'kvartal'}).maanedligYdelse,0);
 });
+
+
+test('visible redemption quote and bank dates are normalized without assuming a quote date',()=>{
+ const r=normalizeClaudeLoanResponse({restgaeld:2400000,indfrielseskurs:'88,5123',indfrielseskursDato:'2026-11-03',indfrielsesgebyr:'750 kr',afdragsfriSlut:'2027-01-01',opsigelsesfrist:'2026-11-30'});
+ assert.equal(r.redemptionPrice,88.5123);assert.equal(r.redemptionPriceDate,'2026-11-03');assert.equal(r.redemptionFee,750);assert.equal(r.afdragsfriSlut,'2027-01-01');assert.equal(r.opsigelsesfrist,'2026-11-30');
+ const absent=normalizeClaudeLoanResponse({restgaeld:2400000,optagelseskurs:95,rente:2});assert.equal(absent.redemptionPrice,null);assert.equal(absent.redemptionPriceDate,null);
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:2,redemptionPrice:90,redemptionPriceDate:'2027-02-29'}).redemptionPriceDate,null);
+});

@@ -1489,6 +1489,10 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
       <select id="loanInstitution" style="display:block;width:100%;box-sizing:border-box"><option value="">Ikke oplyst</option><option>Nordea</option><option>Nykredit</option><option>Totalkredit</option><option>Realkredit Danmark</option><option>Jyske</option></select>
       <label for="currentBidrag" style="display:block;margin-top:10px">Nuværende årlig bidragssats (% p.a.)</label><input id="currentBidrag" style="display:block;width:100%;box-sizing:border-box" type="number" min="0" max="10" step="0.0001" placeholder="Ikke oplyst">
       <label for="loanInterestOnlyYears" style="display:block;margin-top:10px">Resterende afdragsfri periode (år)</label><input id="loanInterestOnlyYears" style="display:block;width:100%;box-sizing:border-box" type="number" min="0" max="30" step="0.1" placeholder="Ikke oplyst">
+      <label for="loanInterestOnlyEnd" style="display:block;margin-top:10px">Afdragsfrihed udløber (præcis dato, hvis kendt)</label><input id="loanInterestOnlyEnd" style="display:block;width:100%;box-sizing:border-box" type="date">
+      <label for="loanDeadline" style="display:block;margin-top:10px">Bankens ændrings-/opsigelsesfrist (hvis oplyst)</label><input id="loanDeadline" style="display:block;width:100%;box-sizing:border-box" type="date">
+      <label for="loanRedemptionPrice" style="display:block;margin-top:10px">Aktuel indfrielseskurs fra banken (valgfrit)</label><input id="loanRedemptionPrice" style="display:block;width:100%;box-sizing:border-box" type="number" min="1" max="120" step="0.0001" placeholder="Ikke oplyst">
+      <label for="loanRedemptionPriceDate" style="display:block;margin-top:10px">Dato for indfrielseskursen</label><input id="loanRedemptionPriceDate" style="display:block;width:100%;box-sizing:border-box" type="date">
       <label for="loanRefinancing" style="display:block;margin-top:10px">Næste refinansiering</label><input id="loanRefinancing" style="display:block;width:100%;box-sizing:border-box" type="date">
     </details>
     <button class="btn btn-primary" onclick="beregn()">Beregn min optimering →</button>
@@ -1951,7 +1955,8 @@ function loanPaymentHelp() {
 }
 
 function applyLoanUpload(data) {
-  const fields={restgaeld:'restgaeld',maanedligYdelse:'maanedligYdelse',rente:'rente',loebetid:'loebetid',currentBidrag:'currentBidrag',afdragsfriAar:'loanInterestOnlyYears'};
+  window._loanUnderlyingType=['F1','F3','F5','fastforrentet'].includes(data.underlyingLaantype)?data.underlyingLaantype:null;
+  const fields={restgaeld:'restgaeld',maanedligYdelse:'maanedligYdelse',rente:'rente',loebetid:'loebetid',currentBidrag:'currentBidrag',afdragsfriAar:'loanInterestOnlyYears',redemptionPrice:'loanRedemptionPrice'};
   let found=0;
   for(const [key,id]of Object.entries(fields)){
     const value=data[key];const valid=typeof value==='number'&&Number.isFinite(value);
@@ -1959,6 +1964,7 @@ function applyLoanUpload(data) {
   }
   document.getElementById('laantype').value=['fastforrentet','F1','F3','F5','afdragsfri'].includes(data.laantype)?data.laantype:'';
   document.getElementById('loanInstitution').value=['Nordea','Nykredit','Totalkredit','Realkredit Danmark','Jyske'].includes(data.institution)?data.institution:'';
+  for(const [field,id] of Object.entries({afdragsfriSlut:'loanInterestOnlyEnd',opsigelsesfrist:'loanDeadline',redemptionPriceDate:'loanRedemptionPriceDate'})){const el=document.getElementById(id);if(el)el.value=/^\d{4}-\d{2}-\d{2}$/.test(data[field]||'')?data[field]:'';}
   document.getElementById('loanRefinancing').value=/^\d{4}-\d{2}-\d{2}$/.test(data.refinansiering||'')?data.refinansiering:'';
   window._loanUpload={...data};
   document.getElementById('loanExtra').open=!!(data.institution||data.currentBidrag!==null&&data.currentBidrag!==undefined||data.refinansiering);
@@ -2478,7 +2484,7 @@ function overvagToggle(p) {
 function mortgageSubscriptionContext(periode) {
   const d=window._beregningState||{},p=window._mortgageProperty||{};
   const optional=id=>{const value=document.getElementById(id)?.value;return value===undefined||String(value).trim()===''?null:Number(value);};
-  return {institution:document.getElementById('loanInstitution')?.value||'',afdragsfriAar:optional('loanInterestOnlyYears'),refinansiering:document.getElementById('loanRefinancing')?.value||null,currentBidrag:optional('currentBidrag'),targetBidrag:optional('targetBidrag'),oneOffCosts:optional('bidragOneOff'),adresse:p.address||'',adresseId:window._adresseId||'',postnr:window._adressePostnr||'',
+  return {underlyingLaantype:d.ltype==='afdragsfri'?(window._loanUnderlyingType||null):d.ltype,afdragsfriSlut:document.getElementById('loanInterestOnlyEnd')?.value||null,opsigelsesfrist:document.getElementById('loanDeadline')?.value||null,redemptionPrice:optional('loanRedemptionPrice'),redemptionPriceDate:document.getElementById('loanRedemptionPriceDate')?.value||null,institution:document.getElementById('loanInstitution')?.value||'',afdragsfriAar:optional('loanInterestOnlyYears'),refinansiering:document.getElementById('loanRefinancing')?.value||null,currentBidrag:optional('currentBidrag'),targetBidrag:optional('targetBidrag'),oneOffCosts:optional('bidragOneOff'),adresse:p.address||'',adresseId:window._adresseId||'',postnr:window._adressePostnr||'',
     m2:window._adresseM2||0,anvKode:window._adresseAnvKode||'',kommunekode:p.kommunekode||'',
     restgaeld:d.rest,rente:d.rente,loebetid:d.loeb,laantype:d.ltype,currentPayment:d.nuv,
     officialEV:p.kilde==='ev'?p.markedsvaerdi:0,
@@ -2488,7 +2494,7 @@ async function startOvervagning() {
   const email = (document.getElementById('overvagEmail')||{}).value || '';
   if (!email || !email.includes('@')) { goToPanel8(); return; }
   const d = window._beregningState || {};
-  const alertYdelseKr   = +(document.getElementById('alertYdelse')||{}).value || 1000;
+  const alertYdelseKr   = +(document.getElementById('alertYdelse')||{}).value || 3000;
   const alertRestgaeldKr= +(document.getElementById('alertRestgaeld')||{}).value || 200000;
   try {
     const res = await fetch('/api/laanovervagning/start', {

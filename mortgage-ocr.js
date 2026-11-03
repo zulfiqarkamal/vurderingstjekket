@@ -68,6 +68,14 @@ export function normalizeClaudeLoanResponse(response){
  if(typeof rawDate==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
   const date=new Date(rawDate);if(Number.isFinite(+date)&&date.toISOString().slice(0,10)===rawDate)refinansiering=rawDate;
  }
+ const explicitDate=value=>{
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;
+  const d=new Date(value+'T00:00:00Z');return Number.isFinite(+d)&&d.toISOString().slice(0,10)===value?value:null;
+ };
+ const redemptionPrice=numeric(data.redemptionPrice??data.indfrielseskurs,1,120,'rate');
+ const redemptionPriceDate=explicitDate(data.redemptionPriceDate??data.indfrielseskursDato);
+ const redemptionFee=numeric(data.redemptionFee??data.indfrielsesgebyr,0,10000000);
+ const afdragsfriSlut=explicitDate(data.afdragsfriSlut),opsigelsesfrist=explicitDate(data.opsigelsesfrist);
  const rente=numeric(data.rente,0,30,'rate');
  const explicitRemaining=data.resterendeLoebetid??data.restloebetid;
  const original=/oprindelig|original/i.test(String(data.loebetidType??data.termType??''));
@@ -77,7 +85,7 @@ export function normalizeClaudeLoanResponse(response){
  const knownInterestOnly=typeof data.afdragsfri==='boolean'?data.afdragsfri:(base==='afdragsfri'||type(data.laantype)==='afdragsfri')?true:null;
  const underlyingLaantype=base&&base!=='afdragsfri'?base:null;
  const laantype=knownInterestOnly===true?'afdragsfri':base;
- const result={restgaeld,maanedligYdelse,rente,loebetid,laantype,afdragsfri:knownInterestOnly,underlyingLaantype,institution:institution(data.institution??data.realkreditinstitut??data.bank),currentBidrag,afdragsfriAar,refinansiering,naesteBetaling,betalingsperiode};
+ const result={restgaeld,maanedligYdelse,rente,loebetid,laantype,afdragsfri:knownInterestOnly,underlyingLaantype,institution:institution(data.institution??data.realkreditinstitut??data.bank),currentBidrag,afdragsfriAar,refinansiering,afdragsfriSlut,opsigelsesfrist,redemptionPrice,redemptionPriceDate,redemptionFee,naesteBetaling,betalingsperiode};
  if(![restgaeld,maanedligYdelse,rente,loebetid,currentBidrag,afdragsfriAar,naesteBetaling].some(value=>value!==null))throw new OCRNormalizationError();
  return result;
 }

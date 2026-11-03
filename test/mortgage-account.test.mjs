@@ -35,3 +35,11 @@ test('account page escapes values, uses signed hidden token and exposes no mutab
  assert.match(html,/Opsigelse stopper fremtidig fornyelse/);assert.match(html,/name="officialEV"/);
  assert.doesNotMatch(renderMortgageAccount(body,''),/<form/);
 });
+
+
+test('owner can update known bank dates and quote without altering the remaining-years anchor',()=>{
+ const update=parseMonitoringUpdate({...body,refinansiering:'2027-02-01',afdragsfriSlut:'2027-01-01',opsigelsesfrist:'2026-12-01',redemptionPrice:'90.5',redemptionPriceDate:'2026-11-03',loanDataAsOf:'2099-01-01'});
+ assert.equal(update.redemptionPrice,90.5);assert.equal(update.redemptionPriceDate,'2026-11-03');assert.equal(update.loanDataAsOf,undefined);
+ assert.equal(parseMonitoringUpdate({...body,afdragsfriSlut:'2027-02-29'}),null);assert.equal(parseMonitoringUpdate({...body,redemptionPrice:true}),null);
+ assert.equal(parseMonitoringUpdate({...body,redemptionPrice:'',opsigelsesfrist:''}).redemptionPrice,null);
+});

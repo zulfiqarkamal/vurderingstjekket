@@ -15,7 +15,7 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {bankPackageAnnualCredit} from '../mortgage-commerce.js';
-import {buildMonitoringSnapshot} from '../mortgage-monitoring.js';
+import {buildMonitoringSnapshot,buildMonitoringEvents,monitoringDate} from '../mortgage-monitoring.js';
 import {mortgagePropertyType} from '../mortgage-market.js';
 
 const bankId='cs_test_bankpurchase1234', loanId='cs_test_subscription1234';
@@ -36,7 +36,7 @@ function fixture(env={}){
   billingPortal={sessions:{create:async options=>{calls.portals.push(options);if(!portalResult)throw Error('Synthetic portal unavailable');return{url:'https://billing.example.invalid/session'}}}};
   webhooks={constructEvent:(body,signature)=>{if(signature!=='synthetic-signature')throw Error('bad signature');return body}};
  }
- const context=vm.createContext({parseComparisonLoan,comparisonTeaser,isPaidBankComparisonCheckout,isPaidSubscriptionComparison,comparisonAlertSignal,compareMortgageMarket,renderMortgageComparison,getMortgageCatalogue:async()=>catalogue,createDailyUsageLimiter,enforceDailyUsage,createUsageFileStore:()=>({load:()=>null,save(){}}),express,Stripe,path,fileURLToPath,crypto,bankPackageAnnualCredit,buildMonitoringSnapshot,mortgagePropertyType,buildCustomerBankPackage,estimateContributionOpportunity,fetchNykreditCurrentRates,normalizeClaudeLoanResponse,OCRNormalizationError,classifyOCRProviderError,createManagementToken,verifyManagementToken,renderMortgageAccount,parseMonitoringUpdate,
+ const context=vm.createContext({parseComparisonLoan,comparisonTeaser,isPaidBankComparisonCheckout,isPaidSubscriptionComparison,comparisonAlertSignal,compareMortgageMarket,renderMortgageComparison,getMortgageCatalogue:async()=>catalogue,createDailyUsageLimiter,enforceDailyUsage,createUsageFileStore:()=>({load:()=>null,save(){}}),express,Stripe,path,fileURLToPath,crypto,bankPackageAnnualCredit,buildMonitoringSnapshot,buildMonitoringEvents,monitoringDate,mortgagePropertyType,buildCustomerBankPackage,estimateContributionOpportunity,fetchNykreditCurrentRates,normalizeClaudeLoanResponse,OCRNormalizationError,classifyOCRProviderError,createManagementToken,verifyManagementToken,renderMortgageAccount,parseMonitoringUpdate,
  createMortgageMarketLookup:()=>async input=>{calls.market.push(input);return{markedsvaerdi:4700000,kilde:'boligsiden-udbud',aktiveAnnoncer:8,note:'Aktuelle udbudspriser'}} ,
  fs:{existsSync:()=>false,writeFileSync(){}}, process:{env:{NODE_ENV:'test',STRIPE_SECRET_KEY:'synthetic',STRIPE_WEBHOOK_SECRET:'synthetic',ADMIN_KEY:'synthetic',RESEND_API_KEY:'synthetic-mail',...env}},
  URL,URLSearchParams,AbortController,AbortSignal,Buffer,setTimeout,clearTimeout,console:{log(){},warn(){},error(){}},fetch:async()=>{throw Error('External network prohibited')},
@@ -117,3 +117,41 @@ test('monthly customer output includes matched public comparison but unknown fee
 });
 
 test('a refunded bank checkout cannot trigger premium customer delivery through verification',async()=>{const f=fixture();await f.request('POST','/api/bankpakke/start',{email:loan.email,property:loan});const co={id:loanId,mode:'payment',status:'complete',payment_status:'paid',currency:'dkk',amount_total:9900,metadata:f.calls.checkouts[0].metadata,testRefunded:true};f.purchases.set(loanId,co);assert.equal((await f.request('POST','/api/commerce/verify',{checkoutId:loanId})).statusCode,403);assert.equal(f.calls.emails.length,0)});
+
+
+test('subscription checkout persists explicit dates, redemption quote and owner-approved alert floors',async()=>{
+ const f=fixture(),extra={refinansiering:'2027-02-01',afdragsfriSlut:'2027-01-01',opsigelsesfrist:'2026-12-01',redemptionPrice:88.5,redemptionPriceDate:'2026-11-03',underlyingLaantype:'fastforrentet',alertYdelseKr:1,alertRestgaeldKr:1};
+ await f.request('POST','/api/laanovervagning/start',{...loan,...extra});
+ const meta=f.calls.checkouts[0].metadata;
+ for(const key of ['refinansiering','afdragsfriSlut','opsigelsesfrist','redemptionPriceDate','underlyingLaantype'])assert.equal(meta[key],extra[key]);
+ assert.equal(meta.alertYdelseKr,'3000');assert.equal(meta.alertRestgaeldKr,'200000');assert.equal(meta.redemptionPrice,'88.5');
+ await f.event(completion({metadata:meta}));const ab=f.subscribers()[0];
+ assert.equal(ab.refinansiering,extra.refinansiering);assert.equal(ab.redemptionPriceDate,extra.redemptionPriceDate);assert.equal(ab.redemptionPrice,88.5);
+});
+test('monthly LTV dialogue sends once and failed delivery does not consume the reminder',async()=>{
+ const f=fixture({CRON_SECRET:'qa-secret'});await f.event(completion());const ab=f.subscribers()[0];
+ f.setMailResult(false);const before=f.calls.emails.length;let result=await f.request('POST','/api/cron/monthly-monitoring',{}, {authorization:'Bearer qa-secret'});
+ assert.equal(result.body.fejl,1);assert.equal(ab.lastSentAt,null);assert.equal(ab.monitoringEventsSent,undefined);
+ f.setMailResult(true);result=await f.request('POST','/api/cron/monthly-monitoring',{}, {authorization:'Bearer qa-secret'});
+ assert.equal(result.body.alerts,1);assert.ok(ab.monitoringEventsSent['ltv:60']);assert.match(f.calls.emails.at(-1).text,/ikke automatisk lavere bidrag/);
+ await f.request('POST','/api/cron/monthly-monitoring',{}, {authorization:'Bearer qa-secret'});
+ assert.equal(f.calls.emails.length,before+2);
+});
+test('new explicit bank deadline can trigger a reminder after monthly status, without duplicate mail on replay',async()=>{
+ const f=fixture({CRON_SECRET:'qa-secret'});await f.event(completion());await f.request('POST','/api/cron/monthly-monitoring',{}, {authorization:'Bearer qa-secret'});
+ const ab=f.subscribers()[0],date=new Date(Date.now()+20*86400000).toISOString().slice(0,10);ab.opsigelsesfrist=date;
+ const before=f.calls.emails.length;let result=await f.request('POST','/api/cron/monthly-monitoring',{}, {authorization:'Bearer qa-secret'});
+ assert.equal(result.body.sendt,0);assert.equal(result.body.alerts,1);assert.equal(f.calls.emails.length,before+1);assert.match(f.calls.emails.at(-1).text,/inden denne dato/);
+ await f.request('POST','/api/cron/monthly-monitoring',{}, {authorization:'Bearer qa-secret'});assert.equal(f.calls.emails.length,before+1);
+});
+test('a newly crossed LTV threshold does not send a second initial-under-threshold reminder on the next run',async()=>{
+ const f=fixture({CRON_SECRET:'qa-secret'});await f.event(completion());const ab=f.subscribers()[0];ab.lastMonitoredLtv=65;ab.lastSentAt=new Date().toISOString();
+ await f.request('POST','/api/cron/monthly-monitoring',{}, {authorization:'Bearer qa-secret'});const before=f.calls.emails.length;
+ assert.ok(ab.monitoringEventsSent['ltv:60']);await f.request('POST','/api/cron/monthly-monitoring',{}, {authorization:'Bearer qa-secret'});
+ assert.equal(f.calls.emails.length,before);
+});
+test('live catalogue with unknown fees may send gross3000 dialogue but never call it a net saving',async()=>{
+ const f=fixture({CRON_SECRET:'qa-secret'});await f.event(completion({metadata:{...completion().data.object.metadata,laantype:'fastforrentet',rente:'5',currentPayment:'22000'}}));
+ await f.request('POST','/api/cron/monthly-monitoring',{}, {authorization:'Bearer qa-secret'});
+ assert.match(f.calls.emails.at(-1).text,/3.000/);assert.match(f.calls.emails.at(-1).text,/ikke en dokumenteret nettobesparelse/);
+});
