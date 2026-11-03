@@ -7,7 +7,7 @@ import { fetchNykreditCurrentRates } from '../mortgage-current-rates.js';
 import { estimateContributionOpportunity } from '../mortgage-contribution.js';
 import { createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate } from '../mortgage-account.js';
 import { buildCustomerBankPackage } from '../bank-package.js';
-import { buildMonitoringSnapshot } from '../mortgage-monitoring.js';
+import { buildMonitoringSnapshot,buildMonitoringEvents,monitoringDate } from '../mortgage-monitoring.js';
 import { bankPackageAnnualCredit } from '../mortgage-commerce.js';
 import { createMortgageMarketLookup, mortgagePropertyType } from "../mortgage-market.js";
 import { test } from 'node:test';
@@ -40,7 +40,7 @@ function fixture(extraEnv = {}) {
       return body;
     } };
   }
-  const context = vm.createContext({parseComparisonLoan,comparisonTeaser,isPaidBankComparisonCheckout,isPaidSubscriptionComparison,comparisonAlertSignal,compareMortgageMarket,renderMortgageComparison,getMortgageCatalogue:async()=>({offers:[],coverage:{requestedLenders:4}}),createDailyUsageLimiter,enforceDailyUsage,createUsageFileStore:()=>({load:()=>null,save(){}}), normalizeClaudeLoanResponse, OCRNormalizationError, classifyOCRProviderError, fetchNykreditCurrentRates, estimateContributionOpportunity, createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate, buildCustomerBankPackage, buildMonitoringSnapshot, bankPackageAnnualCredit, createMortgageMarketLookup, mortgagePropertyType, express, Stripe, path, fileURLToPath, crypto,
+  const context = vm.createContext({parseComparisonLoan,comparisonTeaser,isPaidBankComparisonCheckout,isPaidSubscriptionComparison,comparisonAlertSignal,compareMortgageMarket,renderMortgageComparison,getMortgageCatalogue:async()=>({offers:[],coverage:{requestedLenders:4}}),createDailyUsageLimiter,enforceDailyUsage,createUsageFileStore:()=>({load:()=>null,save(){}}), normalizeClaudeLoanResponse, OCRNormalizationError, classifyOCRProviderError, fetchNykreditCurrentRates, estimateContributionOpportunity, createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate, buildCustomerBankPackage, buildMonitoringSnapshot,buildMonitoringEvents,monitoringDate, bankPackageAnnualCredit, createMortgageMarketLookup, mortgagePropertyType, express, Stripe, path, fileURLToPath, crypto,
     fs: { existsSync: file => /[\\/]public[\\/]index\.html$/.test(file), writeFileSync() { throw new Error('Disk writes prohibited'); } },
     process: { env: { STRIPE_SECRET_KEY: 'synthetic-test-key', STRIPE_WEBHOOK_SECRET: 'synthetic-test-secret', ADMIN_KEY: 'synthetic-test-admin', NODE_ENV: 'production', ...extraEnv } },
     console: { log() {}, warn() {}, error() {} }, URL, URLSearchParams, AbortController, AbortSignal,
