@@ -1261,7 +1261,7 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
   <!-- VT mode -->
   <div class="card" id="vtCard" style="display:none">
     <div class="card-title">Din ejendom</div>
-    <div class="card-sub">Vi har hentet ejendomsværdi og grundværdi fra Vurderingstjekket.dk. Kontrollér at tallene er korrekte.</div>
+    <div class="card-sub">Vi bruger adressen til et aktuelt markedsopslag. En overført offentlig EV er kun sidste reserve.</div>
 
     <div class="source-badge">
       <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor"><path d="M6.5 0a6.5 6.5 0 110 13A6.5 6.5 0 016.5 0zm.75 5.5h-1.5v5h1.5v-5zm0-2.5h-1.5v1.5h1.5V3z"/></svg>
@@ -1270,26 +1270,10 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
 
     <div class="field">
       <label>Adresse</label>
-      <input type="text" id="adresse" value="Nordre Frihavnsgade 20, 2100 København Ø" disabled>
+      <input type="text" id="adresse" value="" placeholder="Adresse overført fra Vurderingstjekket" disabled>
     </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Ejendomsværdi</label>
-        <div class="field-suffix">
-          <input type="number" id="ejendomsvaerdi" value="4200000" min="100000" max="50000000" step="10000">
-          <span>kr</span>
-        </div>
-        <div class="field-hint">Fra Skatteforvaltningens vurdering</div>
-      </div>
-      <div class="field">
-        <label>Grundværdi</label>
-        <div class="field-suffix">
-          <input type="number" id="grundvaerdi" value="620000" min="10000" max="20000000" step="10000">
-          <span>kr</span>
-        </div>
-        <div class="field-hint">Fra Skatteforvaltningens vurdering</div>
-      </div>
-    </div>
+    <input type="hidden" id="ejendomsvaerdi" value="">
+    <p class="field-hint">Vi slår først en aktuel markedsværdi op for adressen. Offentlig EV bruges kun som markeret reserve, hvis lokale markedsdata mangler.</p>
     <button class="btn btn-primary" onclick="confirmVT()">Bekræft og fortsæt →</button>
   </div>
 
@@ -1313,14 +1297,12 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
     </div>
 
     <div id="manuelEvFallback" style="display:none;margin-top:12px">
-      <div class="field">
-        <label>Ejendomsværdi (manuel)</label>
-        <div class="field-suffix">
-          <input type="number" id="ejendomsvaerdiM" placeholder="3000000" min="100000" max="50000000" step="10000" oninput="if(this.value) document.getElementById('ejendomsvaerdi').value=this.value">
-          <span>kr</span>
-        </div>
-        <div class="field-hint">Vi kunne ikke hente markedsværdi — skriv den manuelt</div>
+      <div class="field-row">
+        <div class="field"><label for="boligarealM">Din boligs areal (m²)</label><input type="number" id="boligarealM" min="20" max="2000" placeholder="Fx 140"></div>
+        <div class="field"><label for="boligtypeM">Boligtype</label><select id="boligtypeM"><option value="">Vælg boligtype</option value="120">Villa / enfamiliehus</option><option value="130">Rækkehus / kædehus</option><option value="140">Ejerlejlighed</option><option value="510">Sommerhus</option></select></div>
       </div>
+      <div class="field-hint">Areal og boligtype bruges til at finde aktuelle lokale markedspriser.</div>
+      <div class="field"><label for="officielEVFallback">Offentlig EV — kun som sidste reserve</label><input type="number" id="officielEVFallback" min="100000" max="50000000" placeholder="Kun hvis markedsdata mangler"><div class="field-hint">Skats vurdering — handelsprisen kan være højere. Bruges aldrig før lokale salg og udbud er undersøgt.</div></div>
     </div>
 
     <div class="vt-cta" style="margin-top:16px">
@@ -1445,6 +1427,7 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
       </div>
     </div>
 
+    <button class="btn btn-primary" onclick="goTo(3)" style="margin-top:16px;">Indtast lånet manuelt →</button>
     <button class="btn btn-ghost" onclick="goTo(1)" style="margin-top:16px;">← Tilbage</button>
   </div>
 </div>
@@ -1453,7 +1436,7 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
 <div class="panel" id="panel-3">
   <div class="card">
     <div class="card-title">Kontrollér dine låneoplysninger</div>
-    <div class="card-sub">Udtrukket automatisk fra dit screenshot — ret hvis nødvendigt.</div>
+    <div class="card-sub">Indtast dine låneoplysninger, eller kontrollér tallene fra dit screenshot.</div>
 
     <div class="extracted-badge" id="extractedBadge" style="display:none;">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--success)"><path d="M8 0a8 8 0 110 16A8 8 0 018 0zm3.2 5.4L7 9.6 4.8 7.4 3.6 8.6l3.4 3.4 5.6-5.6-1.4-1z"/></svg>
@@ -2108,12 +2091,13 @@ async function beregn() {
   const mYdl  = +document.getElementById('maanedligYdelse').value || null;
   const afdrf = ltype === 'afdragsfri';
 
-  // Ejendomsværdi kan mangle hvis brugeren springer panel 2 over (f.eks. demo-flow).
-  // Brug markedsværdi hvis hentet, ellers estimér fra restgæld (antag 65% LTV).
-  if (!ejd) {
-    ejd = window._markedsvaerdi || Math.round(rest / 0.65);
-    document.getElementById('ejendomsvaerdi').value = ejd;
+  if (window._propertyPromise) await window._propertyPromise;
+  if (!(window._markedsvaerdi > 0) || window._mortgageProperty?.status !== 'ready') {
+    alert('Der mangler en brugbar ejendomsværdi. Kontrollér adresse og boligareal i trin 1. Markedsdata har førsteprioritet; offentlig EV er kun sidste reserve.');
+    goTo(1);setSource('manuel');return;
   }
+  ejd=window._markedsvaerdi;
+  document.getElementById('ejendomsvaerdi').value=ejd;
 
   if (!rest || !rente || !loeb) return alert('Udfyld venligst Restgæld, Rente og Løbetid.');
 
@@ -2207,95 +2191,19 @@ async function beregn() {
 
   // ── Render panel-4 ─────────────────────────────────────────────────────
   renderResultat({ ejd, rest, rente, loeb, ltype, bidr, nuv, mrente, ltv: ltvMarked, frivaerdi, frivaerdiPct, sc, scener, renter,
-    extScener, markedsEjd, compsCount: window._markedsCompsCount, handler: window._markedsHandler });
+    property: {...window._mortgageProperty}, extScener, markedsEjd, compsCount: window._markedsCompsCount, handler: window._markedsHandler });
   goTo(4);
 }
 
-function renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, skatEjd, compsCount, handler) {
-  const ejd = markedsEjd || skatEjd;
-  const ltvNu = (rest / ejd) * 100;
-  const erMarked = !!markedsEjd;
-  const fmtKr = v => Math.round(v).toLocaleString('da-DK');
-
-  // LTV segment
-  let segmentHtml;
-  const bidragNu = bidragssats(ltvNu);
-  const bidrag60 = bidragssats(59);
-
-  if (ltvNu < 60) {
-    segmentHtml = `
-      <div class="ltv-segment ltv-groen">
-        <div class="ltv-seg-icon">✅</div>
-        <div class="ltv-seg-body">
-          <div class="ltv-seg-h">Du har allerede de bedste vilkår</div>
-          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}% — under 60%-grænsen. Det giver adgang til: <strong>afdragsfrihed op til 10 år ad gangen</strong> (kan fornyes), bidragssats på ca. <strong>${bidragNu.toFixed(2)}% p.a.</strong>, og lettere bankskifte (banken har mere sikkerhed → bedre forhandlingsposition for dig).</div>
-          <div class="ltv-seg-feats">
-            <span class="ltv-feat">✓ Afdragsfrihed op til 10 år</span>
-            <span class="ltv-feat">✓ Bidragssats ~${bidragNu.toFixed(2)}% p.a.</span>
-            <span class="ltv-feat">✓ Lettere bankskifte</span>
-            <span class="ltv-feat">✓ F1/F3/F5 flex-lån tilgængeligt</span>
-          </div>
-        </div>
-      </div>`;
-  } else if (ltvNu <= 80) {
-    const til60 = Math.max(0, rest - ejd * 0.60);
-    const maanedligExtra = til60 > 0 ? mYdelse(rest, rente, loeb, bidragssats(ltvNu)) - mYdelse(rest - til60, rente, loeb, bidragssats(59)) : 0;
-    const bidragBespar = ((bidragNu - bidrag60) / 100) * rest / 12;
-    segmentHtml = `
-      <div class="ltv-segment ltv-gul">
-        <div class="ltv-seg-icon">💡</div>
-        <div class="ltv-seg-body">
-          <div class="ltv-seg-h">Hvad koster det at komme ned til 60%?</div>
-          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}%. Du betaler bidragssats ~${bidragNu.toFixed(2)}% p.a. — mod ~${bidrag60.toFixed(2)}% under 60%. Det er ca. <strong>${fmtKr(Math.round(bidragBespar))} kr/md i forskel</strong>. Nedsparing kræver ekstra afdrag på <strong>${fmtKr(til60)} kr</strong>${maanedligExtra > 100 ? ` (ydelsen falder med ca. ${fmtKr(maanedligExtra)} kr/md i modellen)` : ''}.</div>
-          <div class="ltv-seg-feats">
-            <span class="ltv-feat ltv-locked">🔒 Afdragsfrihed (kræver &lt;60%)</span>
-            <span class="ltv-feat ltv-locked">🔒 Laveste bidragssats (kræver &lt;60%)</span>
-            <span class="ltv-feat">✓ Nuværende niveau OK til de fleste banker</span>
-          </div>
-        </div>
-      </div>`;
-  } else {
-    segmentHtml = `
-      <div class="ltv-segment ltv-roed">
-        <div class="ltv-seg-icon">⚠️</div>
-        <div class="ltv-seg-body">
-          <div class="ltv-seg-h">Pas på — du er over 80%-grænsen</div>
-          <div class="ltv-seg-p">Din belåningsgrad er ${ltvNu.toFixed(1)}%. Over 80% dækker realkreditten ikke — du har en del af boliglånet i banken til højere rente. Bidragssatsen er ~${bidragNu.toFixed(2)}% p.a. Prioritér nedbringelse til 80% for at konvertere til rent realkreditlån.</div>
-          <div class="ltv-seg-feats">
-            <span class="ltv-feat ltv-locked">🔒 Realkreditlån begrænset til 80%</span>
-            <span class="ltv-feat ltv-locked">🔒 Banklån krævet — højere rente</span>
-          </div>
-        </div>
-      </div>`;
-  }
-
-  // Handler list
-  const handlerHtml = handler && handler.length > 0 ? `
-    <div class="ltv-handler">
-      <div class="ltv-handler-title">Seneste handler i nabolaget</div>
-      ${handler.map(h => `<div class="ltv-handler-row"><span>${h.adresse || '—'}</span><span>${h.dato || ''}</span><span style="font-weight:700">${h.pris ? fmtKr(h.pris) + ' kr' : '—'}</span></div>`).join('')}
-    </div>` : '';
-
-  return `
-  <div class="ltv-sektion">
-    <div class="ltv-top">
-      <div class="ltv-top-kilde">
-        <div class="ltv-kilde-label">${erMarked ? (window._markedsKilde === 'dst' ? `📊 Statistisk estimat (DST ${window._markedsLandsdelnavn || 'landsdel'} — ingen handler i nabolaget)${window._markedsAktiveAnnoncer > 0 ? ` · ${window._markedsAktiveAnnoncer} til salg nu` : ''}` : `📍 Markedsbaseret estimat (${compsCount || '?'} handler i nabolaget${window._markedsAktiveAnnoncer > 0 ? ` · ${window._markedsAktiveAnnoncer} til salg nu` : ''})`) : '📋 Baseret på indtastet ejendomsværdi'}</div>
-        <div class="ltv-kilde-vaerdi">${fmtKr(ejd)} kr</div>
-        <div class="ltv-kilde-sub">Restgæld: ${fmtKr(rest)} kr · Friværdi: ${fmtKr(Math.max(0, ejd - rest))} kr · LTV: ${ltvNu.toFixed(1)}%</div>
-      </div>
-    </div>
-    ${segmentHtml}
-    <p>Se indbetaling, udbetaling og ny samlet ydelse under fanerne Lån op og Betal ned ovenfor.</p>
-    ${handlerHtml}
-    <div class="ltv-bankpakke-cta" onclick="startBankpakke()">
-      <div>
-        <div class="ltv-bp-h">Bankpakke: markedsdata + budget klar til mødet</div>
-        <div class="ltv-bp-sub">Friværdi baseret på nabolagets handler · Budget banken kan bruge · 5 konkrete spørgsmål</div>
-      </div>
-      <div class="ltv-bp-price">299 kr →</div>
-    </div>
-  </div>`;
+function renderLTVSektion(rest,rente,loeb,ltype,markedsEjd,ejd,compsCount,handler) {
+  const value=markedsEjd||ejd,ltv=rest/value*100,p=window._mortgageProperty||{};
+  const evidence=(handler||[]).slice(0,8).map(h=>`<div class="ltv-handler-row"><span>${blrEscape(h.adresse||'')}</span><span>${blrEscape(h.dato||'Til salg')}</span><span>${fmt(h.pris||0)} kr</span></div>`).join('');
+  return `<div class="ltv-sektion"><div class="ltv-top-kilde"><div class="ltv-kilde-label">${blrPropertySource({markedsEjd,property:p})}</div><div class="ltv-kilde-vaerdi">${fmt(value)} kr</div><div class="ltv-kilde-sub">Restgæld: ${fmt(rest)} kr · Friværdi: ${fmt(Math.max(0,value-rest))} kr · LTV: ${ltv.toFixed(1)}%</div></div>
+    <p>Markedsestimatet bygger på lokale salg fra de seneste 12 måneder, aktuelle sammenlignelige udbud eller lokale salgspriser pr. m² ganget med boligarealet. Kun hvis lokale salg og udbud mangler eller er utilgængelige, bruges en faktisk offentlig EV som reserve. Handelsprisen kan være højere end Skats vurdering.</p>
+    ${p.note?`<p>${blrEscape(p.note)}</p>`:''}
+    <p>Se indbetaling, udbetaling og ny ydelse <strong>med afdrag</strong> i fanerne ovenfor. Grønne/røde ændringer sammenligner med din nuværende betaling${ltype==='afdragsfri'?' uden afdrag':''}.</p>
+    ${evidence?`<div class="ltv-handler"><div class="ltv-handler-title">${['boliga-udbud','boliga-omraade-udbud'].includes(p.kilde)?'Boliger til salg i området':'Lokale salg fra de seneste 12 måneder'}</div>${evidence}</div>`:''}
+    <div class="ltv-bankpakke-cta" onclick="startBankpakke()"><div><div class="ltv-bp-h">Bankpakke: markedsdata + budget klar til mødet</div><div class="ltv-bp-sub">Analysegrundlag og spørgsmål til banken</div></div><div class="ltv-bp-price">299 kr →</div></div></div>`;
 }
 
 function renderResultat(d) {
@@ -2329,6 +2237,7 @@ function renderResultat(d) {
   heroBadgeClass = '';
   heroH = best.delta < 0 ? 'Se dine muligheder for lavere ydelse' : 'Dit lån er analyseret';
   heroP = best.delta < 0 ? `${best.label}: <strong>${blrMoney(best.payment)}/md</strong> — ${blrMoney(-best.delta)} lavere betaling end nu. Anslåede omkostninger: ${blrMoney(best.fee)}. Se forudsætninger nedenfor.` : 'Sammenlign lånetyper, undersøg ekstra lån eller se effekten af at betale ned. Alle tal er vejledende.';
+  if (ltype === 'afdragsfri') heroP += ` Du betaler nu ${blrMoney(nuv)}/md uden afdrag. Nye scenarier er med afdrag; en højere ydelse indeholder også nedbetaling af gælden.`;
   }
   const ejdvaerdi = markedsEjd || ejd;
 
@@ -2395,8 +2304,8 @@ function renderResultat(d) {
           <div><div class="blr-hcard-label">Lavere betaling før omk.</div><div class="blr-hcard-val green">${best.delta < 0 ? blrMoney(-best.delta*12)+'/år' : 'Ingen p.t.'}</div></div>
         </div>
         <div class="blr-hcard">
-          <div><div class="blr-hcard-label">Ny rente (estimat)</div><div class="blr-hcard-val">${best.rate.toFixed(2)}%</div></div>
-          <div><div class="blr-hcard-label">Break-even</div><div class="blr-hcard-val">${best.breakEven ? best.breakEven+' md.' : 'Ikke relevant'}</div></div>
+          <div><div class="blr-hcard-label">Rente i nyt lån med afdrag</div><div class="blr-hcard-val">${best.rate.toFixed(2)}%</div></div>
+
         </div>
       </div>
     </div>
@@ -2405,9 +2314,9 @@ function renderResultat(d) {
   <!-- ── 4 stat cards ── -->
   <div class="blr-stat-row">
     <div class="blr-stat">
-      <div class="blr-stat-label">🏠 Din ejendomsværdi</div>
+      <div class="blr-stat-label">🏠 ${d.property?.kilde==='ev'?'Ejendomsværdi (EV-reserve)':'Estimeret markedsværdi'}</div>
       <div class="blr-stat-val">${fmt(Math.round(ejdvaerdi))} kr</div>
-      <div class="blr-stat-sub">${markedsEjd ? (compsCount ? compsCount + ' handler i nabolaget' : 'Markedsestimeret') : '<span style="color:#f59e0b;cursor:pointer;" onclick="goTo(1)" title="Indtast adresse for at hente markedsværdi fra nabolaget">⚠️ Manuelt — <u>tilføj adresse</u></span>'}</div>
+      <div class="blr-stat-sub">${blrPropertySource(d)}</div>
     </div>
     <div class="blr-stat">
       <div class="blr-stat-label">💰 Restgæld</div>
@@ -2533,7 +2442,7 @@ function renderResultat(d) {
   </div><!-- /blr-layout -->
   <div class="blr-bottom-cards">
     <div class="blr-sidebar-card">Belåningsgrad<strong>${ltv.toFixed(1)}% LTV</strong>Friværdi: ${blrMoney(frivaerdi)}. Se mulighederne i Lån op / Betal ned.</div>
-    <div class="blr-sidebar-card">Din månedlige ændring<strong>${blrMoney(best.delta,true)}/md</strong>${best.label}, før skat. Omkostninger ${blrMoney(best.fee)} betales særskilt.</div>
+    <div class="blr-sidebar-card">Din månedlige ændring<strong>${blrMoney(best.delta,true)}/md</strong>${best.label} med afdrag, før skat. Omkostninger ${blrMoney(best.fee)} betales særskilt.</div>
     <div class="blr-sidebar-card">Rente og marked<strong>${best.rate.toFixed(2)}%</strong>Estimat for ${best.label}. ${renteKilde}. Variabel rente kan ændre sig.</div>
   </div>
 
@@ -2600,228 +2509,6 @@ function animateGauge(ltv) {
     if (p < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
-}
-
-// ── Address autocomplete ───────────────────────────────────────────────────────
-let dawaTimer = null;
-let dawaCursor = -1;
-let dawaResults = [];
-
-function dawaSearch(q) {
-  clearTimeout(dawaTimer);
-  const drop = document.getElementById('dawaDrop');
-  if (q.length < 2) { drop.style.display='none'; return; }
-  dawaTimer = setTimeout(async () => {
-    try {
-      // Call DAWA directly from the browser — no server proxy needed, CORS is open
-      const url = `https://api.dataforsyningen.dk/adresser/autocomplete?q=${encodeURIComponent(q)}&caretpos=${q.length}&per_side=8&fuzzy=`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const raw = await res.json();
-      dawaResults = Array.isArray(raw) ? raw.map(item => {
-        const adr = item.adresse || {};
-        return {
-          label: item.tekst || '',
-          postnr: adr.postnr || '',
-          by: adr.postnrnavn || '',
-          adresseId: adr.id || null,
-          husnummerId: adr.adgangsadresseid || null,
-          kommunekode: adr.kommunekode || ''
-        };
-      }) : [];
-      dawaCursor = -1;
-      if (!dawaResults.length) { drop.style.display='none'; return; }
-      drop.innerHTML = dawaResults.map((d,i) => {
-        const linje1 = d.label.split(',')[0];
-        const linje2 = d.postnr ? (d.postnr + ' ' + d.by) : '';
-        return `<div class="dawa-item" data-i="${i}" onmousedown="dawaPick(${i})">
-          <strong>${linje1}</strong><span>${linje2}</span></div>`;
-      }).join('');
-      drop.style.display = 'block';
-    } catch(e) {
-      try {
-        const r2 = await fetch('/api/adresse?q=' + encodeURIComponent(q));
-        const data = await r2.json();
-        dawaResults = data.suggestions || [];
-        dawaCursor = -1;
-        if (!dawaResults.length) { drop.style.display='none'; return; }
-        drop.innerHTML = dawaResults.map((d,i) => {
-          const linje1 = d.label.split(',')[0];
-          const linje2 = d.postnr ? (d.postnr + ' ' + d.by) : '';
-          return `<div class="dawa-item" data-i="${i}" onmousedown="dawaPick(${i})">
-            <strong>${linje1}</strong><span>${linje2}</span></div>`;
-        }).join('');
-        drop.style.display = 'block';
-      } catch(e2) { drop.style.display='none'; }
-    }
-  }, 180);
-}
-
-// Market value state (set after BBR + Boliga comps)
-window._markedsvaerdi = null;
-window._markedsCompsCount = 0;
-window._markedsHandler = [];
-window._markedsKilde = null; // 'boliga' | 'dst' | null
-window._markedsLandsdelnavn = null;
-window._markedsAktiveAnnoncer = 0;
-window._adressePostnr = null;
-window._adresseAnvKode = null;
-window._adresseId = null;
-
-function dawaPick(i) {
-  const d = dawaResults[i];
-  if (!d) return;
-  document.getElementById('adresseM').value = d.label;
-  document.getElementById('dawaDrop').style.display = 'none';
-  dawaCursor = -1;
-  window._adressePostnr = d.postnr || null;
-  window._adresseId = d.adresseId || null;
-  window._markedsvaerdi = null; // reset until BBR returns
-  if (d.husnummerId) {
-    lookupBBRForLoan(d.husnummerId, d.adresseId, d.kommunekode);
-  }
-}
-
-async function lookupBBRForLoan(husnummerId, adresseId, kommunekode) {
-  const badge = document.getElementById('bbrBadge');
-  const badgeText = document.getElementById('bbrBadgeText');
-  badge.style.display = 'flex';
-  badgeText.textContent = 'Henter bygningsdata fra BBR…';
-  document.getElementById('bbrBadgeIcon').textContent = '⏳';
-  try {
-    const params = new URLSearchParams({ husnummerId, kommunekode });
-    if (adresseId) params.set('adresseId', adresseId);
-    const r = await fetch('/api/bbr?' + params);
-    const data = await r.json();
-    if (data.found && data.m2 > 0) {
-      document.getElementById('bbrBadgeIcon').textContent = '🏠';
-      badgeText.textContent = `${data.boligtypeLabel} · ${data.m2} m² · Kommunekode ${data.kommunekode || kommunekode}`;
-      window._adresseAnvKode = data.anvKode || '120';
-      window._adresseM2 = data.m2;
-      // Fetch market value in background — result stored for beregn()
-      fetchMarkedsvaerdi(window._adressePostnr, data.m2, data.anvKode, adresseId, data.kommunekode);
-    } else {
-      document.getElementById('bbrBadgeIcon').textContent = 'ℹ️';
-      badgeText.textContent = 'Ingen bygningsdata fundet i BBR — udfyld tallene manuelt';
-    }
-  } catch(e) {
-    badge.style.display = 'none';
-  }
-}
-
-async function fetchMarkedsvaerdi(postnr, m2, anvKode, adresseId, kommunekode) {
-  if (!postnr || !m2) return;
-  const badge = document.getElementById('markedsBadge');
-  const badgeTxt = document.getElementById('markedsBadgeText');
-  if (badge) { badge.style.display = 'flex'; if (badgeTxt) badgeTxt.textContent = 'Henter markedsværdi fra nabolaget...'; }
-  try {
-    const params = new URLSearchParams({ postnr, m2 });
-    if (anvKode) params.set('anvKode', anvKode);
-    if (adresseId) params.set('adresseId', adresseId);
-    if (kommunekode) params.set('kommunekode', kommunekode);
-    const r = await fetch('/api/markedsvaerdi?' + params);
-    if (!r.ok) return;
-    const data = await r.json();
-    if (data.markedsvaerdi) {
-      window._markedsvaerdi = data.markedsvaerdi;
-      window._markedsCompsCount = data.compsCount || 0;
-      window._markedsHandler = data.handler || [];
-      window._markedsKilde = data.kilde || 'boliga';
-      window._markedsLandsdelnavn = data.landsdelnavn || null;
-      window._markedsAktiveAnnoncer = data.aktiveAnnoncer || 0;
-      // Update ejd field and re-run full calculation with market value
-      const ejdField = document.getElementById('ejendomsvaerdi');
-      if (ejdField) ejdField.value = data.markedsvaerdi;
-      if (window._beregningState) { try { if (typeof beregn === 'function') beregn(); } catch(e) {} }
-      const aktiveStr = data.aktiveAnnoncer > 0 ? ` · ${data.aktiveAnnoncer} til salg nu` : '';
-      const kildeLabel = data.kilde === 'dst' ? `DST statistisk estimat (${data.landsdelnavn || 'landsdel'})${aktiveStr}` : `${data.compsCount || '?'} handler i nabolaget${aktiveStr}`;
-      if (badge && badgeTxt) badgeTxt.textContent = `Markedsværdi: ${Math.round(data.markedsvaerdi/1000)*1000 .toLocaleString('da-DK')} kr (${kildeLabel})`;
-    } else {
-      if (badge && badgeTxt) { badgeTxt.textContent = 'Ingen handler fundet — udfyld ejendomsværdi manuelt'; badge.style.background = 'rgba(192,48,48,.07)'; badge.style.borderColor = 'rgba(192,48,48,.25)'; badge.style.color = 'var(--danger)'; }
-      const fb = document.getElementById('manuelEvFallback'); if (fb) fb.style.display = '';
-    }
-  } catch(e) {
-    if (badge && badgeTxt) { badgeTxt.textContent = 'Markedsværdi utilgængelig — udfyld manuelt'; }
-    const fb = document.getElementById('manuelEvFallback'); if (fb) fb.style.display = '';
-  }
-}
-
-function dawaKey(e) {
-  const items = document.querySelectorAll('#dawaDrop .dawa-item');
-  if (!items.length) return;
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    dawaCursor = Math.min(dawaCursor + 1, items.length - 1);
-    items.forEach((el,i) => el.classList.toggle('active', i===dawaCursor));
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    dawaCursor = Math.max(dawaCursor - 1, 0);
-    items.forEach((el,i) => el.classList.toggle('active', i===dawaCursor));
-  } else if (e.key === 'Enter' && dawaCursor >= 0) {
-    e.preventDefault();
-    dawaPick(dawaCursor);
-  } else if (e.key === 'Escape') {
-    document.getElementById('dawaDrop').style.display = 'none';
-  }
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('#adresseM') && !e.target.closest('#dawaDrop'))
-    document.getElementById('dawaDrop').style.display = 'none';
-});
-
-// ── Source chooser ───────────────────────────────────────────────────────
-let sourceMode = 'vt'; // 'vt' | 'manuel'
-
-function setSource(mode) {
-  sourceMode = mode;
-  document.getElementById('srcVt').classList.toggle('active', mode === 'vt');
-  document.getElementById('srcManuel').classList.toggle('active', mode === 'manuel');
-  document.getElementById('vtCard').style.display = mode === 'vt' ? '' : 'none';
-  document.getElementById('manuelCard').style.display = mode === 'manuel' ? '' : 'none';
-}
-
-function syncManuel() {} // EV/GV no longer synced manually — uses markedsvaerdi
-
-async function confirmVT() {
-  // Try to fetch market value from the address in vtCard via DAWA → BBR → markedsvaerdi
-  const adr = document.getElementById('adresse').value.trim();
-  if (adr) {
-    try {
-      const r = await fetch('/api/adresse?q=' + encodeURIComponent(adr));
-      if (r.ok) {
-        const results = await r.json();
-        const d = Array.isArray(results) ? results[0] : null;
-        if (d) {
-          window._adressePostnr = d.postnr || null;
-          window._adresseId = d.adresseId || null;
-          window._markedsvaerdi = null;
-          if (d.husnummerId) {
-            lookupBBRForLoan(d.husnummerId, d.adresseId, d.kommunekode);
-          }
-        }
-      }
-    } catch(e) { /* silently fall back to EV field */ }
-  }
-  goTo(2);
-}
-
-function confirmManuel() {
-  const adr = document.getElementById('adresseM').value.trim();
-  if (!adr) { alert('Udfyld venligst din adresse'); return; }
-  document.getElementById('adresse').value = adr;
-  if (window._markedsvaerdi) {
-    document.getElementById('ejendomsvaerdi').value = window._markedsvaerdi;
-  } else {
-    const manuelEv = document.getElementById('ejendomsvaerdiM');
-    if (manuelEv && manuelEv.value) {
-      document.getElementById('ejendomsvaerdi').value = manuelEv.value;
-    } else {
-      // Clear stale placeholder (e.g. 4200000 from vtCard) so beregn() requires real input
-      document.getElementById('ejendomsvaerdi').value = '';
-    }
-  }
-  goTo(2);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -3235,10 +2922,13 @@ async function payCard() {
   if (addr) {
     window.addEventListener('DOMContentLoaded', function() {
       var inp = document.getElementById('adresseM');
+      var transferred = document.getElementById('adresse'); if (transferred) transferred.value = addr;
+      var officialEV=Number(params.get('ev')); if (officialEV>=100000 && officialEV<=50000000) window._mortgageEV={value:officialEV,address:propertyKey(addr)};
       if (inp && !inp.value) inp.value = addr;
     });
   }
 })();
 </script>
+<script src="/mortgage-property.js"></script>
 <script src="/mortgage-scenarios.js"></script>
 </body></html>

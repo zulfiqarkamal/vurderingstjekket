@@ -1,3 +1,4 @@
+import { createMortgageMarketLookup, mortgagePropertyType } from "../mortgage-market.js";
 // Local-only launcher. Production server.js and public files remain unchanged.
 import express from 'express';
 import fs from 'node:fs';
@@ -53,7 +54,7 @@ export function createLocalPreview() {
   }
   const localExpress = Object.assign(() => app, { static: express.static, raw: express.raw, json: express.json });
   const context = vm.createContext({
-    express: localExpress, Stripe: MockStripe, path, fileURLToPath, crypto,
+    createMortgageMarketLookup, mortgagePropertyType, express: localExpress, Stripe: MockStripe, path, fileURLToPath, crypto,
     // Only HTML existence checks are allowed; no customer/cache files are read.
     fs: { existsSync: file => /\.html$/.test(file) && fs.existsSync(file), writeFileSync() {} },
     process: { env: { NODE_ENV: 'development', STRIPE_SECRET_KEY: 'synthetic-local-only',

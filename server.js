@@ -19,6 +19,7 @@ import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs";
 import Stripe from "stripe";
+import { createMortgageMarketLookup, mortgagePropertyType } from "./mortgage-market.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -811,82 +812,44 @@ function checkInputPlausibility({ evNum, m2Num, marketValue2022, erLejlighed }) 
   return warnings;
 }
 
-// ─── Markedsbaseret friværdi (boliglaanstjek) ─────────────────
-// GET /api/markedsvaerdi?postnr=X&m2=Y&anvKode=Z&adresseId=W
-app.get("/api/markedsvaerdi", async (req, res) => {
-  const { postnr, m2, anvKode, adresseId, kommunekode } = req.query;
-  const m2Num = Number(m2);
-  if (!postnr || !/^\d{4}$/.test(postnr)) return res.status(400).json({ error: "Mangler gyldigt postnr" });
-  if (!m2Num || m2Num < 20) return res.status(400).json({ error: "Mangler gyldigt boligareal (m²)" });
-
+// Current mortgage market data. The historical tax/appeal helpers below are unchanged.
+async function mortgageFetchJson(url) {
+  const response = await fetch(url, { headers: {Accept:"application/json", "User-Agent":"Mozilla/5.0 (Vurderingstjekket)"}, signal:AbortSignal.timeout(12000) });
+  if (!response.ok) throw new Error(`Market provider HTTP ${response.status}`);
+  return response.json();
+}
+let mortgagePostcodesCache = null;
+const mortgageMarketLookup = createMortgageMarketLookup({
+  fetchJson:mortgageFetchJson,
+  getCoordinates:async id => {
+    const data = await mortgageFetchJson('https://api.dataforsyningen.dk/adresser/'+encodeURIComponent(id));
+    const coords = data.adgangsadresse?.adgangspunkt?.koordinater;
+    return coords?.length===2 ? wgs84TilUtm32(+coords[1],+coords[0]) : null;
+  },
+  distance:(row,koord) => {const p=wgs84TilUtm32(+row.latitude,+row.longitude);return Math.hypot(p.x-koord.x,p.y-koord.y)/1000;},
+  neighbourhoodPostcodes:async ({postnr,koord}) => {
+    if(!koord)return [postnr];
+    if(!mortgagePostcodesCache || Date.now()-mortgagePostcodesCache.at>86400000) {
+      const rows=await mortgageFetchJson('https://api.dataforsyningen.dk/postnumre');
+      mortgagePostcodesCache={rows,at:Date.now()};
+    }
+    return mortgagePostcodesCache.rows.filter(p=>Array.isArray(p.visueltcenter)).map(p=>{
+      const point=wgs84TilUtm32(+p.visueltcenter[1],+p.visueltcenter[0]);
+      return {zip:String(p.nr),distance:Math.hypot(point.x-koord.x,point.y-koord.y)/1000};
+    }).filter(p=>p.distance<=10).sort((a,b)=>a.distance-b.distance).slice(0,5).map(p=>p.zip);
+  },
+});
+app.get("/api/markedsvaerdi", async (req,res) => {
+  const {postnr,adresseId,kommunekode}=req.query,m2=Number(req.query.m2),anvKode=String(req.query.anvKode||'120');
+  if(!/^\d{4}$/.test(postnr||'') || !Number.isFinite(m2) || m2<20 || m2>2000) return res.status(400).json({error:"Mangler gyldigt postnummer eller boligareal"});
+  if(adresseId && !/^[a-f0-9-]{36}$/i.test(adresseId))return res.status(400).json({error:"Ugyldigt adresse-id"});
+  if(!mortgagePropertyType(anvKode))return res.status(400).json({error:'Vælg boligens rigtige boligtype for markedsopslaget'});
+  res.set('Cache-Control','no-store');
   try {
-    const typeCode = apifyTypeCode(anvKode || "120");
-    const [comps, aktive, koord] = await Promise.all([
-      getSoldComps(postnr, typeCode),
-      getActiveListingsBoliga(postnr, typeCode).catch(e => { console.warn("Aktive annoncer fejlede:", e.message); return []; }),
-      adresseId ? getAdresseKoordinater(adresseId).catch(() => null) : Promise.resolve(null),
-    ]);
-
-    // Aktive annoncer: filtrer til sammenlignelige størrelser (50–180% af target m²)
-    const sammenligneligeAktive = aktive.filter(l =>
-      l.size >= m2Num * 0.5 && l.size <= m2Num * 1.8 && l.squareMeterPrice > 5000
-    );
-    const aktivePriserM2 = sammenligneligeAktive.map(l => l.squareMeterPrice).filter(Boolean).sort((a, b) => a - b);
-    const aktiveMedianPrisM2 = aktivePriserM2.length > 0 ? aktivePriserM2[Math.floor(aktivePriserM2.length / 2)] : null;
-
-    if (!comps || comps.length < 3) {
-      // DST fallback: use EJEN77 landsdel average kr/m² when Boliga has too few comps
-      if (kommunekode) {
-        const landsdel = KOMMUNEKODE_TO_LANDSDEL[String(kommunekode).padStart(4, "0")] || null;
-        if (landsdel) {
-          const erLejlighed = isEjerlejlighed(anvKode || "120");
-          const ejendomskate = erLejlighed ? EJENDOMSKATE_EJERLEJLIGHED : EJENDOMSKATE_ENFAMILIE;
-          try {
-            const dst = await getEJEN77Avg2020_2022(landsdel, ejendomskate);
-            if (dst && dst.krPerM2 && m2Num) {
-              return res.json({
-                markedsvaerdi: Math.round(dst.krPerM2 * m2Num),
-                compsCount: 0,
-                handler: [],
-                kilde: "dst",
-                landsdel,
-                landsdelnavn: LANDSDEL_NAVN[landsdel] || landsdel,
-                aktiveAnnoncer: sammenligneligeAktive.length,
-                aktiveMedianPrisM2,
-              });
-            }
-          } catch (_) { /* fall through to null response */ }
-        }
-      }
-      return res.status(200).json({ markedsvaerdi: null, compsCount: comps ? comps.length : 0, handler: [] });
-    }
-
-    // Use a neutral evNum (0) since we only need estimatedMarket from comps
-    const a = analyseComps(comps, m2Num, 0, { koord });
-    if (!a.estimatedMarket) {
-      return res.status(200).json({ markedsvaerdi: null, compsCount: a.compsCount || 0, handler: [] });
-    }
-
-    const topHandler = (a.topComps || []).slice(0, 5).map(c => ({
-      adresse: c.address || c.adresse || "",
-      dato: c.date || c.dato || "",
-      pris: c.price || c.pris || 0,
-      m2: c.size || c.m2 || 0,
-      prPerM2: c.sqmPrice || c.prPerM2 || 0,
-    }));
-
-    return res.json({
-      markedsvaerdi: Math.round(a.estimatedMarket),
-      compsCount: a.compsCount || 0,
-      handler: topHandler,
-      kilde: "boliga",
-      aktiveAnnoncer: sammenligneligeAktive.length,
-      aktiveMedianPrisM2,
-    });
-  } catch (err) {
-    console.error("markedsvaerdi fejl:", err.message);
-    return res.status(500).json({ error: "Kunne ikke beregne markedsværdi" });
-  }
+    const data=await mortgageMarketLookup({postnr,m2,anvKode,officialEV:Number(req.query.officialEV)||null,type:mortgagePropertyType(anvKode),adresseId,kommunekode,
+      address:String(req.query.address||'').slice(0,250),year:Number(req.query.year)||null});
+    return res.json(data);
+  } catch(error) {return res.status(502).json({error:"Markedsdata er midlertidigt utilgængelige"});}
 });
 
 // ─── Free eligibility check ───────────────────────────────────
