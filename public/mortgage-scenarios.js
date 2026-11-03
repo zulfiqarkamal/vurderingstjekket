@@ -57,6 +57,8 @@ function blrScenarioMarkup(d) {
 function blrEscape(value) {return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function blrPropertySource(d) {
   const p=d.property||window._mortgageProperty||{};
+  if(p.kilde==='boligsiden-udbud')return `Boligsiden · ${p.aktiveAnnoncer||0} sammenlignelige udbud · udbudspriser`;
+  if(p.kilde==='boligsiden-omraade-udbud')return `Boligsiden · ${p.aktiveAnnoncer||0} lokale udbud · m²-estimat`;
   if(p.kilde==='boliga-udbud')return `${p.aktiveAnnoncer||0} sammenlignelige udbud · udbudspriser`;
   if(p.kilde==='boliga')return `${p.compsCount||0} sammenlignelige salg · seneste 12 måneder`;
   if(p.kilde==='boliga-omraade')return `${p.compsCount||0} lokale salg · m²-estimat · seneste 12 måneder`;
