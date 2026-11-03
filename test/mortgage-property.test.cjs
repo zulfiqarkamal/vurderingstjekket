@@ -1,6 +1,6 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.join(__dirname,'../');
-function fixture({failMarket=false,failBBR=false,shape='wrapped',delayBBR,ambiguous=false}={}) {
+function fixture({limited=false,failMarket=false,failBBR=false,shape='wrapped',delayBBR,ambiguous=false}={}) {
  const fields={};const element=id=>fields[id]||= {value:'',dataset:{},style:{},textContent:'',classList:{toggle(){}},replaceChildren(){},append(){},setAttribute(){}};
  const calls=[],steps=[],alerts=[];
  const item={label:'Demovej 10, 9999 Demoby',postnr:'9999',husnummerId:'fixture-house',adresseId:'fixture-address',kommunekode:'0001'};
@@ -8,6 +8,7 @@ function fixture({failMarket=false,failBBR=false,shape='wrapped',delayBBR,ambigu
   calls.push(url);
   if(url.includes('/api/adresse'))return {ok:true,json:async()=>{const rows=ambiguous?[item,{...item,label:'Demovej 10, 1., 9999 Demoby'}]:[item];return shape==='wrapped'?{suggestions:rows}:rows;}};
   if(url.includes('/api/bbr')){if(delayBBR)await delayBBR;return {ok:!failBBR,json:async()=>({found:!failBBR,m2:150,anvKode:'120',kommunekode:'0001'})};}
+  if(url.includes('/api/markedsvaerdi')&&limited)return {ok:false,status:429,json:async()=>({error:'Du har brugt dagens 5 boligopslag. Prøv igen i morgen.'})};
   if(url.includes('/api/markedsvaerdi'))return {ok:true,json:async()=>({markedsvaerdi:failMarket?null:3300000,kilde:'boliga',compsCount:3,handler:[]})};
   throw Error('Unexpected request');
  }});
@@ -52,4 +53,11 @@ test('An explicitly entered official EV is a labelled reserve only after the mar
 });
 test('A transferred EV never overrides an available market value',async()=>{
  const f=fixture();f.ctx.window._mortgageEV={value:9000000,address:'demovej 10, 9999 demoby'};await f.ctx.confirmVT();assert.equal(f.ctx.window._markedsvaerdi,3300000);assert.equal(f.ctx.window._mortgageProperty.kilde,'boliga');
+});
+
+test('daily lookup limit stays visible, never substitutes EV and does not retry the same selected property',async()=>{
+ const f=fixture({limited:true});f.element('officielEVFallback').value=3000000;
+ await f.ctx.confirmManuel();assert.equal(f.steps.length,0);assert.equal(f.ctx.window._mortgageProperty.status,'limited');assert.match(f.element('markedsBadgeText').textContent,/5 boligopslag/);assert.equal(f.ctx.window._markedsvaerdi,null);
+ const count=f.calls.filter(url=>url.includes('/api/markedsvaerdi')).length;
+ await f.ctx.confirmManuel();assert.equal(f.calls.filter(url=>url.includes('/api/markedsvaerdi')).length,count);assert.match(f.element('markedsBadgeText').textContent,/morgen/);
 });

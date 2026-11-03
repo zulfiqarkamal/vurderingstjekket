@@ -58,7 +58,9 @@ export function normalizeClaudeLoanResponse(response){
  const betalingsperiode=typeof data.betalingsperiode==='string'?periods[data.betalingsperiode.trim().toLowerCase()]||'ukendt':'ukendt';
  const explicitMonthly=numeric(data.maanedligYdelse??data.currentPayment,0,1000000);
  const divisor={maaned:1,kvartal:3,halvaar:6,aar:12}[betalingsperiode];
- const maanedligYdelse=explicitMonthly??(naesteBetaling!==null&&divisor?naesteBetaling/divisor:null);
+ // A quarterly/annual amount copied into the monthly field must not win over its explicit period.
+ const copiedPeriodAmount=divisor>1&&naesteBetaling!==null&&explicitMonthly===naesteBetaling;
+ const maanedligYdelse=copiedPeriodAmount?naesteBetaling/divisor:explicitMonthly??(naesteBetaling!==null&&divisor?naesteBetaling/divisor:null);
  const currentBidrag=numeric(data.currentBidrag??data.bidragssats??data.aarligBidragssats,0,10,'rate');
  const afdragsfriAar=numeric(data.afdragsfriAar,0,30,'years');
  const rawDate=data.refinansiering??data.refinansieringDato??data.refinansieringsdato;

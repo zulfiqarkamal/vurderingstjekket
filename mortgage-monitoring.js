@@ -26,8 +26,8 @@ export function buildMonitoringSnapshot(ab={},rates={},market={},now=new Date())
   if(!years)missingData.push('loebetid');
   if(!value||!knownSource)missingData.push('marketValue');
   const referenceKeys=['F1','F3','F5','fastforrentet'].filter(key=>finite(rates[key])&&Number(rates[key])>=0&&Number(rates[key])<=30);
-  const candidates=referenceKeys.filter(key=>key!=='F1');
-  const availabilityNote='F1 er kun en betinget reference for eksisterende lån/profilskifte og indgår ikke som nyt lånevalg eller grundlag for en omlægningsalert. F3, F5 og fast rente kræver også bankens tilbud og godkendelse.';
+  const candidates=referenceKeys;
+  const availabilityNote='F1, F3, F5 og fast rente er lånetyper på markedet, men ikke alle banker tilbyder alle typer. Renter og bidrag er modelestimater, ikke personlige tilbud. Banken skal godkende lånet.';
   if(!candidates.length)missingData.push('rates');
   const fallbackRates=!rates.source || /fallback/i.test(String(rates.source)) || rates.fallback===true;
   const fee=debt ? Math.round(15000+.005*debt) : null;
@@ -36,7 +36,7 @@ export function buildMonitoringSnapshot(ab={},rates={},market={},now=new Date())
   const result={availabilityNote,scenarios:[],rateSource:String(rates.source||'fallback'),rateObservationDate:rates.observationDate||null,rateNote:rates.note||'',currentPayment,newPayment:null,delta:null,monthlyReduction:0,fee,breakEvenMonths:null,canAlert:false,value,equity:value&&debt?Math.round(value-debt):null,sourceLabel:sourceLabel(market),rate:null,rateKey:null,basisNote,missingData,fallbackRates,asOf:new Date(now).toISOString(),paymentBasis:'med afdrag',changeLabel:'Ændring i månedlig betaling'};
   if(!debt||!years||!value||!knownSource||!referenceKeys.length)return result;
   const bidrag=contribution(debt/value*100);
-  const scenarios=referenceKeys.map(key=>({rateKey:key,eligibleForNewLoan:key!=='F1',label:key==='F1'?'F1 — eksisterende/profilskifte':key==='fastforrentet'?'Fast rente':key,rate:Number(rates[key]),newPayment:Math.round(payment(debt,Number(rates[key]),years,bidrag))}));
+  const scenarios=referenceKeys.map(key=>({rateKey:key,eligibleForNewLoan:true,label:key==='F1'?'F1 Flekslån':key==='fastforrentet'?'Fast rente':key,rate:Number(rates[key]),newPayment:Math.round(payment(debt,Number(rates[key]),years,bidrag))}));
   Object.assign(result,{scenarios,bidrag});
   if(!candidates.length)return result;
   const best=scenarios.filter(row=>row.eligibleForNewLoan).reduce((a,b)=>a.newPayment<=b.newPayment?a:b);

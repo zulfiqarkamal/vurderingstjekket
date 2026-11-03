@@ -95,6 +95,12 @@ async function fetchMarkedsvaerdi(postnr,m2,anvKode,adresseId,kommunekode,versio
   try {
     const params=new URLSearchParams({postnr,m2,anvKode:anvKode||'120',adresseId:adresseId||'',kommunekode:kommunekode||'',address:selectedProperty?.label||'',year:year||''});
     const response=await fetch('/api/markedsvaerdi?'+params,{signal:AbortSignal.timeout(90000)});
+    if(response.status===429){
+      const limit=await response.json();
+      if(version!==propertyVersion)return false;
+      window._mortgageProperty={...window._mortgageProperty,status:'limited',reason:limit.error||'Du har brugt dagens 5 boligopslag. Prøv igen i morgen.'};
+      propertyMessage(window._mortgageProperty.reason,false);return false;
+    }
     if(!response.ok)throw new Error('Markedsopslag utilgængeligt');const data=await response.json();
     if(version!==propertyVersion)return false;
     if(!(data.markedsvaerdi>0))throw new Error(data.reason||'Ingen sammenlignelige markedsdata fundet.');
@@ -119,6 +125,7 @@ async function ensureMortgageProperty(address) {
   if(selectedProperty && propertyKey(address)===propertyKey(selectedProperty.label)) {
     if(window._propertyPromise)await window._propertyPromise;
     if(window._markedsvaerdi>0)return true;
+    if(window._mortgageProperty.status==='limited'){propertyMessage(window._mortgageProperty.reason,false);return false;}
   } else {
     const version=propertyVersion;propertyMessage('Slår adressen op…');
     try {
@@ -131,12 +138,14 @@ async function ensureMortgageProperty(address) {
       else {selectedProperty={label:address,postnr:address.match(/\b(\d{4})\b/)?.[1]||''};window._adressePostnr=selectedProperty.postnr;}
     } catch(_){selectedProperty={label:address,postnr:address.match(/\b(\d{4})\b/)?.[1]||''};window._adressePostnr=selectedProperty.postnr;}
   }
+  if(window._mortgageProperty.status==='limited'){propertyMessage(window._mortgageProperty.reason,false);return false;}
   const area=+propertyElement('boligarealM').value,type=propertyElement('boligtypeM').value;
   if(area>=20 && type && window._adressePostnr && !window._markedsvaerdi &&
     (window._mortgageProperty.status==='needs-area' || area!==window._adresseM2 || type!==window._adresseAnvKode)) {
     window._adresseM2=area;window._adresseAnvKode=type;
     window._propertyPromise=fetchMarkedsvaerdi(window._adressePostnr,area,type,window._adresseId,window._mortgageProperty?.kommunekode);
     await window._propertyPromise;if(window._markedsvaerdi>0)return true;
+    if(window._mortgageProperty.status==='limited'){propertyMessage(window._mortgageProperty.reason,false);return false;}
   }
   const knownEV=window._mortgageEV?.address===propertyKey(address)?window._mortgageEV.value:0;
   const reserve=+propertyElement('officielEVFallback').value||knownEV;
