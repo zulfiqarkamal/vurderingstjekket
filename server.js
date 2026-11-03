@@ -2715,6 +2715,9 @@ app.post("/api/cron/monthly-monitoring", async (req, res) => {
   const auth = req.headers.authorization || "";
   if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) return res.status(403).json({ error: "Uautoriseret" });
 
+  // Safe authenticated deployment check: no provider, payment, mail or storage calls.
+  if(req.query?.dryRun==='1')return res.json({ok:true,dryRun:true,cadence:'monthly',mailConfigured:!!RESEND_API_KEY,paymentConfigured:!!stripe});
+
   const renter = await fetchLiveRenter().catch(() => ({}));
   let sendt = 0, fejl = 0, alerts = 0;
 

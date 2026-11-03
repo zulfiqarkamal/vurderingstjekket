@@ -155,3 +155,12 @@ test('live catalogue with unknown fees may send gross3000 dialogue but never cal
  await f.request('POST','/api/cron/monthly-monitoring',{}, {authorization:'Bearer qa-secret'});
  assert.match(f.calls.emails.at(-1).text,/3.000/);assert.match(f.calls.emails.at(-1).text,/ikke en dokumenteret nettobesparelse/);
 });
+
+
+test('authenticated scheduler dry run confirms configuration without lookup, payment or mail side effects',async()=>{
+ const f=fixture({CRON_SECRET:'qa-secret'});
+ const response=await f.request('POST','/api/cron/monthly-monitoring',{}, {authorization:'Bearer qa-secret'},{dryRun:'1'});
+ assert.equal(response.statusCode,200);assert.equal(response.body.dryRun,true);assert.equal(response.body.mailConfigured,true);assert.equal(response.body.paymentConfigured,true);
+ assert.equal(f.calls.emails.length,0);assert.equal(f.calls.market.length,0);assert.equal(f.calls.checkouts.length,0);assert.equal(f.calls.historical,0);
+ assert.equal((await f.request('POST','/api/cron/monthly-monitoring',{}, {authorization:'Bearer wrong'},{dryRun:'1'})).statusCode,403);
+});
