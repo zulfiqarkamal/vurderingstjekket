@@ -29,7 +29,7 @@ test('source failures produce honest fallback and do not prevent monthly content
 });
 test('rendering labels unchanged forecasts, skips previously covered news and escapes source text',()=>{
  const f=parseBriefForecast(forecast,now),brief={asOf:now.toISOString(),forecast:f,europe:parseEuropeGrowth(gdp,now),usa:null,news:parseBriefFeed(rss(),'ecb',now),unavailable:[]};
- const first=renderMarketBrief(brief,{laantype:'F3'});assert.match(first.text,/ECB fastholder/);assert.match(first.text,/én udbyders prognose/);assert.match(first.text,/Pejler mod lavere renter/);assert.doesNotMatch(first.text,/sikker besparelse på/);
+ const first=renderMarketBrief(brief,{laantype:'F3'});assert.match(first.text,/ECB fastholder/);assert.match(first.text,/én udbyders prognose/);assert.match(first.text,/Lavere renter kan lette ydelsen/);assert.doesNotMatch(first.text,/sikker besparelse på/);
  const next=renderMarketBrief(brief,{laantype:'F3'},first.snapshot);assert.match(next.text,/uændret siden/);assert.doesNotMatch(next.text,/ECB fastholder/);
  brief.news[0].title='<img src=x onerror=alert(1)>';brief.news[0].description='';assert.doesNotMatch(renderMarketBrief(brief).html,/<img/);
 });
