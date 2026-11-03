@@ -36,9 +36,9 @@ function blrTable(headers,rows) {
 }
 function blrScenarioMarkup(d) {
   const m=blrScenarioModel(d);
-  const help={lower:'Sammenlign F1, F3, F5 og fast rente med afdrag. Se ny samlet ydelse og ændringen fra din nuværende betaling.',up:'Se ekstra gæld, beløbet du får udbetalt efter anslåede omkostninger og din nye samlede ydelse. Kræver långivers vurdering og kreditgodkendelse.',down:'Se engangsindbetalingen inklusive anslåede omkostninger, ny restgæld og samlet ydelse ved lavere belåningsgrad.'};
+  const help={lower:'Sammenlign F1, F3, F5 og fast rente med afdrag. Dette er modelscenarier med indikative renter og anslået bidrag, ikke en rangering af bankernes tilbud. Se ny samlet ydelse og ændringen fra din nuværende betaling.',up:'Se ekstra gæld, beløbet du får udbetalt efter anslåede omkostninger og din nye samlede ydelse. Kræver långivers vurdering og kreditgodkendelse.',down:'Se engangsindbetalingen inklusive anslåede omkostninger, ny restgæld og samlet ydelse ved lavere belåningsgrad.'};
   const tabs=[['lower','Lavere ydelse'],['up','Lån op'],['down','Betal ned']];
-  const hold=[`Behold nuværende lån (${d.ltype==='afdragsfri'?'uden afdrag':'med afdrag'})`,d.rente.toFixed(2)+'%',blrMoney(m.baseline)+'/md','0 kr/md'];
+  const hold=[`Behold nuværende ${['Nordea','Nykredit','Totalkredit','Realkredit Danmark','Jyske'].includes(d.institution)?blrEscape(d.institution)+'-lån':'lån'} (${d.ltype==='afdragsfri'?'uden afdrag':'med afdrag'})`,d.rente.toFixed(2)+'%',blrMoney(m.baseline)+'/md','0 kr/md'];
   const lowerRows=m.lower.map(e=>[e.label,e.rate.toFixed(2)+'%',blrMoney(e.payment)+'/md',blrDelta(e.delta)]);
   const extras=(d.extScener||[]).filter(e=>['afdragsfri','afdrag'].includes(e.key));
   const extraHtml=extras.length?`<details><summary>Afdrag og afdragsfrihed</summary>${blrTable(['Alternativ','Samlet ydelse','Ændring/md.'],extras.map(e=>[e.label,blrMoney(e.ydelse)+'/md',blrDelta(e.ydelse-m.baseline)]))}<p>Afdragsfrihed sænker betalingen, men restgælden afdrages ikke. Skift til afdrag øger betalingen og nedbringer gælden. Lavere ydelse er ikke nødvendigvis en økonomisk besparelse.</p></details>`:'';

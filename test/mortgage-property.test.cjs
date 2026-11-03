@@ -40,7 +40,7 @@ test('Ambiguous typed addresses require selecting a unit instead of silently usi
 
 test('Main calculation rejects an EV in the hidden field when there is no market estimate',async()=>{
  const f=fixture({failMarket:true});f.element('ejendomsvaerdi').value=4200000;
- for(const [id,value] of Object.entries({restgaeld:2400000,rente:4,loebetid:21,laantype:'afdragsfri',maanedligYdelse:10800}))f.element(id).value=value;
+ for(const [id,value] of Object.entries({restgaeld:2400000,rente:4,loebetid:21,laantype:'afdragsfri',maanedligYdelse:10800}))f.element(id).value=String(value);
  const page=fs.readFileSync(root+'public/boliglaanstjek-preview.html','utf8');
  vm.runInContext(page.slice(page.indexOf('async function beregn()'),page.indexOf('function renderLTVSektion(')),f.ctx);
  await f.ctx.beregn();assert.equal(f.steps.at(-1),1);assert.match(f.alerts.at(-1),/Markedsdata har førsteprioritet/);assert.equal(f.ctx.window._beregningState,undefined);

@@ -72,9 +72,25 @@ test('hypothetical contribution examples are conditional under60 and fullsources
  const p=buildCustomerBankPackage(full());assert.match(p.html,/Hypotetiske fald/);assert.match(p.html,/under 60 %/);assert.match(p.html,/ikke automatisk/);assert.match(p.html,/>200 kr\.</);assert.match(p.html,/>400 kr\.</);assert.match(p.html,/>600 kr\.</);assert.match(pdf(p).toString('latin1'),/rd\.dk\/PDF\/Privat\/Prisblad-privat.pdf/);
 });
 test('provided bidrag rates produce transparent unverified difference, malformed figures rejected',()=>{
- const s=full();s.contribution=estimateContributionOpportunity({restgaeld:s.restgaeld,value:s.market.markedsvaerdi,anvKode:s.anvKode,currentBidrag:.85,targetBidrag:.55});let p=buildCustomerBankPackage(s);assert.match(p.html,/0,85 % → 0,55 %/);assert.match(p.html,/>600 kr\.</);
+ const s=full();s.contribution=estimateContributionOpportunity({restgaeld:s.restgaeld,value:s.market.markedsvaerdi,anvKode:s.anvKode,currentBidrag:.85,targetBidrag:.55});let p=buildCustomerBankPackage(s);assert.match(p.html,/0,8500 % → 0,5500 %/);assert.match(p.html,/>600 kr\.</);
  s.contribution.actualScenario.monthly=999999;s.contribution.illustrations=[];p=buildCustomerBankPackage(s);assert.doesNotMatch(p.html,/999\.999/);
 });
 test('builder is deterministic and does not mutate source inputs',()=>{
  const s=full();s.budget={b_loen:30000};const before=structuredClone(s);assert.deepEqual(buildCustomerBankPackage(s),buildCustomerBankPackage(s));assert.deepEqual(s,before);
+});
+
+test('known lender and actual annual bidrag keep four decimals and show current cost separately',()=>{
+ const s=full();Object.assign(s,{institution:'Nordea Kredit',restgaeld:1800000,currentPayment:7300,loebetid:18});s.contribution=estimateContributionOpportunity({restgaeld:s.restgaeld,value:s.market.markedsvaerdi,anvKode:s.anvKode,currentBidrag:.6789});
+ const p=buildCustomerBankPackage(s);assert.match(p.html,/Dit oplyste bidrag hos Nordea: 0,6789 % p.a./);assert.match(p.html,/1\.018 kr\. pr. måned før skat/);assert.match(p.html,/nuværende omkostning, ikke en mulig besparelse/);assert.match(p.html,/Mit Nordea-lån har oplyst bidrag 0,6789 % p.a./);assert.match(p.html,/uden unødvendig omlægning/);assert.match(pdf(p).toString('latin1'),/0,6789 % p.a./);assert.match(p.text,/1\.018 kr/);
+});
+test('all allowed lender names normalize and no unrecognized issuer is invented',()=>{
+ for(const [input,label] of [['nordea','Nordea'],['Nykredit','Nykredit'],['Totalkredit','Totalkredit'],[' Realkredit   Danmark ','Realkredit Danmark'],['Jyske','Jyske Realkredit']]){const s=full();s.institution=input;s.contribution=estimateContributionOpportunity({restgaeld:s.restgaeld,value:s.market.markedsvaerdi,currentBidrag:.4321});assert.ok(buildCustomerBankPackage(s).text.includes('hos '+label+': 0,4321 % p.a.'));}
+ const s=full();s.institution='<img src=x onerror=alert(1)>Fake Bank';const p=buildCustomerBankPackage(s);assert.doesNotMatch(p.html,/Fake Bank|src=x|Mit Nordea-lån/);
+});
+test('optional verified term and refinance date enter PDF and fifth question without guessing',()=>{
+ const s=sample();s.afdragsfriAar=3.5;s.refinansieringISO='2029-07-01';const p=buildCustomerBankPackage(s);assert.match(p.html,/afdragsfrihed udløber om 3,5 år/);assert.match(p.html,/Næste oplyste refinansiering er 2029-07-01/);assert.match(p.html,/Hvilke frister skal jeg overholde/);assert.match(pdf(p).toString('latin1'),/2029-07-01/);
+ const absent=sample();absent.afdragsfriAar=-1;absent.refinansieringISO='2029-02-30';const bad=buildCustomerBankPackage(absent);assert.doesNotMatch(bad.html,/udløber om|2029-02-30|Næste oplyste refinansiering/);
+});
+test('missing contribution rate never creates current lender cost from hypothetical cuts',()=>{
+ const s=full();s.institution='Nordea';const p=buildCustomerBankPackage(s);assert.doesNotMatch(p.html,/Dit oplyste bidrag hos|nuværende omkostning/);assert.match(p.html,/Hypotetiske fald/);
 });

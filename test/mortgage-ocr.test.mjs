@@ -1,0 +1,59 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {normalizeClaudeLoanResponse,OCRNormalizationError} from '../mortgage-ocr.js';
+const provider=text=>({content:[{type:'text',text}],stop_reason:'end_turn'});
+test('DanishOCR numbers normalize into usable typed fields',()=>{
+ const r=normalizeClaudeLoanResponse(provider('```json\n{"restgaeld":"2.400.000 kr", "maanedligYdelse":"10.800,50", "rente":"3,08 %", "loebetid":"21 år", "laantype":"F3", "institution":"Nordea Kredit"}\n```'));
+ assert.equal(r.restgaeld,2400000);assert.equal(r.maanedligYdelse,10800.5);assert.equal(r.rente,3.08);assert.equal(r.loebetid,21);assert.equal(r.laantype,'F3');assert.equal(r.institution,'Nordea');
+});
+test('provider text blocks join and prose around a completeJSONobject is accepted',()=>{
+ const r=normalizeClaudeLoanResponse({content:[{type:'text',text:'Her er resultatet: {"restgaeld":'},{type:'text',text:'2400000, "rente":4} Færdig.'}]});assert.equal(r.restgaeld,2400000);assert.equal(r.rente,4);
+});
+test('invalidJSON, emptyobjects, typeless data and truncatedprovideroutputs are errors',()=>{
+ for(const r of [provider('not JSON'),provider('{}'),provider('{"restgaeld":2400'),provider('{"laantype":"F3"}'),{error:{message:'provider error'}},{content:[]},{content:[{type:'text',text:'{"restgaeld":123}'}],stop_reason:'max_tokens'},provider('[{"restgaeld":2}]'),provider('{"restgaeld":1} {"restgaeld":2}')])assert.throws(()=>normalizeClaudeLoanResponse(r),OCRNormalizationError);
+});
+test('real zero remains zero, absentvalues staynull and numberboundaries are enforced',()=>{
+ const r=normalizeClaudeLoanResponse({rente:0,restgaeld:null,maanedligYdelse:0,loebetid:null});assert.equal(r.rente,0);assert.equal(r.maanedligYdelse,0);assert.equal(r.restgaeld,null);assert.equal(r.loebetid,null);
+ for(const value of [true,Infinity,-1,'200.000.000 kr','NaN'])assert.equal(normalizeClaudeLoanResponse({restgaeld:value,rente:4}).restgaeld,null);
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:2,rente:31,loebetid:51}).rente,null);
+});
+test('remaining years mustbe integer and originalterm is never silently reused',()=>{
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:2,loebetid:30,loebetidType:'oprindelig'}).loebetid,null);
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:2,oprindeligLoebetid:30}).loebetid,null);
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:2,loebetid:30,loebetidType:'oprindelig',resterendeLoebetid:'21 år'}).loebetid,21);
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:2,loebetid:'21,5 år'}).loebetid,null);
+});
+test('explicit interestonly retains underlyingloantype without guessing a flexibleloan',()=>{
+ const r=normalizeClaudeLoanResponse({restgaeld:2400000,laantype:'F5',afdragsfri:true});assert.equal(r.laantype,'afdragsfri');assert.equal(r.underlyingLaantype,'F5');assert.equal(r.afdragsfri,true);
+ for(const laantype of ['variabel','rentetilpasning','unknown'])assert.equal(normalizeClaudeLoanResponse({restgaeld:2,laantype}).laantype,null);
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:2,laantype:'fast rente'}).laantype,'fastforrentet');
+});
+test('institutions are explicitallowlisted names, not inferred or executablemarkup',()=>{
+ for(const institution of ['Nordea<script>alert(1)</script>','Best provider','<b>Nykredit</b>',null])assert.equal(normalizeClaudeLoanResponse({restgaeld:2,institution}).institution,null);
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:2}).institution,null);
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:2,institution:'Realkredit Danmark'}).institution,'Realkredit Danmark');
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:2,institution:'Jyske Realkredit'}).institution,'Jyske');
+});
+test('decimal formats and currencylabels do not become arbitrary extractedtext',()=>{
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:'DKK 2 400 000',rente:'3.080%'}).restgaeld,2400000);
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:2,rente:'3.080%'}).rente,3.08);
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:2,maanedligYdelse:'<b>10800</b>'}).maanedligYdelse,null);
+ assert.equal(normalizeClaudeLoanResponse({restgaeld:2,rente:'se side 3,08'}).rente,null);
+});
+
+test('nextpayment with unknownfrequency is not a monthlypayment and S1 is not F1',()=>{
+ const r=normalizeClaudeLoanResponse({restgaeld:2300000,rente:'3.045 %',loebetid:20,laantype:'S1',bidragssats:'1,1234 %',naesteBetaling:'24.000 kr',afdragsfriAar:2,refinansiering:'2028-10-01'});
+ assert.equal(r.maanedligYdelse,null);assert.equal(r.naesteBetaling,24000);assert.equal(r.betalingsperiode,'ukendt');assert.equal(r.currentBidrag,1.1234);assert.equal(r.rente,3.045);assert.equal(r.laantype,null);assert.equal(r.underlyingLaantype,null);assert.equal(r.afdragsfriAar,2);assert.equal(r.refinansiering,'2028-10-01');
+});
+test('only explicitpaymentfrequency permits deriving a monthlyaverage',()=>{
+ for(const [betalingsperiode,monthly] of [['maaned',24000],['kvartal',8000],['halvaar',4000],['aar',2000]]){
+  const r=normalizeClaudeLoanResponse({naesteBetaling:24000,betalingsperiode});assert.equal(r.maanedligYdelse,monthly);
+ }
+ assert.equal(normalizeClaudeLoanResponse({naesteBetaling:24000,betalingsperiode:'maybe quarterly'}).maanedligYdelse,null);
+ assert.equal(normalizeClaudeLoanResponse({naesteBetaling:24000,betalingsperiode:'kvartal',maanedligYdelse:8100}).maanedligYdelse,8100);
+});
+test('metadata supports zero and rejects invalid bidragduration and calendar dates',()=>{
+ const r=normalizeClaudeLoanResponse({rente:0,currentBidrag:0,afdragsfriAar:0,refinansiering:'2028-02-30'});
+ assert.equal(r.currentBidrag,0);assert.equal(r.afdragsfriAar,0);assert.equal(r.refinansiering,null);
+ const invalid=normalizeClaudeLoanResponse({rente:0,currentBidrag:11,afdragsfriAar:31});assert.equal(invalid.currentBidrag,null);assert.equal(invalid.afdragsfriAar,null);
+});

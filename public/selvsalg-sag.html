@@ -81,7 +81,7 @@
       <li><button class="sag-step-btn" data-step="1"><div class="step-icon">2</div>Salgstjekliste</button></li>
       <li><button class="sag-step-btn locked" data-step="2"><div class="step-icon">3</div>Fotoguide</button></li>
       <li><button class="sag-step-btn locked" data-step="3"><div class="step-icon">4</div>Annoncetekst</button></li>
-      <li><button class="sag-step-btn locked" data-step="4"><div class="step-icon">5</div>Dokumentpakke</button></li>
+      <li><button class="sag-step-btn locked" data-step="4"><div class="step-icon">5</div>Dokumentoverblik</button></li>
       <li><button class="sag-step-btn locked" data-step="5"><div class="step-icon">6</div>Brochure</button></li>
     </ul>
   </nav>
@@ -100,17 +100,17 @@
           <h3>Lås din salgspakke op</h3>
           <p>Du har oprettet en gratis kladde. Når du er klar, kan du låse din fulde salgspakke op for en engangsbetaling.</p>
           <div class="price-row">
-            <span class="price-big">799 kr.</span>
+            <span class="price-big">199 kr.</span>
             <span class="price-note">inkl. moms<br>Engangsbetaling — aldrig løbende</span>
           </div>
           <ul class="incl-list">
             <li>Fotoguide til professionelle billeder</li>
             <li>Redigerbart annoncetekst-udkast</li>
             <li>Printbar brochure med fakta og billeder</li>
-            <li>Dokumentpakke til din advokat</li>
+            <li>Dokumentoverblik til din advokat</li>
             <li>Fremvisningsplan og købernotat</li>
           </ul>
-          <button class="btn-pay" id="btn-pay">Lås salgspakken op — 799 kr.</button>
+          <button class="btn-pay" id="btn-pay">Lås salgspakken op — 199 kr.</button>
           <p style="font-size:12px;color:var(--muted);margin-top:12px;text-align:center">Engangsbetaling · Sikker betaling via Stripe · Vilkår fremgår ved checkout</p>
         </div>
       </div>
@@ -149,17 +149,9 @@
       </div>
       <div id="foto-content" style="display:none">
         <div style="background:white;border-radius:12px;border:1px solid var(--line);padding:28px">
-          <h3 style="font:20px Georgia,serif;margin-bottom:16px">Fotografering af din bolig</h3>
-          <p style="color:var(--muted);font-size:14px;line-height:1.7">En god fotoserie kan øge interessen for din bolig markant. Her er de vigtigste regler:</p>
-          <ol style="color:var(--muted);font-size:14px;line-height:2;padding-left:20px">
-            <li><strong>Lys:</strong> Fotografer altid på en solrig dag, helst formiddag eller eftermiddag.</li>
-            <li><strong>Ryddelig bolig:</strong> Fjern personlige genstande, ekstra møbler og rod.</li>
-            <li><strong>Vinduer:</strong> Åbn gardiner og persienner — sørg for lys fra vinduerne.</li>
-            <li><strong>Vinkler:</strong> Fotografer fra hjørnerne i rummene — det giver en rumfornemmelse.</li>
-            <li><strong>Ude:</strong> Façade- og havebilleder i godt vejr. Inkluder terrasse/altan.</li>
-            <li><strong>Opløsning:</strong> Brug mindst 12 MP. Vandret format (landscape) er standard.</li>
-            <li><strong>Rækkefølge:</strong> Start med facade, stue, køkken, soveværelse, badeværelse, have/terrasse.</li>
-          </ol>
+          <h3 id="photo-guide-title" style="font:20px Georgia,serif;margin-bottom:16px">Fotografering af din bolig</h3>
+          <p style="color:var(--muted);font-size:14px;line-height:1.7">Guiden bruger din oplyste boligtype. Vis kun de rum og udearealer, der faktisk hører til boligen. Undgå billeder, der giver et misvisende indtryk.</p>
+          <ol id="personal-photo-guide" style="color:var(--muted);font-size:14px;line-height:2;padding-left:20px"></ol>
         </div>
       </div>
     </div>
@@ -175,6 +167,12 @@
       <div id="annonce-content" style="display:none">
         <div style="background:white;border-radius:12px;border:1px solid var(--line);padding:28px">
           <h3 style="font:20px Georgia,serif;margin-bottom:12px">Dit annoncetekst-udkast</h3>
+          <label for="owner-highlights" style="display:block;font-weight:600;margin-bottom:8px">Dine konkrete salgspunkter (valgfrit)</label>
+          <textarea id="owner-highlights" maxlength="2000" style="width:100%;min-height:90px;box-sizing:border-box;padding:12px" placeholder="Skriv kun forhold, du selv kan bekræfte, fx dokumenteret renovering eller faktisk udstyr."></textarea>
+          <label style="display:block;margin:10px 0"><input type="checkbox" id="owner-highlights-confirmed"> Jeg har kontrolleret, at mine salgspunkter er korrekte.</label>
+          <button type="button" id="regenerate-annonce" style="padding:10px 14px;margin-bottom:12px">Lav nyt udkast ud fra fakta og mine salgspunkter</button>
+          <p id="annonce-status" role="status" style="font-size:13px;color:var(--muted)">Udkast og salgspunkter gemmes kun i denne browser for denne sag. Fotos gemmes ikke her. Et nyt udkast erstatter din redigerede tekst, når du trykker på knappen.</p>
+          <label for="annonce-tekst" style="display:block;font-weight:600;margin:10px 0">Din redigerbare annoncetekst</label>
           <textarea id="annonce-tekst" style="width:100%;min-height:260px;border:1.5px solid var(--line);border-radius:8px;padding:14px;font:15px/1.6 system-ui;resize:vertical" placeholder="Udkast genereres baseret på din boligs oplysninger…"></textarea>
           <p style="font-size:12px;color:var(--muted);margin-top:8px">Rediger teksten, så den passer præcis til din bolig, inden du bruger den i annoncer.</p>
         </div>
@@ -182,18 +180,18 @@
     </div>
 
     <div class="step-panel" id="panel-4">
-      <h2>Dokumentpakke</h2>
+      <h2>Dokumentoverblik</h2>
       <p class="sub">Oversigt over de dokumenter, din advokat har brug for.</p>
       <div class="locked-overlay" id="lock-4">
         <div style="font-size:32px">📁</div>
         <strong>Kræver salgspakken</strong>
-        <p>Lås salgspakken op for at se din dokumentpakke.</p>
+        <p>Lås salgspakken op for at se din dokumentoverblik.</p>
       </div>
       <div id="dok-content" style="display:none">
         <div style="background:white;border-radius:12px;border:1px solid var(--line);padding:28px">
           <h3 style="font:20px Georgia,serif;margin-bottom:16px">Dokumenter til din advokat</h3>
           <div id="dok-list"></div>
-          <p style="font-size:13px;color:var(--muted);margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">Advokaten skal inddrages <strong>inden</strong> underskrift af købsaftalen. Dokumentpakken hjælper dig med at have papirerne klar, inden advokaten går i gang.</p>
+          <p style="font-size:13px;color:var(--muted);margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">Advokaten skal inddrages <strong>inden</strong> underskrift af købsaftalen. Dokumentoverblikn hjælper dig med at have papirerne klar, inden advokaten går i gang.</p>
         </div>
       </div>
     </div>
@@ -265,7 +263,7 @@ const EXT_SERVICES = [
     id:"es6", icon:"🖥️", label:"Boligportal-annoncering",
     who:"Boligsiden.dk / Home.dk",
     price:"Ca. 2.000–4.500 kr. (30 dages annonce)",
-    desc:"Du kan annoncere din bolig direkte på Boligsiden.dk og Home.dk som privatperson. Prisen afhænger af pakke og visninger. Tillæg for fremhævning og længere annoncetid.",
+    desc:"Undersøg selv, hvilke portaler der accepterer privat annoncering, og få bekræftet deres aktuelle priser og vilkår. Pakken offentliggør ingen annoncer.",
     where:"Opret annonce direkte på <a href=\"https://www.boligsiden.dk/selvsalg\" target=\"_blank\" rel=\"noopener\">Boligsiden.dk/selvsalg</a> eller <a href=\"https://www.home.dk\" target=\"_blank\" rel=\"noopener\">Home.dk</a> under privatperson-oprettelse."
   },
   {
@@ -375,7 +373,7 @@ function switchPanel(n) {
 function renderChecklist() {
   const container = document.getElementById("check-list");
   container.innerHTML = "";
-  CHECKLIST_ITEMS.forEach(item => {
+  selvsalgChecklist(SAG).forEach(item => {
     const done = !!checks[item.id];
     const div = document.createElement("div");
     div.className = "checklist-item";
@@ -421,7 +419,9 @@ function toggleCheck(id) {
 
 function updateProgress() {
   const done = Object.values(checks).filter(Boolean).length;
-  const pct = Math.round(done / CHECKLIST_ITEMS.length * 100);
+  const relevant = selvsalgChecklist(SAG);
+  const doneRelevant = relevant.filter(item => checks[item.id]).length;
+  const pct = Math.round(doneRelevant / relevant.length * 100);
   document.getElementById("check-progress").style.width = pct + "%";
 }
 
@@ -442,27 +442,96 @@ function unlockPaid() {
 
   // Generate annonce text
   if (SAG) generateAnnonceText();
+  renderPersonalPhotoGuide();
   renderBrochure();
-  document.getElementById("annonce-tekst").addEventListener("input", renderBrochure);
+  document.getElementById("annonce-tekst").addEventListener("input", () => { saveAnnonceDraft(); renderBrochure(); });
+  document.getElementById("owner-highlights").addEventListener("input", saveAnnonceDraft);
+  document.getElementById("owner-highlights-confirmed").addEventListener("change", saveAnnonceDraft);
+  document.getElementById("regenerate-annonce").addEventListener("click", () => generateAnnonceText(true));
 
   // Render dok list
   renderDokList();
 }
 
-function generateAnnonceText() {
-  if (!SAG) return;
-  const ta = document.getElementById("annonce-tekst");
-  const bt = { villa:"villa", raekkehus:"rækkehus", ejerlejlighed:"ejerlejlighed", landejendom:"landejendom", sommerhus:"sommerhus" };
-  const type = bt[SAG.boligtype] || "bolig";
-  const vaerelse = SAG.vaerelse ? `${SAG.vaerelse}-værelses ` : "";
-  const areal = SAG.m2bolig ? `${SAG.m2bolig} m²` : "";
-  const aar = SAG.byggeaar ? ` fra ${SAG.byggeaar}` : "";
-  ta.value = `Lys og velholdt ${vaerelse}${type}${areal ? ` på ${areal}` : ""}${aar}\n\n${SAG.adresse}\n\nHer præsenteres en fantastisk mulighed for at erhverve en smuk ${type} i ${areal ? `${areal}, ` : ""}beliggende i et roligt kvarter med gode forbindelser.\n\nBoligen byder på lyse, velindrettede rum med gode materialer og en praktisk planløsning, der indbyder til familieliv.\n\n[Tilføj dine egne unikke salgspunkter her — hvad elsker du ved boligen?]\n\nKontakt for fremvisning:\n[Dit navn]\n[Dit telefonnummer]\n[Din e-mail]`;
+function selvsalgPropertyProfile(sag = {}) {
+  const names={villa:'villa',raekkehus:'rækkehus',ejerlejlighed:'ejerlejlighed',sommerhus:'sommerhus',landejendom:'landejendom'};
+  const number=(value,min,max)=>{if(typeof value!=='number' && !(typeof value==='string' && /^\d+(?:\.\d+)?$/.test(value)))return null;const n=Number(value);return Number.isFinite(n)&&n>=min&&n<=max?n:null;};
+  return {type:names[sag.boligtype]?sag.boligtype:'ukendt',label:names[sag.boligtype]||'bolig',
+    address:typeof sag.adresse==='string'?sag.adresse.replace(/[\u0000-\u001f]/g,' ').trim().slice(0,250):'',
+    area:number(sag.m2bolig,10,2000),rooms:number(sag.vaerelse,1,50),year:number(sag.byggeaar,1500,new Date().getFullYear()+2)};
+}
+function selvsalgAnnonceDraft(sag = {}, highlights = '') {
+  const p=selvsalgPropertyProfile(sag),facts=[];
+  if(p.area!==null)facts.push('Boligareal: '+p.area.toLocaleString('da-DK')+' m².');
+  if(p.rooms!==null)facts.push('Antal værelser: '+p.rooms.toLocaleString('da-DK')+'.');
+  if(p.year!==null)facts.push('Byggeår: '+p.year+'.');
+  const parts=[p.label.charAt(0).toUpperCase()+p.label.slice(1)+' til salg'+(p.address?' — '+p.address:''),facts.join(' ')];
+  const own=typeof highlights==='string'?highlights.trim().slice(0,2000):'';
+  if(own)parts.push('Sælgers kontrollerede oplysninger:\n'+own);
+  parts.push('Kontakt for fremvisning:\n[Dit navn]\n[Dit telefonnummer]\n[Din e-mail]');
+  return parts.filter(Boolean).join('\n\n');
+}
+function selvsalgPhotoGuide(sag = {}) {
+  const p=selvsalgPropertyProfile(sag);
+  const common=['Brug jævnt dagslys, og undgå direkte modlys. Vis rummenes faktiske udseende uden at ændre stand eller udsigt med billedredigering.',
+    'Ryd op, og fjern personlige papirer, personer og synlige private oplysninger, før du tager billeder.',
+    'Tag oversigtsbilleder af de faktiske rum. Brug vandret format, og behold originale billeder i fuld opløsning.'];
+  const specific={
+    villa:['Vis facade og adgang til huset. Fotografer kun have, terrasse, garage eller udhuse, hvis de faktisk hører til ejendommen.','Vis huset i sin helhed og dokumentér eventuelle særlige forhold tydeligt; skjul ikke skader.'],
+    raekkehus:['Vis rækkehusets egen facade og indgang. Gør det tydeligt, hvilke udearealer der er private, og hvilke der er fælles, hvis der findes sådanne arealer.','Vis sammenhængen mellem boligens etager, hvis den har flere etager. Medtag kun faktisk terrasse eller have.'],
+    ejerlejlighed:['Vis lejlighedens indgang og faktiske rum. Vis kun altan, kælderrum eller andre brugsrettigheder, når de er oplyst og afklaret.','Markér fællesarealer som fælles. Fotografer ikke naboers private områder eller personer uden deres accept.'],
+    sommerhus:['Vis sommerhusets facade og adgang. Medtag kun egne udearealer; udsigt, strandadgang og helårsbrug må ikke antydes uden afklaret grundlag.','Vis de faktiske faciliteter og eventuelle sæsonforhold, som køber bør kunne vurdere.'],
+    landejendom:['Vis beboelsen adskilt fra eventuelle driftsbygninger. Fotografer kun bygninger og arealer, der faktisk indgår i salget.','Afklar grundafgrænsning og anvendelse, før billeder eller billedtekster beskriver dem.'],
+    ukendt:['Boligtypen er ikke oplyst. Vælg motiver ud fra boligens faktiske forhold, og markér eventuelle fællesarealer tydeligt.']};
+  const finish=p.rooms!==null?'Du har oplyst '+p.rooms+' værelser. Kontrollér, at serien dækker dem uden at betegne andre rum som godkendte værelser.':'Antal værelser er ikke oplyst. Beskriv kun rum, du har kontrolleret.';
+  return [...common,...specific[p.type],finish];
+}
+function selvsalgChecklist(sag = {}) {
+  const p=selvsalgPropertyProfile(sag);
+  const items=CHECKLIST_ITEMS.map(item=>({...item}));
+  items.find(i=>i.id==='c1').hint='Sammenlign med nylige salg af '+p.label+' og kontrollér, at areal, stand og beliggenhed er relevante. Der er ikke beregnet en salgspris her.';
+  items.find(i=>i.id==='c2').hint=p.type==='ejerlejlighed'?'Afklar med din rådgiver, hvilke undersøgelser og dokumenter der er relevante for lejligheden og ejendommen. En standardliste for et hus er ikke automatisk dækkende.':'Afklar med en beskikket bygningssagkyndig og din rådgiver, hvilke rapporter og undersøgelser der er relevante for denne bolig.';
+  items.find(i=>i.id==='c3').hint='Afklar behov og omfang med en autoriseret elinstallatør og din rådgiver. Pakken leverer ikke en elinstallationsrapport.';
+  items.find(i=>i.id==='c4').hint=p.type==='sommerhus'?'Afklar med en certificeret fagperson, om og hvilke energikrav der gælder for det konkrete sommerhus.':'Kontrollér et eventuelt eksisterende energimærke og afklar behovet med en certificeret fagperson.';
+  items.find(i=>i.id==='c7').hint='Fotoguiden tager udgangspunkt i din oplyste boligtype: '+p.label+'. Vis kun faktiske forhold.';
+  items.find(i=>i.id==='c8').hint='Undersøg, hvilke portaler der aktuelt accepterer privat annoncering, og hvilke vilkår og priser der gælder. Pakken opretter ingen annoncer.';
+  if(p.type==='ejerlejlighed')items.push({id:'c13',label:'Afklar ejerforeningens oplysninger',hint:'Indhent relevante regnskaber, vedtægter, fællesudgifter og oplysninger om vedligeholdelse fra ejerforeningen og få dem gennemgået.'});
+  if(p.type==='raekkehus')items.push({id:'c13',label:'Afklar private og fælles arealer',hint:'Kontrollér ejerform, eventuel grundejerforening og hvilke arealer og vedligeholdelsespligter der hører til rækkehuset.'});
+  if(p.type==='villa'||p.type==='landejendom')items.push({id:'c13',label:'Kontrollér bygninger og arealer',hint:'Sammenhold de faktiske bygninger og arealer med BBR og dine dokumenter. Bed rådgiver og kommune afklare eventuelle afvigelser.'});
+  if(p.type==='sommerhus')items.push({id:'c13',label:'Afklar sommerhusets brug og forhold',hint:'Få rådgiver til at kontrollere anvendelse, eventuelle udlejningsaftaler og forhold, der er relevante for købers brug.'});
+  return items;
+}
+function selvsalgDocuments(sag = {}) {
+  const p=selvsalgPropertyProfile(sag);
+  return DOK_ITEMS.filter(item=>!item.label.startsWith('Ejerforenings')||p.type==='ejerlejlighed'||p.type==='ukendt').map(item=>{
+    const copy={...item};
+    if(/Tilstandsrapport|Elinstallationsrapport|Forsikringstilbud/.test(copy.label))copy.status='Afklar relevans og behov med din rådgiver; leveres ikke af pakken';
+    if(copy.label.includes('Energimærke'))copy.status=p.type==='sommerhus'?'Afklar konkrete regler og behov med en certificeret fagperson':'Kontrollér eksisterende mærke og afklar behov med en certificeret fagperson';
+    return copy;
+  });
+}
+function saveAnnonceDraft() {
+  if(SAG?.betalt!==true)return;
+  try{localStorage.setItem('sag_annonce_'+sagId,JSON.stringify({text:document.getElementById('annonce-tekst').value.slice(0,20000),highlights:document.getElementById('owner-highlights').value.slice(0,2000),confirmed:document.getElementById('owner-highlights-confirmed').checked===true}));}catch{}
+}
+function generateAnnonceText(regenerate = false) {
+  if(SAG?.betalt!==true)return;
+  const ta=document.getElementById('annonce-tekst'),highlights=document.getElementById('owner-highlights'),confirmed=document.getElementById('owner-highlights-confirmed'),status=document.getElementById('annonce-status');
+  if(!regenerate){try{const saved=JSON.parse(localStorage.getItem('sag_annonce_'+sagId)||'null');if(saved&&typeof saved.text==='string'){ta.value=saved.text.slice(0,20000);highlights.value=typeof saved.highlights==='string'?saved.highlights.slice(0,2000):'';confirmed.checked=saved.confirmed===true;return;}}catch{}}
+  if(regenerate&&highlights.value.trim()&&!confirmed.checked){status.textContent='Bekræft først, at dine egne salgspunkter er korrekte. Din eksisterende tekst er bevaret.';return;}
+  ta.value=selvsalgAnnonceDraft(SAG,confirmed.checked?highlights.value:'');
+  saveAnnonceDraft();status.textContent='Udkastet bruger de oplyste boligfakta'+(confirmed.checked&&highlights.value.trim()?' og dine kontrollerede salgspunkter':'')+'. Kontrollér det før deling. Gemt lokalt for denne sag.';
+  if(regenerate)renderBrochure();
+}
+function renderPersonalPhotoGuide() {
+  const p=selvsalgPropertyProfile(SAG),list=document.getElementById('personal-photo-guide');
+  document.getElementById('photo-guide-title').textContent='Fotoguide — '+p.label;
+  list.replaceChildren(...selvsalgPhotoGuide(SAG).map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));
 }
 
 function renderDokList() {
   const container = document.getElementById("dok-list");
-  container.innerHTML = DOK_ITEMS.map(d => `
+  container.innerHTML = selvsalgDocuments(SAG).map(d => `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);gap:16px">
       <span style="font-size:14px">${d.label}</span>
       <span style="font-size:12px;color:var(--muted);text-align:right;flex-shrink:0">${d.status||d.hint||""}</span>
@@ -484,7 +553,7 @@ async function startCheckout() {
     location.href = data.checkoutUrl;
   } catch (e) {
     btn.disabled = false;
-    btn.textContent = "Lås salgspakken op — 799 kr.";
+    btn.textContent = "Lås salgspakken op — 199 kr.";
     alert("Fejl ved opstart af betaling: " + e.message);
   }
 }
