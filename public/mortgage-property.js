@@ -103,7 +103,7 @@ async function fetchMarkedsvaerdi(postnr,m2,anvKode,adresseId,kommunekode,versio
     window._markedsHandler=data.sammenligninger||data.handler||[];
     window._mortgageProperty={...window._mortgageProperty,...data,status:'ready',address:selectedProperty?.label};
     propertyElement('ejendomsvaerdi').value=data.markedsvaerdi;
-    const label=data.kilde==='boliga-udbud'||data.kilde==='boliga-omraade-udbud'?`${data.aktiveAnnoncer} boliger til salg (udbudspriser)`:
+    const label=['boliga-udbud','boliga-omraade-udbud','boligsiden-udbud','boligsiden-omraade-udbud'].includes(data.kilde)?`${data.aktiveAnnoncer} boliger til salg (udbudspriser)`:
       data.kilde==='dst'?`regionalt DST-estimat, ${data.periode}`:data.kilde==='boliga-omraade'?`${data.compsCount} lokale salg · områdebaseret m²-estimat`:`${data.compsCount} sammenlignelige salg`;
     propertyMessage(`Estimeret værdi: ${Math.round(data.markedsvaerdi).toLocaleString('da-DK')} kr · ${label}`);
     return true;

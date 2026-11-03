@@ -2202,7 +2202,7 @@ function renderLTVSektion(rest,rente,loeb,ltype,markedsEjd,ejd,compsCount,handle
     <p>Markedsestimatet bygger på lokale salg fra de seneste 12 måneder, aktuelle sammenlignelige udbud eller lokale salgspriser pr. m² ganget med boligarealet. Kun hvis lokale salg og udbud mangler eller er utilgængelige, bruges en faktisk offentlig EV som reserve. Handelsprisen kan være højere end Skats vurdering.</p>
     ${p.note?`<p>${blrEscape(p.note)}</p>`:''}
     <p>Se indbetaling, udbetaling og ny ydelse <strong>med afdrag</strong> i fanerne ovenfor. Grønne/røde ændringer sammenligner med din nuværende betaling${ltype==='afdragsfri'?' uden afdrag':''}.</p>
-    ${evidence?`<div class="ltv-handler"><div class="ltv-handler-title">${['boliga-udbud','boliga-omraade-udbud'].includes(p.kilde)?'Boliger til salg i området':'Lokale salg fra de seneste 12 måneder'}</div>${evidence}</div>`:''}
+    ${evidence?`<div class="ltv-handler"><div class="ltv-handler-title">${(p.kilde||'').endsWith('udbud')?'Boliger til salg i området':'Lokale salg fra de seneste 12 måneder'}</div>${evidence}</div>`:''}
     <div class="ltv-bankpakke-cta" onclick="startBankpakke()"><div><div class="ltv-bp-h">Bankpakke: markedsdata + budget klar til mødet</div><div class="ltv-bp-sub">Analysegrundlag og spørgsmål til banken</div></div><div class="ltv-bp-price">299 kr →</div></div></div>`;
 }
 

@@ -48,12 +48,33 @@ export function mortgageComparables(rows, subject, sold, now = new Date()) {
 }
 export function createMortgageMarketLookup({fetchJson, getCoordinates, distance, neighbourhoodPostcodes = async input => [input.postnr], now = () => new Date()}) {
   const cache = new Map(), inflight = new Map();
+  async function boligsidenListings(zip,type) {
+    const propertyType={'1':'villa','2':'terraced house','3':'condo','4':'holiday house'}[type];
+    if(!propertyType)return [];
+    const rows=[];
+    for(let page=1;page<=2;page++) {
+      const params=new URLSearchParams({zipCodes:zip,addressTypes:propertyType,per_page:'100',page:String(page),sortBy:'daysListed',sortAscending:'true'});
+      const data=await fetchJson('https://api.boligsiden.dk/search/cases?'+params);
+      if(!Array.isArray(data.cases))throw new Error('Uventet Boligsiden-svar');
+      for(const item of data.cases) {
+        const a=item.address||{},area=+(item.housingArea||a.livingArea),price=+item.priceCash,days=Number(item.daysListed?.days);
+        if(String(a.zipCode)!==String(zip) || (item.addressType||a.addressType)!==propertyType || item.status!=='open' || !(area>0) || !(price>0))continue;
+        rows.push({guid:item.caseID,address:`${a.roadName||a.road?.name||''} ${a.houseNumber||''}, ${a.zipCode} ${a.cityName||a.city?.name||''}`,
+          price,size:area,squareMeterPrice:price/area,buildYear:+item.yearBuilt,provider:'boligsiden',
+          latitude:item.coordinates?.lat||a.coordinates?.lat,longitude:item.coordinates?.lon||a.coordinates?.lon,
+          listedDate:Number.isFinite(days)?new Date(+now()-days*86400000).toISOString():null});
+      }
+      if(page*100>=Number(data.totalHits||0))break;
+    }
+    return rows;
+  }
   async function boliga(zip, type, sold) {
     const key = `${zip}|${type}|${sold}`, cached = cache.get(key);
     if (cached && +now() - cached.at < 2*3600000) return cached.rows;
     if (inflight.has(key)) return inflight.get(key);
     const job = (async () => {
       const rows = [];
+      try {
       for (let page = 1; page <= 2; page++) {
         const params = new URLSearchParams({searchTab:'1',propertyType:type,zipcodeFrom:zip,zipcodeTo:zip,sort:'date-d',pageSize:'50',page:String(page)});
         if (sold) { params.set('salesDateMin', String(now().getFullYear()-1)); params.set('salesDateMax', String(now().getFullYear())); }
@@ -61,6 +82,15 @@ export function createMortgageMarketLookup({fetchJson, getCoordinates, distance,
         if (!Array.isArray(data.results)) throw new Error('Uventet Boliga-svar');
         rows.push(...data.results);
         if (page >= (data.meta?.totalPages || 1)) break;
+      }
+      } catch(error) {
+        if(sold)throw error;
+        const alternate=await boligsidenListings(zip,type);
+        cache.set(key,{rows:alternate,at:+now()});return alternate;
+      }
+      if(!sold && !rows.length) {
+        const alternate=await boligsidenListings(zip,type);
+        cache.set(key,{rows:alternate,at:+now()});return alternate;
       }
       const normalized = rows.map(row => ({
         guid:row.guid || row.id, address:`${row.address || ''}, ${row.zipCode || zip} ${row.city || ''}`.trim(),
@@ -83,7 +113,8 @@ export function createMortgageMarketLookup({fetchJson, getCoordinates, distance,
     function estimate(rows,kilde) {
       const amount = Math.round(median(rows.map(row=>row.squareMeterPrice))*input.m2);
       const asking=kilde==='boliga-udbud'||kilde==='boliga-omraade-udbud';
-      return {markedsvaerdi:amount,kilde,compsCount:asking?0:rows.length,
+      const actualSource=asking && rows.every(row=>row.provider==='boligsiden') ? kilde.replace('boliga','boligsiden') : kilde;
+      return {markedsvaerdi:amount,kilde:actualSource,compsCount:asking?0:rows.length,
         aktiveAnnoncer:asking?rows.length:0,
         sammenligninger:rows.slice(0,8).map(row=>({adresse:row.address,dato:asking?'':String(row.soldDate).slice(0,10),pris:row.price,m2:row.size})),
         handler:asking?[]:rows.slice(0,8).map(row=>({adresse:row.address,dato:String(row.soldDate).slice(0,10),pris:row.price,m2:row.size})),

@@ -59,3 +59,16 @@ test('Neighbouring postcodes are searched before the EV reserve',async()=>{
  const calls=[];const lookup=createMortgageMarketLookup({now:()=>date,getCoordinates:async()=>null,distance:()=>0,neighbourhoodPostcodes:async()=>['9999','9998'],fetchJson:async url=>{calls.push(url);return {results:url.includes('zipcodeFrom=9998')&&url.includes('/sold/')?[sold(1)]:[]};}});
  const result=await lookup({...subject,officialEV:9000000});assert.equal(result.kilde,'boliga');assert.equal(result.markedsvaerdi,3150000);assert.ok(calls.some(url=>url.includes('9998')));
 });
+
+test('Free Boligsiden asking data is used when the direct Boliga API is blocked',async()=>{
+ const urls=[];const lookup=createMortgageMarketLookup({now:()=>date,getCoordinates:async()=>null,distance:()=>0,fetchJson:async url=>{
+  urls.push(url);if(url.includes('api.boliga.dk'))throw Error('HTTP 403');
+  return {totalHits:1,cases:[{caseID:'one',status:'open',addressType:'villa',address:{roadName:'Demovej',houseNumber:'2',zipCode:9999,cityName:'Demoby',livingArea:150},priceCash:3300000,daysListed:{days:10}}]};
+ }});const result=await lookup({...subject,officialEV:9000000});assert.equal(result.kilde,'boligsiden-udbud');assert.equal(result.markedsvaerdi,3300000);assert.equal(result.aktiveAnnoncer,1);assert.ok(urls.every(url=>url.startsWith('https://api.boliga.dk/')||url.startsWith('https://api.boligsiden.dk/')));
+});
+test('Reserve provider rejects wrong postcode, wrong property type and stale listings',async()=>{
+ const base={status:'open',addressType:'villa',address:{roadName:'Demo',houseNumber:'1',zipCode:9999,livingArea:150},priceCash:3300000,daysListed:{days:10}};
+ const lookup=createMortgageMarketLookup({now:()=>date,getCoordinates:async()=>null,distance:()=>0,fetchJson:async url=>{
+  if(url.includes('api.boliga.dk'))throw Error('blocked');return {totalHits:3,cases:[{...base,addressType:'condo'},{...base,address:{...base.address,zipCode:9998}},{...base,daysListed:{days:400}}]};
+ }});const result=await lookup({...subject,officialEV:4200000});assert.equal(result.kilde,'ev');assert.equal(result.markedsvaerdi,4200000);
+});
