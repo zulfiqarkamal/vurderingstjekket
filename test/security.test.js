@@ -1,3 +1,9 @@
+import { fetchNykreditCurrentRates } from '../mortgage-current-rates.js';
+import { estimateContributionOpportunity } from '../mortgage-contribution.js';
+import { createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate } from '../mortgage-account.js';
+import { buildCustomerBankPackage } from '../bank-package.js';
+import { buildMonitoringSnapshot } from '../mortgage-monitoring.js';
+import { bankPackageAnnualCredit } from '../mortgage-commerce.js';
 import { createMortgageMarketLookup, mortgagePropertyType } from "../mortgage-market.js";
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -11,10 +17,10 @@ import { fileURLToPath } from 'node:url';
 // reading customer storage, writing files, or allowing external requests.
 function fixture(extraEnv = {}) {
   const routes = new Map();
-  const app = { use() {}, get(p, fn) { routes.set('GET ' + p, fn); },
-    post(p, fn) { routes.set('POST ' + p, fn); }, listen() {} };
+  const app = { use() {}, get(p, ...handlers) { routes.set('GET ' + p, handlers); },
+    post(p, ...handlers) { routes.set('POST ' + p, handlers); }, listen() {} };
   let staticOptions;
-  const express = Object.assign(() => app, { raw() {}, json() {}, static(_directory, options) { staticOptions = options; } });
+  const express = Object.assign(() => app, { raw() {}, json() {}, urlencoded() { return (_req, _res, next) => next(); }, static(_directory, options) { staticOptions = options; } });
   let emails = 0;
   let generations = 0;
   let checkoutOptions;
@@ -29,7 +35,7 @@ function fixture(extraEnv = {}) {
       return body;
     } };
   }
-  const context = vm.createContext({ createMortgageMarketLookup, mortgagePropertyType, express, Stripe, path, fileURLToPath, crypto,
+  const context = vm.createContext({ fetchNykreditCurrentRates, estimateContributionOpportunity, createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate, buildCustomerBankPackage, buildMonitoringSnapshot, bankPackageAnnualCredit, createMortgageMarketLookup, mortgagePropertyType, express, Stripe, path, fileURLToPath, crypto,
     fs: { existsSync: file => /[\\/]public[\\/]index\.html$/.test(file), writeFileSync() { throw new Error('Disk writes prohibited'); } },
     process: { env: { STRIPE_SECRET_KEY: 'synthetic-test-key', STRIPE_WEBHOOK_SECRET: 'synthetic-test-secret', ADMIN_KEY: 'synthetic-test-admin', NODE_ENV: 'production', ...extraEnv } },
     console: { log() {}, warn() {}, error() {} }, URL, URLSearchParams, AbortController, AbortSignal,
@@ -52,7 +58,10 @@ function fixture(extraEnv = {}) {
       sendFile(file) { this.file = file; return this; },
       redirect(status, target) { this.statusCode = status; this.target = target; return this; },
       json(data) { this.body = data; return this; }, send(data) { this.body = data; return this; } };
-    await routes.get(method + ' ' + route)(req, res);
+    const handlers = routes.get(method + ' ' + route);
+    let index = 0;
+    const next = async () => { const handler = handlers[index++]; if (handler) await handler(req, res, next); };
+    await next();
     return res;
   }
   const checkout = body => request('POST', '/api/create-payment', { body: {
@@ -161,26 +170,28 @@ test('expired and unknown report access is denied without disclosing report data
 
 test('admin test reports retain browser-bound access without authorizing public checkout', async () => {
   const f = fixture();
-  assert.equal((await f.request('GET', '/api/test-klage')).statusCode, 403);
-  const r = await f.request('GET', '/api/test-klage', { query: { key: 'synthetic-test-admin' } });
+  assert.equal((await f.request('GET', '/api/test-klage')).statusCode, 401);
+  assert.equal((await f.request('GET', '/api/test-klage', { query: { key: 'synthetic-test-admin' } })).statusCode, 401);
+  const r = await f.request('GET', '/api/test-klage', { cookie: 'admin_session=synthetic-test-admin' });
   assert.equal(r.statusCode, 200);
   assert.equal((await f.report(r.body.sessionId, ownerCookie(r))).statusCode, 200);
   assert.equal((await f.report(r.body.sessionId)).statusCode, 403);
   assert.equal((await f.mail(r.body.sessionId, ownerCookie(r))).statusCode, 200);
 });
 
-test('product routes isolate Worker navigation from Railway APIs', async () => {
+test('mortgage entry serves the local dashboard without leaking query data to external redirects', async () => {
   const offline = fixture();
   assert.match((await offline.request('GET', '/ejendomsvurdering')).file, /ejendomsvurdering\.html$/);
-  const liveEntry = await offline.request('GET', '/boliglaanstjek', { query: { session: 'private-order', email: 'private@example.invalid' } });
-  assert.equal(liveEntry.target, 'https://boliglansradar.gamma7th.workers.dev/');
-  assert.equal(liveEntry.headers['referrer-policy'], 'no-referrer');
-  assert.match((await offline.request('GET', '/boliglaanstjek/preview')).file, /boliglaanstjek-preview\.html$/);
-  const worker = fixture({ BOLIGLAANSRADAR_URL: 'https://mortgage.example.invalid' });
-  const response = await worker.request('GET', '/boliglaanstjek');
-  assert.equal(response.statusCode, 302);
-  assert.equal(response.target, 'https://mortgage.example.invalid/');
-  assert.equal(response.headers['cache-control'], 'no-store');
+  for (const route of ['/boliglaanstjek', '/boliglaanstjek/preview']) {
+    const response = await offline.request('GET', route, { query: { session: 'private-order', email: 'private@example.invalid' } });
+    assert.equal(response.statusCode, 200);
+    assert.match(response.file, /boliglaanstjek-preview\.html$/);
+    assert.equal(response.target, undefined);
+    assert.equal(response.headers['cache-control'], 'no-store');
+  }
+  const response = await fixture({ BOLIGLAANSRADAR_URL: 'https://mortgage.example.invalid' }).request('GET', '/boliglaanstjek');
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.target, undefined);
 });
 
 test('invalid Worker configuration cannot become an unsafe redirect', async () => {
@@ -217,11 +228,11 @@ test('frontend scripts compile and product links resolve to local entries', () =
 
 test('mortgage preview blocks network and preserves basic calculation behaviour', async () => {
   const preview = readFileSync(new URL('../public/boliglaanstjek-preview.html', import.meta.url), 'utf8');
-  const calculation = preview.slice(preview.indexOf('const MARKEDSRENTER'), preview.indexOf('// ── Main calculation'));
+  const calculation = preview.slice(preview.indexOf('const KONV_FAST_OMK'), preview.indexOf('async function beregn()'));
   const context = vm.createContext({});
   vm.runInContext(calculation, context);
   assert.equal(vm.runInContext('mYdelse(1200000, 0, 10)', context), 10000);
-  assert.equal(vm.runInContext('mYdelse(1200000, 4, 30, true)', context), 4000);
+  assert.equal(vm.runInContext('mYdelse(1200000, 4, 30, 0, true)', context), 4000);
   assert.equal(vm.runInContext('bidragssats(60)', context), 0.55);
   assert.equal(vm.runInContext('bidragssats(80)', context), 0.85);
   assert.equal(vm.runInContext('konvOmk(1000000)', context), 20000);
@@ -266,9 +277,10 @@ test('normal homepage routing and independent API ownership are preserved', asyn
   }
   assert.equal(f.hasRoute('POST /api/stripe-webhook'), true);
   assert.equal(f.hasRoute('POST /api/create-payment'), true);
-  for (const route of ['GET /api/dawa', 'POST /api/analyze-screenshot', 'POST /api/subscribe']) {
+  for (const route of ['GET /api/dawa', 'POST /api/subscribe']) {
     assert.equal(f.hasRoute(route), false, 'Worker API must not be added to Railway: ' + route);
   }
+  assert.equal(f.hasRoute('POST /api/analyze-screenshot'), true);
   const preview = await fixture({ BOLIGLAANSRADAR_URL: '' }).request('GET', '/boliglaanstjek');
   assert.match(preview.file, /boliglaanstjek-preview\.html$/);
 });

@@ -49,6 +49,8 @@ export function mortgageComparables(rows, subject, sold, now = new Date()) {
 export function createMortgageMarketLookup({fetchJson, getCoordinates, distance, neighbourhoodPostcodes = async input => [input.postnr], now = () => new Date()}) {
   const cache = new Map(), inflight = new Map();
   async function boligsidenListings(zip,type) {
+    const key=`boligsiden|${zip}|${type}`,cached=cache.get(key);
+    if(cached && +now()-cached.at<2*3600000)return cached.rows;
     const propertyType={'1':'villa','2':'terraced house','3':'condo','4':'holiday house'}[type];
     if(!propertyType)return [];
     const rows=[];
@@ -66,6 +68,7 @@ export function createMortgageMarketLookup({fetchJson, getCoordinates, distance,
       }
       if(page*100>=Number(data.totalHits||0))break;
     }
+    cache.set(key,{rows,at:+now()});
     return rows;
   }
   async function boliga(zip, type, sold) {
@@ -104,6 +107,16 @@ export function createMortgageMarketLookup({fetchJson, getCoordinates, distance,
     inflight.set(key,job);
     try { return await job; } finally { inflight.delete(key); }
   }
+  async function currentListings(zip,type,subject) {
+    let rows=[];
+    try {rows=[...await boliga(zip,type,false)];} catch (_) {return rows;}
+    // An HTTP success can still contain only stale, distant or dissimilar homes.
+    // Try the independent current source before substituting an EV reserve.
+    if(!rows.some(row=>row.provider==='boligsiden') && !mortgageComparables(rows,subject,false,now()).length) {
+      try {rows.push(...await boligsidenListings(zip,type));} catch (_) { /* Preserve usable local m² rows. */ }
+    }
+    return rows;
+  }
   return async function mortgageMarket(input) {
     const koord = input.adresseId ? await getCoordinates(input.adresseId).catch(()=>null) : null;
     const subject = {...input,koord,distance};
@@ -122,14 +135,14 @@ export function createMortgageMarketLookup({fetchJson, getCoordinates, distance,
         note:[kilde==='boliga-udbud'||kilde==='boliga-omraade-udbud'?'Baseret på aktuelle udbudspriser, ikke gennemførte salg.':kilde==='boliga-omraade'?'Lokale salgspriser pr. m² × boligens areal. Størrelserne er mindre direkte sammenlignelige.':null,rows.length<3?'Lille datagrundlag; estimatet er ekstra usikkert.':null].filter(Boolean).join(' ')||null};
     }
     if (sales.length) return estimate(sales,'boliga');
-    try { rawListings=[...await boliga(input.postnr,input.type,false)];listings = mortgageComparables(rawListings,subject,false,now()); }
+    try { rawListings=await currentListings(input.postnr,input.type,subject);listings = mortgageComparables(rawListings,subject,false,now()); }
     catch (_) { /* Continue with local square-metre prices or the explicit EV reserve. */ }
     if (listings.length) return estimate(listings,'boliga-udbud');
     const areaSales=mortgageComparables(rawSales,{...subject,relaxSize:true},true,now());
     if (areaSales.length>=3) return estimate(areaSales,'boliga-omraade');
     const nearby=await neighbourhoodPostcodes({...input,koord}).catch(()=>[]);
     await Promise.all(nearby.filter(zip=>zip!==input.postnr).slice(0,4).map(async zip=>{
-      const result=await Promise.allSettled([boliga(zip,input.type,true),boliga(zip,input.type,false)]);
+      const result=await Promise.allSettled([boliga(zip,input.type,true),currentListings(zip,input.type,subject)]);
       if(result[0].status==='fulfilled')rawSales.push(...result[0].value);
       if(result[1].status==='fulfilled')rawListings.push(...result[1].value);
     }));

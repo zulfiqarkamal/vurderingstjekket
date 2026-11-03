@@ -27,9 +27,9 @@ Du er en specialiseret QA-agent for vurderingstjekket. Du tester systematisk all
 
 ### Backend (server.js)
 - [ ] `/api/analyze-screenshot` — kræver base64, returnerer JSON, fejler pænt ved manglende ANTHROPIC_API_KEY
-- [ ] `/api/create-checkout` — kræver sessionId, returnerer checkoutUrl
+- [ ] `/api/create-payment` — kræver sessionId, returnerer checkoutUrl
 - [ ] `/api/stripe-webhook` — validerer signatur, opdaterer session
-- [ ] `/api/send-pakke` — rate-limiting, email-validering, ingen credential-lækage
+- [ ] `/api/bankpakke/start` — rate-limiting, email-validering, ingen credential-lækage
 - [ ] `/api/admin` — kræver ADMIN_KEY header, returnerer kun til autoriserede
 
 ### Sikkerhed
@@ -65,3 +65,7 @@ Du er en specialiseret QA-agent for vurderingstjekket. Du tester systematisk all
 - Test ikke mod produktions-URL direkte
 - Rapportér aldrig credentials, selv delvist, i output
 - Brug ikke parallelle sub-agenter medmindre det er eksplicit nødvendigt
+
+
+## Aktuel QA-afgrænsning (2026-11-03)
+Verificér alle ruter, priser og output i den aktuelle kode før test. Bankpakken er en personlig pakke til kundens e-mail, aldrig banklevering; pris 99 kr. Abonnement 49 kr/md eller 399 kr/år; faktisk betalt bankpakkepris modregnes kun første årsbetaling. Test mailens markedsværdi, friværdi, bidragsforudsætninger, afdrag, budgettal og bankspørgsmål. Mock betaling og mail; en grøn fixturetest dokumenterer ikke virkelig levering. Der genereres redigerbar HTML og CSV, ikke automatisk PDF. Månedlig overvågning skal bruge den samme aktuelle markedslogik som dashboardet. De generelle personlige Codex-agenter qa-journeys, qa-data-output, qa-payments-access og qa-release kan genbruges på andre projekter.

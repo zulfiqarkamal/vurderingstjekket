@@ -19,7 +19,7 @@ Test disse outputs én for én og giv en konkret status:
 ### 2. Betalingslinks (Stripe Checkout)
 - **EV klage (350 kr)**: Tjek `/api/checkout` endpoint — returnerer den en checkoutUrl? Er `price_data` korrekt sat?
 - **Låneovervågning (49/399 kr)**: Tjek `/api/laanovervagning/start` — pris, metadata, success_url.
-- **Bankpakke (89 kr)**: Tjek `/api/bankpakke/start` — pris, metadata, success_url.
+- **Bankpakke (99 kr)**: Tjek `/api/bankpakke/start` — pris, metadata, success_url.
 - **Selvsalg (799 kr)**: Tjek `/api/selvsalg/checkout` — pris, metadata, success_url.
 
 ### 3. Workflows
@@ -44,7 +44,7 @@ Test disse outputs én for én og giv en konkret status:
 ### Betalingslinks
 - EV klage 350 kr: [✅/⚠️/🔴]
 - Låneovervågning 49/399 kr: [✅/⚠️/🔴]
-- Bankpakke 89 kr: [✅/⚠️/🔴]
+- Bankpakke 99 kr: [✅/⚠️/🔴]
 - Selvsalg 799 kr: [✅/⚠️/🔴]
 
 ### Workflows
@@ -66,3 +66,7 @@ Test disse outputs én for én og giv en konkret status:
 ```
 
 Gå altid til kilden — læs den faktiske kode, ikke dokumentation. Hvis et output mangler kode, markér det 🔴 FEJL og beskriv hvad der mangler.
+
+
+## Aktuel QA-afgrænsning (2026-11-03)
+Verificér alle ruter, priser og output i den aktuelle kode før test. Bankpakken er en personlig pakke til kundens e-mail, aldrig banklevering; pris 99 kr. Abonnement 49 kr/md eller 399 kr/år; faktisk betalt bankpakkepris modregnes kun første årsbetaling. Test mailens markedsværdi, friværdi, bidragsforudsætninger, afdrag, budgettal og bankspørgsmål. Mock betaling og mail; en grøn fixturetest dokumenterer ikke virkelig levering. Der genereres redigerbar HTML og CSV, ikke automatisk PDF. Månedlig overvågning skal bruge den samme aktuelle markedslogik som dashboardet. De generelle personlige Codex-agenter qa-journeys, qa-data-output, qa-payments-access og qa-release kan genbruges på andre projekter.

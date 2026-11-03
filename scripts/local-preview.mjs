@@ -1,3 +1,9 @@
+import { fetchNykreditCurrentRates } from '../mortgage-current-rates.js';
+import { estimateContributionOpportunity } from '../mortgage-contribution.js';
+import { createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate } from '../mortgage-account.js';
+import { buildCustomerBankPackage } from '../bank-package.js';
+import { buildMonitoringSnapshot } from '../mortgage-monitoring.js';
+import { bankPackageAnnualCredit } from '../mortgage-commerce.js';
 import { createMortgageMarketLookup, mortgagePropertyType } from "../mortgage-market.js";
 // Local-only launcher. Production server.js and public files remain unchanged.
 import express from 'express';
@@ -52,9 +58,9 @@ export function createLocalPreview() {
     } } };
     webhooks = { constructEvent() { throw new Error('Webhooks disabled in local preview'); } };
   }
-  const localExpress = Object.assign(() => app, { static: express.static, raw: express.raw, json: express.json });
+  const localExpress = Object.assign(() => app, { static: express.static, raw: express.raw, json: express.json, urlencoded: express.urlencoded });
   const context = vm.createContext({
-    createMortgageMarketLookup, mortgagePropertyType, express: localExpress, Stripe: MockStripe, path, fileURLToPath, crypto,
+    fetchNykreditCurrentRates, estimateContributionOpportunity, createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate, buildCustomerBankPackage, buildMonitoringSnapshot, bankPackageAnnualCredit, createMortgageMarketLookup, mortgagePropertyType, express: localExpress, Stripe: MockStripe, path, fileURLToPath, crypto,
     // Only HTML existence checks are allowed; no customer/cache files are read.
     fs: { existsSync: file => /\.html$/.test(file) && fs.existsSync(file), writeFileSync() {} },
     process: { env: { NODE_ENV: 'development', STRIPE_SECRET_KEY: 'synthetic-local-only',

@@ -27,6 +27,9 @@ function blrMoney(v, signed=false) {
   const n = Math.round(v);
   return (signed && n>0?'+':n<0?'−':'')+Math.abs(n).toLocaleString('da-DK')+' kr';
 }
+function blrPropertyAmount(value) {
+  return 'ca. '+(Number(value)/1000000).toLocaleString('da-DK',{minimumFractionDigits:1,maximumFractionDigits:1})+' mio. kr';
+}
 function blrDelta(v) { return `<span class="${v<0?'blr-sc-pos':v>0?'blr-sc-neg':''}">${blrMoney(v,true)}/md</span>`; }
 function blrTable(headers,rows) {
   return `<table class="blr-scenario-table blr-responsive"><thead><tr>${headers.map(h=>`<th scope="col">${h}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map((cell,i)=>`<td data-label="${headers[i]}">${cell}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
@@ -83,9 +86,9 @@ function blrScenarioKey(event,index) {
   if(target!==undefined){event.preventDefault();blrSelectScenario(keys[target],true);}
 }
 function blrNavTo(el,target) {
-  if(target==='dok'){alert('Dokumenter kommer senere. Bankpakken findes under Lån & vilkår.');return;}
+  if(target==='dok'){document.getElementById('phase2-header').style.display='block';document.querySelector('.stepper').style.display='none';goToPhase2(6);return;}
   document.querySelectorAll('.blr-subnav-tab').forEach(t=>t.classList.toggle('active',t===el));
   const sel={top:'.blr-page',scenarier:'.blr-scenario-card',rente:'.blr-chart-card',ltv:'.ltv-sektion'}[target];
   const section=document.querySelector(sel);
-  if(section){if(section.tagName==='DETAILS')section.open=true;section.scrollIntoView({behavior:'smooth',block:'start'});}
+  if(section){const details=section.closest('details');if(details)details.open=true;section.scrollIntoView({behavior:'smooth',block:'start'});}
 }

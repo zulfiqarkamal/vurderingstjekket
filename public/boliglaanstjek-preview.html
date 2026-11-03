@@ -1,4 +1,5 @@
-<!doctype html><html lang="da"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BoligLånsRadar</title>
+<!doctype html><html lang="da"><head>
+<meta name="referrer" content="no-referrer"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BoligLånsRadar</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap">
@@ -1447,14 +1448,14 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
       <div class="field">
         <label>Restgæld</label>
         <div class="field-suffix">
-          <input type="number" id="restgaeld" value="1850000" min="10000" max="20000000" step="1000">
+          <input type="number" id="restgaeld" value="" min="10000" max="20000000" step="1000">
           <span>kr</span>
         </div>
       </div>
       <div class="field">
         <label>Månedlig ydelse</label>
         <div class="field-suffix">
-          <input type="number" id="maanedligYdelse" value="10800" min="0" max="500000" step="100">
+          <input type="number" id="maanedligYdelse" value="" min="0" max="500000" step="100">
           <span>kr</span>
         </div>
       </div>
@@ -1462,11 +1463,11 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
     <div class="field-row">
       <div class="field">
         <label>Rente (% p.a.)</label>
-        <input type="number" id="rente" value="4.00" min="0" max="20" step="0.05">
+        <input type="number" id="rente" value="" min="0" max="20" step="0.05">
       </div>
       <div class="field">
         <label>Løbetid (år)</label>
-        <input type="number" id="loebetid" value="22" min="1" max="30" step="1">
+        <input type="number" id="loebetid" value="" min="1" max="30" step="1">
       </div>
     </div>
     <div class="field">
@@ -1516,138 +1517,144 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
 <div class="panel" id="panel-5">
   <div class="card">
     <div class="card-title">Månedligt budget</div>
-    <div class="card-sub">Vi har udfyldt det vi ved. Tilpas tallene så de passer til din faktiske økonomi — bankerne bruger det til at vurdere din rådighedsbeløb.</div>
+    <div class="card-sub">Din pakke rummer markedsværdi, friværdi, låneoverblik og spørgsmål til banken. Budgettet er ét bilag. Kun din oplyste lånebetaling er udfyldt; resten udfylder du selv. Tomme poster betyder ikke nul.</div>
 
-    <div class="budget-section">
+    <details style="margin:18px 0"><summary>Bidragssats og tilbud fra banken (valgfrit)</summary>
+<p>Find din årlige bidragssats på låneoversigten. Uden satser viser pakken kun tydeligt mærkede regneeksempler.</p>
+<label for="currentBidrag">Nuværende bidragssats (% p.a.)</label><input id="currentBidrag" style="display:block;width:100%;box-sizing:border-box" type="number" min="0" max="10" step="0.01" placeholder="Fx 0,85">
+<label for="targetBidrag">Ny bidragssats fra et tilbud (% p.a., hvis kendt)</label><input id="targetBidrag" style="display:block;width:100%;box-sizing:border-box" type="number" min="0" max="10" step="0.01" placeholder="Ikke oplyst">
+<label for="bidragOneOff">Samlede engangsomkostninger fra tilbuddet (kr., hvis kendt)</label><input id="bidragOneOff" style="display:block;width:100%;box-sizing:border-box" type="number" min="0" max="1000000" placeholder="Ikke oplyst">
+</details>
+<div class="budget-section">
       <div class="budget-section-header">
         <span>💰</span> Indkomst
       </div>
       <div class="budget-row">
-        <span class="budget-label">Løn (netto)</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_loen" type="number" value="34000" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_loen">Løn (netto)</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_loen" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Anden indkomst</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_anden" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_anden">Anden indkomst</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_anden" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
     </div>
 
     <div class="budget-section">
       <div class="budget-section-header"><span>🏠</span> Bolig</div>
       <div class="budget-row">
-        <span class="budget-label">Boligydelse (ny ydelse)</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_bolig" type="number" value="9500" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_bolig">Nuværende betaling på boliglån</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_bolig" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Fællesudgifter / grundejerforening</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_faelles" type="number" value="800" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_faelles">Fællesudgifter / grundejerforening</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_faelles" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">El</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_el" type="number" value="1200" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_el">El</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_el" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Varme / gas</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_varme" type="number" value="2000" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_varme">Varme / gas</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_varme" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Vand</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_vand" type="number" value="300" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_vand">Vand</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_vand" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Indboforsikring</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_forsikring" type="number" value="400" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_forsikring">Indboforsikring</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_forsikring" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
     </div>
 
     <div class="budget-section">
       <div class="budget-section-header"><span>🚗</span> Transport</div>
       <div class="budget-row">
-        <span class="budget-label">Bil — leasingydelse / afdrag</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_bil" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_bil">Bil — leasingydelse / afdrag</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_bil" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Benzin / ladning</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_benzin" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_benzin">Benzin / ladning</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_benzin" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Bilforsikring</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_bilfors" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_bilfors">Bilforsikring</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_bilfors" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Offentlig transport / DSB</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_transport" type="number" value="800" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_transport">Offentlig transport / DSB</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_transport" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
     </div>
 
     <div class="budget-section">
       <div class="budget-section-header"><span>🛒</span> Dagligdag</div>
       <div class="budget-row">
-        <span class="budget-label">Mad og dagligvarer</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_mad" type="number" value="6000" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_mad">Mad og dagligvarer</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_mad" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Børnepasning / SFO</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_born" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_born">Børnepasning / SFO</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_born" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Fritid &amp; sport</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_fritid" type="number" value="1000" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_fritid">Fritid &amp; sport</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_fritid" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
     </div>
 
     <div class="budget-section">
       <div class="budget-section-header"><span>📱</span> Abonnementer &amp; personligt</div>
       <div class="budget-row">
-        <span class="budget-label">Mobiltelefon</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_mobil" type="number" value="200" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_mobil">Mobiltelefon</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_mobil" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Internet</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_net" type="number" value="250" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_net">Internet</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_net" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Streaming (Netflix, Spotify…)</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_stream" type="number" value="300" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_stream">Streaming (Netflix, Spotify…)</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_stream" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Kontaktlinser / briller</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_linser" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_linser">Kontaktlinser / briller</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_linser" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Medicin &amp; tandlæge (gns.)</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_helbred" type="number" value="300" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_helbred">Medicin &amp; tandlæge (gns.)</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_helbred" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Tøj &amp; personlig pleje</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_toej" type="number" value="800" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_toej">Tøj &amp; personlig pleje</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_toej" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
     </div>
 
     <div class="budget-section">
       <div class="budget-section-header"><span>💳</span> Øvrige forpligtelser</div>
       <div class="budget-row">
-        <span class="budget-label">Forbrugslån / kviklån</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_laan" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_laan">Forbrugslån / kviklån</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_laan" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Kreditkort (gns. forbrug)</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_kk" type="number" value="0" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_kk">Kreditkort (gns. forbrug)</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_kk" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Opsparing / investering</span>
-        <div class="budget-input-wrap"><input class="budget-input" id="b_opsp" type="number" value="2000" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
+        <label class="budget-label" for="b_opsp">Opsparing / investering</label>
+        <div class="budget-input-wrap"><input class="budget-input" id="b_opsp" type="number" value="" oninput="calcBudget()"><span class="budget-unit">kr</span></div>
       </div>
     </div>
 
     <!-- Summary -->
     <div class="budget-summary" id="budgetSummary">
       <div class="budget-sum-row">
-        <span>Samlede udgifter</span>
+        <span>Oplyste udgifter (foreløbig sum)</span>
         <span id="bSumUd">–</span>
       </div>
       <div class="budget-sum-row">
-        <span>Samlet indkomst</span>
+        <span>Oplyst indkomst (foreløbig sum)</span>
         <span id="bSumInd">–</span>
       </div>
       <div class="budget-sum-row frie" id="frieMidlerRow">
@@ -1664,8 +1671,8 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
 <!-- panel-6: Dokumenter -->
 <div class="panel" id="panel-6">
   <div class="card">
-    <div class="card-title">Upload dine dokumenter</div>
-    <div class="card-sub">Log ind på e-Boks og SKAT i en ny fane, download dine dokumenter og upload dem her. Ingen deles med banker uden din godkendelse.</div>
+    <div class="card-title">Forbered dine dokumenter (valgfrit)</div>
+    <div class="card-sub">Brug listen til at forberede dine egne dokumenter til banksamtalen. Filer du vælger her, bliver kun vist lokalt i denne fane; de bliver ikke sendt til os, i mailen eller til banker.</div>
 
     <!-- e-Boks -->
     <div class="doc-source-block">
@@ -1729,7 +1736,8 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
       ✅ Dokumenter klar til bankpakken
     </div>
 
-    <button class="btn btn-primary" id="docsNextBtn" onclick="goToPhase2(7)" style="margin-top:20px;display:none">Vælg banker &amp; send →</button>
+    <button class="btn btn-primary" id="docsNextBtn" onclick="goToPhase2(7)" style="margin-top:20px;display:none">Se din pakke →</button>
+    <button class="btn btn-primary" onclick="goToPhase2(7)">Fortsæt uden dokumenter →</button>
     <button class="btn btn-ghost" onclick="goToPhase2(5)">← Tilbage til budget</button>
   </div>
 </div>
@@ -1737,8 +1745,8 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
 <!-- panel-7: Banker & Send -->
 <div class="panel" id="panel-7">
   <div class="card">
-    <div class="card-title">Vælg banker</div>
-    <div class="card-sub">Vælg hvilke banker der skal modtage din bankpakke. Du kan styre præcist hvilke dokumenter den enkelte bank har adgang til.</div>
+    <div class="card-title">Din bankpakke — sendt til dig</div>
+    <div class="card-sub">Du får bolig- og låneoverblik, markedsgrundlag, dine indtastede budgettal og spørgsmål til omlægning på e-mail. Vælg eventuelt banker, du selv vil tale med. Vi kontakter ingen banker.</div>
 
     <div class="bank-grid" id="bankGrid">
       <div class="bank-card" id="bank-nykredit" onclick="toggleBank('nykredit')">
@@ -1746,10 +1754,10 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
         <div class="bank-name">Nykredit</div>
         <div class="bank-check">✓</div>
       </div>
-      <div class="bank-card active" id="bank-totalkredit" onclick="toggleBank('totalkredit')">
+      <div class="bank-card" id="bank-totalkredit" onclick="toggleBank('totalkredit')">
         <div class="bank-logo tot">TK</div>
         <div class="bank-name">Totalkredit</div>
-        <div class="bank-tag">Nuværende</div>
+
         <div class="bank-check">✓</div>
       </div>
       <div class="bank-card" id="bank-rd" onclick="toggleBank('rd')">
@@ -1771,8 +1779,8 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
 
     <!-- Access management per bank -->
     <div id="accessSection" style="margin-top:20px">
-      <div class="access-header">Adgangsstyring til skattemappen</div>
-      <div class="access-sub">Alle valgte banker får adgang til lønsedler. Nedenfor kan du styre adgang til SKAT-dokumenter individuelt.</div>
+      <div class="access-header">Din egen dokumenthuskeliste</div>
+      <div class="access-sub">Lønsedler, årsopgørelse og lånevilkår kan være nyttige ved mødet. Eventuelle valgte filer bliver i din browser og følger ikke med bankpakken.</div>
       <div id="accessRows"></div>
     </div>
 
@@ -1783,12 +1791,12 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
     </div>
 
     <div style="margin-top:20px">
-      <label for="pakkeEmail" style="display:block;font-size:.85rem;font-weight:600;margin-bottom:6px">Din e-mail (til kvittering)</label>
+      <label for="pakkeEmail" style="display:block;font-size:.85rem;font-weight:600;margin-bottom:6px">Din e-mail (pakken sendes hertil)</label>
       <input type="email" id="pakkeEmail" placeholder="navn@eksempel.dk" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:.95rem;box-sizing:border-box;">
     </div>
 
     <button class="btn btn-primary" id="sendBtn" onclick="sendPakke()" style="margin-top:14px">
-      <span id="sendBtnTxt">Betal &amp; send til <span id="sendCount">0</span> banker — 89 kr</span>
+      <span id="sendBtnTxt">Køb din personlige bankpakke — 99 kr <span id="sendCount" hidden>0</span></span>
     </button>
     <button class="btn btn-ghost" onclick="goToPhase2(6)">← Tilbage til dokumenter</button>
   </div>
@@ -1798,7 +1806,7 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
     <div style="text-align:center;padding:12px 0 20px">
       <div style="font-size:3rem;margin-bottom:12px">🎉</div>
       <div class="card-title" style="margin-bottom:8px">Bankpakken er sendt!</div>
-      <div class="card-sub">Bankerne vil kontakte dig inden for 2–3 hverdage med et tilbud.</div>
+      <div class="card-sub">Pakken sendes til din e-mail. Du bestemmer selv, hvornår og hvordan du kontakter banken.</div>
     </div>
     <div class="timeline">
       <div class="tl-item done">
@@ -1807,7 +1815,7 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
       </div>
       <div class="tl-item done">
         <div class="tl-dot">✓</div>
-        <div><div class="tl-title">Sendt til banker</div><div class="tl-desc" id="sentToBanks">–</div></div>
+        <div><div class="tl-title">Sendt til din e-mail</div><div class="tl-desc" id="sentToBanks">–</div></div>
       </div>
       <div class="tl-item">
         <div class="tl-dot">⏳</div>
@@ -1827,7 +1835,7 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
     <div style="text-align:center;padding:8px 0 20px">
       <div style="font-size:2.2rem;margin-bottom:8px">📡</div>
       <div class="card-title">Lad radaren holde øje</div>
-      <div class="card-sub" style="max-width:360px;margin:8px auto 0">Vi scanner renter og kurser dagligt og giver dig besked når det kan betale sig at omlægge — plus månedlig rapport om dit boligmarked.</div>
+      <div class="card-sub" style="max-width:360px;margin:8px auto 0">Vi kontrollerer dit oplyste lån månedligt og sender en status med boliggrundlag, friværdi og beregnede muligheder. Du får besked, når din valgte tærskel er opfyldt.</div>
     </div>
 
     <!-- Plan toggle -->
@@ -1846,11 +1854,11 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
 
     <!-- Features -->
     <ul class="feature-list">
-      <li><span class="feat-check">✓</span><span><strong>Daglig scanning</strong> af renter og kurser fra alle realkreditinstitutter</span></li>
-      <li><span class="feat-check">✓</span><span><strong>Alarm</strong> når omlægning kan spare dig penge (din gevinst­tærskel)</span></li>
-      <li><span class="feat-check">✓</span><span><strong>Omlægningsanbefaling</strong> med break-even beregning</span></li>
-      <li><span class="feat-check">✓</span><span><strong>Automatisk dokumentpakke</strong> klar til banken</span></li>
-      <li><span class="feat-check">✓</span><span><strong>Månedlig rapport</strong> med boligmarked, prisudvikling og månedens handler i dit område</span></li>
+      <li><span class="feat-check">✓</span><span><strong>Månedlig kontrol</strong> af renteestimater og dit oplyste lån</span></li>
+      <li><span class="feat-check">✓</span><span><strong>Besked</strong> når den beregnede betalingsændring opfylder din tærskel</span></li>
+      <li><span class="feat-check">✓</span><span><strong>Scenariesammenligning</strong> med afdrag, bidrag og anslåede omkostninger</span></li>
+      <li><span class="feat-check">✓</span><span><strong>Personligt bolig- og låneoverblik</strong> i statusmailen. Bankpakken til 99 kr. købes særskilt</span></li>
+      <li><span class="feat-check">✓</span><span><strong>Månedlig rapport</strong> med dit boliggrundlag, friværdi og aktuelle beregnede lånemuligheder</span></li>
     </ul>
 
     <!-- Email input -->
@@ -1862,48 +1870,13 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
     <button class="btn btn-primary" id="subBtn" onclick="startSubscription()" style="margin-top:14px;width:100%">
       Fortsæt til betaling
     </button>
-    <div style="text-align:center;margin-top:10px;font-size:.8rem;color:var(--muted)">Sikker betaling · MobilePay eller kort · Ingen binding på månedlig</div>
+    <div style="text-align:center;margin-top:10px;font-size:.8rem;color:var(--muted)">Sikker betaling med kort · Ingen binding på månedlig</div>
   </div>
 
   <!-- Email preview card -->
   <div class="card" style="margin-top:16px">
     <div style="font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px">Eksempel på månedlig rapport</div>
-    <div class="email-preview">
-      <div class="ep-header">
-        <div class="ep-logo">📡 BoligLånsRadar</div>
-        <div class="ep-date">Oktober 2026 — Din månedlige rapport</div>
-      </div>
-
-      <div class="ep-section">
-        <div class="ep-section-title">🎯 Din lånstatus</div>
-        <div class="ep-gauge-row">
-          <div class="ep-gauge-bar">
-            <div class="ep-gauge-fill" style="width:68%"></div>
-          </div>
-          <div class="ep-gauge-label">Gevinst ved omlægning: <strong>1.847 kr/md</strong></div>
-        </div>
-        <div class="ep-hint">Du er <strong>153 kr/md</strong> fra din alarm-tærskel på 2.000 kr/md. Vi holder øje.</div>
-      </div>
-
-      <div class="ep-section">
-        <div class="ep-section-title">🏘️ Boligmarked i dit område</div>
-        <div class="ep-stats">
-          <div class="ep-stat"><div class="ep-stat-val">21.847 kr</div><div class="ep-stat-lbl">m²-pris</div></div>
-          <div class="ep-stat"><div class="ep-stat-val ep-up">+2,3%</div><div class="ep-stat-lbl">vs. sep.</div></div>
-          <div class="ep-stat"><div class="ep-stat-val">38 dage</div><div class="ep-stat-lbl">liggetid</div></div>
-          <div class="ep-stat"><div class="ep-stat-val">12</div><div class="ep-stat-lbl">handler</div></div>
-        </div>
-      </div>
-
-      <div class="ep-section ep-sale">
-        <div class="ep-section-title">🏡 Månedens største handel i dit område</div>
-        <div class="ep-sale-card">
-          <div class="ep-sale-addr">Strandgårds Allé 12, Ishøj</div>
-          <div class="ep-sale-price">4.200.000 kr</div>
-          <div class="ep-sale-meta">247 m² · 17.004 kr/m² · solgt 14. okt.</div>
-        </div>
-      </div>
-    </div>
+    <div class="email-preview" id="monitoringEmailPreview"><h3>Det får du i statusmailen</h3><p>Dit senest oplyste lån, markedsværdi og friværdi med kilde, nye scenarier med afdrag, betalingsændring og anslåede omkostninger.</p><p>Ingen faktiske kundetal eller handler er indsat i dette eksempel.</p></div>
   </div>
 
   <!-- Success state after Stripe return -->
@@ -1911,7 +1884,7 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
     <div style="text-align:center;padding:12px 0 20px">
       <div style="font-size:3rem;margin-bottom:12px">🎉</div>
       <div class="card-title" style="margin-bottom:8px">Overvågning aktiveret!</div>
-      <div class="card-sub">Du modtager besked, når din lånerente eller restgæld ændrer sig markant. Tjek din e-mail for kvittering.</div>
+      <div class="card-sub">Du modtager en månedlig kontrol af dine oplyste lånetal og boliggrundlaget. Dit lån er ikke forbundet direkte til banken. Se bekræftelsesmailen for adgang til dine oplysninger.</div>
     </div>
   </div>
 
@@ -1919,7 +1892,7 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
   <div class="card" id="p8-payment" style="display:none">
     <div style="text-align:center;padding:12px 0 20px">
       <div style="font-size:2.5rem;margin-bottom:10px">📱</div>
-      <div class="card-title" style="margin-bottom:6px">Betal med MobilePay</div>
+      <div class="card-title" style="margin-bottom:6px">Betal sikkert med kort</div>
       <div class="card-sub" id="paySubtitle">49 kr/md</div>
     </div>
     <button class="btn btn-primary" style="width:100%;background:#5851EA" onclick="payCard()">💳 Betal med kort</button>
@@ -2198,12 +2171,12 @@ async function beregn() {
 function renderLTVSektion(rest,rente,loeb,ltype,markedsEjd,ejd,compsCount,handler) {
   const value=markedsEjd||ejd,ltv=rest/value*100,p=window._mortgageProperty||{};
   const evidence=(handler||[]).slice(0,8).map(h=>`<div class="ltv-handler-row"><span>${blrEscape(h.adresse||'')}</span><span>${blrEscape(h.dato||'Til salg')}</span><span>${fmt(h.pris||0)} kr</span></div>`).join('');
-  return `<div class="ltv-sektion"><div class="ltv-top-kilde"><div class="ltv-kilde-label">${blrPropertySource({markedsEjd,property:p})}</div><div class="ltv-kilde-vaerdi">${fmt(value)} kr</div><div class="ltv-kilde-sub">Restgæld: ${fmt(rest)} kr · Friværdi: ${fmt(Math.max(0,value-rest))} kr · LTV: ${ltv.toFixed(1)}%</div></div>
+  return `<div class="ltv-sektion"><div class="ltv-top-kilde"><div class="ltv-kilde-label">${blrPropertySource({markedsEjd,property:p})}</div><div class="ltv-kilde-vaerdi">${blrPropertyAmount(value)}</div><div class="ltv-kilde-sub">Restgæld: ${fmt(rest)} kr · Friværdi: ${fmt(Math.max(0,value-rest))} kr · LTV: ${ltv.toFixed(1)}%</div></div>
     <p>Markedsestimatet bygger på lokale salg fra de seneste 12 måneder, aktuelle sammenlignelige udbud eller lokale salgspriser pr. m² ganget med boligarealet. Kun hvis lokale salg og udbud mangler eller er utilgængelige, bruges en faktisk offentlig EV som reserve. Handelsprisen kan være højere end Skats vurdering.</p>
     ${p.note?`<p>${blrEscape(p.note)}</p>`:''}
     <p>Se indbetaling, udbetaling og ny ydelse <strong>med afdrag</strong> i fanerne ovenfor. Grønne/røde ændringer sammenligner med din nuværende betaling${ltype==='afdragsfri'?' uden afdrag':''}.</p>
     ${evidence?`<div class="ltv-handler"><div class="ltv-handler-title">${(p.kilde||'').endsWith('udbud')?'Boliger til salg i området':'Lokale salg fra de seneste 12 måneder'}</div>${evidence}</div>`:''}
-    <div class="ltv-bankpakke-cta" onclick="startBankpakke()"><div><div class="ltv-bp-h">Bankpakke: markedsdata + budget klar til mødet</div><div class="ltv-bp-sub">Analysegrundlag og spørgsmål til banken</div></div><div class="ltv-bp-price">299 kr →</div></div></div>`;
+    <div class="ltv-bankpakke-cta" onclick="startBankpakke()"><div><div class="ltv-bp-h">Bankforhandlingspakke: dine tal og muligheder</div><div class="ltv-bp-sub">Markedsværdi, friværdi, bidragstjek, lånescenarier og budget på e-mail</div></div><div class="ltv-bp-price">99 kr →</div></div></div>`;
 }
 
 function renderResultat(d) {
@@ -2242,9 +2215,8 @@ function renderResultat(d) {
   const ejdvaerdi = markedsEjd || ejd;
 
   // ── Rente kilde ──
-  const renteKilde = renter && renter.source === 'Danmarks Nationalbank'
-    ? `Live: Danmarks Nationalbank (${renter.updated ? new Date(renter.updated).toLocaleDateString('da-DK') : '–'})`
-    : 'Vejledende estimat';
+  const renteKilde=renter?.fallback||renter?.source==='fallback'?'Illustrative reserve-renter (ingen handlingsalerts)':
+    blrEscape(renter?.source||'Vejledende estimat')+(renter?.observationDate?' · kildedato '+blrEscape(renter.observationDate):'');
 
   // ── Chart helpers ──
   window._chartData = scener;
@@ -2315,7 +2287,7 @@ function renderResultat(d) {
   <div class="blr-stat-row">
     <div class="blr-stat">
       <div class="blr-stat-label">🏠 ${d.property?.kilde==='ev'?'Ejendomsværdi (EV-reserve)':'Estimeret markedsværdi'}</div>
-      <div class="blr-stat-val">${fmt(Math.round(ejdvaerdi))} kr</div>
+      <div class="blr-stat-val">${blrPropertyAmount(ejdvaerdi)}</div>
       <div class="blr-stat-sub">${blrPropertySource(d)}</div>
     </div>
     <div class="blr-stat">
@@ -2359,7 +2331,7 @@ function renderResultat(d) {
           <div class="blr-chart-legend-item"><div class="blr-chart-legend-dot" style="background:#3b82f6"></div>Markedsrente</div>
           <div class="blr-chart-legend-item"><div class="blr-chart-legend-dot" style="background:#10b981;border:2px dashed #10b981;background:transparent"></div>Din rente</div>
         </div>
-        <div class="blr-chart-src">${renteKilde}${renter && renter.data && renter.data.length >= 4 ? '' : ' · Historik ikke tilgængelig; kun aktuelt niveau vises'}</div>
+        <div class="blr-chart-src">${renteKilde}${renter && renter.data && renter.data.length >= 4 ? '' : ' · Historik ikke tilgængelig; kun aktuelt niveau vises'}</div><details class="blr-help"><summary>Om renterne</summary><p>${blrEscape(renter?.note||'Vejledende modelrenter. Bed banken om et konkret tilbud.')}</p>${ltype==='afdragsfri'?'<p>Afdragsfrihed er en afdragsform, ikke en selvstændig rentetype. Grafens reference er fast rente med afdrag, hvis en særskilt afdragsfri rente ikke er oplyst.</p>':''}</details>
       </div>
 
       <div class="blr-scenario-card">${blrScenarioMarkup(d)}</div>
@@ -2382,8 +2354,8 @@ function renderResultat(d) {
         <ul class="blr-monitoring-feat">
           <li><span class="blr-feat-icon">✓</span>Vi holder øje med dit lån, så du ikke behøver gøre det selv</li>
           <li><span class="blr-feat-icon">✓</span>Besked når markedsrenter ændrer sig markant ift. dit lån</li>
-          <li><span class="blr-feat-icon">✓</span>F1/F3/F5 vs. fastforrentet opdateres løbende</li>
-          <li><span class="blr-feat-icon">✓</span>Termin-timing: varsling inden næste termin</li>
+          <li><span class="blr-feat-icon">✓</span>F1/F3/F5 og fast rente sammenlignes ved den månedlige kontrol</li>
+          <li><span class="blr-feat-icon">✓</span>Månedlig kontrol af dine oplyste lån og relevante ændringer</li>
           <li><span class="blr-feat-icon">✓</span>Månedlig rapport med friværdi og renteudvikling</li>
           <li><span class="blr-feat-icon">✓</span>Ingen binding — opsig når som helst</li>
         </ul>
@@ -2411,16 +2383,16 @@ function renderResultat(d) {
         </div>
         <div class="blr-nextstep-item">
           <div class="blr-nextstep-num">3</div>
-          <div class="blr-nextstep-text"><strong>Hent bankpakke</strong> — markedsdata og budget klar til mødet (299 kr).</div>
+          <div class="blr-nextstep-text"><strong>Hent bankpakke</strong> — markedsdata og budget klar til mødet (99 kr).</div>
         </div>
       </div>
 
       <!-- Paywall / subscription CTA -->
       <div class="blr-paywall-card" id="blrPaywallCard">
-        <div class="blr-value"><p><strong>Gratis: dit overblik nu</strong><br>Analyse, F1/F3/F5/fast rente og scenarier for lån op/ned.</p><p><strong>Abonnement: løbende opfølgning</strong><br>Overvågning, personlig status og besked ved relevante ændringer. 49 kr/md eller 399 kr/år.</p><p>De gratis beregninger kræver ikke abonnement.</p></div>
+        <div class="blr-value"><p><strong>Gratis: dit overblik nu</strong><br>Analyse, F1/F3/F5/fast rente og scenarier for lån op/ned.</p><p><strong>Abonnement: løbende opfølgning</strong><br>Overvågning, personlig status og besked ved relevante ændringer. 49 kr/md eller 399 kr/år.</p><p>De gratis beregninger kræver ikke abonnement. Bankpakken til 99 kr. kan modregnes i første årsbetaling: betal derefter 300 kr. for første år. Årspakken fornyes til 399 kr/år.</p></div>
         <div class="blr-paywall-lock">🔔</div>
         <div class="blr-paywall-h">Få besked, når dit lån kan forbedres</div>
-        <p class="blr-paywall-p">Vi overvåger markedet og sender dig en alert, når det er tid til at handle. Ingen binding.</p>
+        <p class="blr-paywall-p">Vi kontrollerer månedligt og giver besked, når beregningen opfylder din valgte tærskel. Bed banken om et konkret tilbud.</p>
         <div class="blr-paywall-plans">
           <div class="blr-paywall-plan selected" onclick="window._blrPlan='maaned';window._overvagPeriode='maaned';document.querySelectorAll('.blr-paywall-plan').forEach(e=>e.classList.remove('selected'));this.classList.add('selected');">
             <span class="blr-paywall-plan-name">Månedlig</span>
@@ -2435,7 +2407,7 @@ function renderResultat(d) {
         <button id="ovBtn1" style="display:none;"></button>
         <button id="ovBtn2" style="display:none;"></button>
         <button class="blr-paywall-btn" onclick="startOvervagning()">Start personlig låneovervågning</button>
-        <div class="blr-paywall-fine">Ingen binding · Opsig når som helst</div>
+        <div class="blr-paywall-fine">Månedlig eller årlig betaling · Stop næste fornyelse når som helst</div>
       </div>
 
     </aside><!-- /sidebar -->
@@ -2465,6 +2437,15 @@ function overvagToggle(p) {
   document.getElementById('ovBtn2').classList.toggle('active', p === 'aar');
 }
 
+function mortgageSubscriptionContext(periode) {
+  const d=window._beregningState||{},p=window._mortgageProperty||{};
+  const optional=id=>{const value=document.getElementById(id)?.value;return value===undefined||value.trim()===''?null:Number(value);};
+  return {currentBidrag:optional('currentBidrag'),targetBidrag:optional('targetBidrag'),oneOffCosts:optional('bidragOneOff'),adresse:p.address||'',adresseId:window._adresseId||'',postnr:window._adressePostnr||'',
+    m2:window._adresseM2||0,anvKode:window._adresseAnvKode||'',kommunekode:p.kommunekode||'',
+    restgaeld:d.rest,rente:d.rente,loebetid:d.loeb,laantype:d.ltype,currentPayment:d.nuv,
+    officialEV:p.kilde==='ev'?p.markedsvaerdi:0,
+    bankpakkeCheckoutId:periode==='aar'?(sessionStorage.getItem('blrBankpakkeCheckout')||''):''};
+}
 async function startOvervagning() {
   const email = (document.getElementById('overvagEmail')||{}).value || '';
   if (!email || !email.includes('@')) { goToPanel8(); return; }
@@ -2478,7 +2459,7 @@ async function startOvervagning() {
       body: JSON.stringify({
         email, periode: window._overvagPeriode,
         restgaeld: d.rest, rente: d.rente, loebetid: d.loeb,
-        laantype: d.ltype, alertYdelseKr, alertRestgaeldKr
+        laantype: d.ltype, alertYdelseKr, alertRestgaeldKr, ...mortgageSubscriptionContext(window._overvagPeriode)
       })
     });
     const json = await res.json();
@@ -2525,22 +2506,14 @@ document.getElementById('uploadZone').addEventListener('click', function(e) {
 
 // Phase 2 state
 const p2Steps = {5:'budget',6:'docs',7:'send'};
-let selectedBanks = new Set(['totalkredit']);
+let selectedBanks = new Set();
 let bankAccess = {}; // bankId -> Set of doc ids they can access
 let docsReady = false;
 
 // ── Start bankpakke ───────────────────────────────────────────────────────
 function startBankpakke() {
-  // Pre-fill boligydelse from calculation (grab nyYdelse if available, else nuv)
-  const nyY = document.getElementById('resNyYdelse');
-  const nuvY = document.getElementById('resNuvYdelse');
-  if (nyY && nyY.textContent && nyY.textContent !== '') {
-    const v = parseInt(nyY.textContent.replace(/\./g,'').replace(/\s/g,'')) || 0;
-    if (v > 0) document.getElementById('b_bolig').value = v;
-  } else if (nuvY && nuvY.textContent) {
-    const v = parseInt(nuvY.textContent.replace(/\./g,'').replace(/\s/g,'')) || 0;
-    if (v > 0) document.getElementById('b_bolig').value = v;
-  }
+  const current=window._beregningState?.nuv;
+  document.getElementById('b_bolig').value=current>0?Math.round(current):'';
 
   // Show phase2 header, hide main stepper
   document.getElementById('phase2-header').style.display = 'block';
@@ -2552,7 +2525,7 @@ function startBankpakke() {
 // ── Phase 2 navigation ────────────────────────────────────────────────────
 function goToPhase2(step) {
   // Hide all panels
-  [1,2,3,4,5,6,7].forEach(n => {
+  [1,2,3,4,5,6,7,8].forEach(n => {
     const p = document.getElementById('panel-' + n);
     if (p) p.classList.remove('active');
   });
@@ -2586,11 +2559,12 @@ function calcBudget() {
     if (income.includes(id)) ind += v; else ud += v;
   });
   const frie = ind - ud;
+  const complete=ids.every(id=>document.getElementById(id)?.value.trim()!=='');
   document.getElementById('bSumInd').textContent = fmt(ind) + ' kr';
   document.getElementById('bSumUd').textContent = fmt(ud) + ' kr';
   const frRow = document.getElementById('frieMidlerRow');
-  document.getElementById('bFrie').textContent = (frie >= 0 ? '+' : '') + fmt(frie) + ' kr';
-  frRow.className = 'budget-sum-row frie ' + (frie >= 0 ? 'positive' : 'negative');
+  document.getElementById('bFrie').textContent = complete?(frie >= 0 ? '+' : '') + fmt(frie) + ' kr':'Udfyld alle poster (0 hvis ingen udgift)';
+  frRow.className = 'budget-sum-row frie ' + (complete?(frie >= 0 ? 'positive' : 'negative'):'');
 }
 
 // ── Upload flow ───────────────────────────────────────────────────────────
@@ -2641,11 +2615,9 @@ function fetchSkat()  { checkDocsReady(); }
 function checkDocsReady() {
   const e = uploadedDocs.eboks.length > 0;
   const s = uploadedDocs.skat.length > 0;
-  if (e || s) {
-    document.getElementById('docs-ready-hint').style.display = 'block';
-    document.getElementById('docsNextBtn').style.display = 'block';
-    docsReady = true;
-  }
+  docsReady=e||s;
+  document.getElementById('docs-ready-hint').style.display=docsReady?'block':'none';
+  document.getElementById('docsNextBtn').style.display=docsReady?'block':'none';
 }
 
 function updatePackage() { /* live update when checkboxes change */ }
@@ -2685,77 +2657,19 @@ function toggleBank(id) {
 }
 
 function renderBankerPanel() {
-  const count = selectedBanks.size;
-  document.getElementById('sendCount').textContent = count;
-  document.getElementById('sendBtn').disabled = count === 0;
-
-  // Init access sets
-  selectedBanks.forEach(bid => {
-    if (!bankAccess[bid]) {
-      bankAccess[bid] = new Set(DOCS_META.map(d => d.id));
-    }
-  });
-
-  // Render access rows
-  const wrap = document.getElementById('accessRows');
-  wrap.innerHTML = '';
-  selectedBanks.forEach(bid => {
-    const row = document.createElement('div');
-    row.className = 'access-row';
-    const nameEl = document.createElement('div');
-    nameEl.className = 'access-bank-name';
-    nameEl.textContent = BANKS[bid];
-    row.appendChild(nameEl);
-
-    const chips = document.createElement('div');
-    chips.className = 'access-docs';
-
-    // Group: lønsedler always on (simplified), SKAT docs toggleable
-    const skatDocs = DOCS_META.filter(d => d.group === 'skat');
-    // Show all-lønsedler chip + per-skat chips
-    const loenChip = document.createElement('div');
-    loenChip.className = 'access-chip on';
-    loenChip.innerHTML = '📄 Lønsedler (3)';
-    loenChip.title = 'Inkluderet — ikke valgfrit';
-    chips.appendChild(loenChip);
-
-    const regChip = document.createElement('div');
-    regChip.className = 'access-chip on';
-    regChip.innerHTML = '⚡ Forbrugsreg. (4)';
-    regChip.title = 'Inkluderet — ikke valgfrit';
-    chips.appendChild(regChip);
-
-    skatDocs.forEach(doc => {
-      const on = bankAccess[bid].has(doc.id);
-      const chip = document.createElement('div');
-      chip.className = 'access-chip ' + (on ? 'on' : 'off');
-      chip.innerHTML = (doc.group==='skat'?'📋 ':'') + doc.label;
-      chip.onclick = () => {
-        if (bankAccess[bid].has(doc.id)) bankAccess[bid].delete(doc.id);
-        else bankAccess[bid].add(doc.id);
-        renderBankerPanel();
-      };
-      chips.appendChild(chip);
-    });
-
-    row.appendChild(chips);
-    wrap.appendChild(row);
-  });
-
-  // Package summary
-  const lines = document.getElementById('pkgLines');
-  lines.innerHTML = '';
-  const addLine = (label, val) => {
-    lines.innerHTML += `<div class="pkg-line"><span>${label}</span><span>${val}</span></div>`;
-  };
-  addLine('Valgte banker', count + ' banker');
-  addLine('Lønsedler', '3 mdr.');
-  addLine('Forbrugsregninger', '4 dokumenter');
-  addLine('SKAT-dokumenter', '3 (styret per bank)');
-  addLine('Budget', 'Månedsoversigt inkl. rådighedsbeløb');
-  addLine('Låneoplysninger', 'Restgæld, LTV, nuværende rente');
+  document.getElementById('sendCount').textContent=selectedBanks.size;
+  document.getElementById('sendBtn').disabled=false;
+  const rows=document.getElementById('accessRows');rows.replaceChildren();
+  const p=document.createElement('p');
+  p.textContent='Du vælger selv, hvilke dokumenter du vil tage med til mødet. Ingen banker får adgang gennem denne side.';rows.appendChild(p);
+  const lines=document.getElementById('pkgLines');lines.replaceChildren();
+  for(const text of ['Markedsværdi, kildegrundlag, friværdi og belåningsgrad','Låneoverblik og sammenligning med afdrag','Dine indtastede budgettal + redigerbart budgetark','Spørgsmål og tjekliste til samtalen om omlægning','Levering til din e-mail — ingen henvendelse til banken']){
+    const line=document.createElement('p');line.textContent='✓ '+text;lines.appendChild(line);
+  }
 }
-
+function mortgageBudgetContext(){
+  return Object.fromEntries(Array.from(document.querySelectorAll('.budget-input')).map(input=>[input.id,input.value.trim()===''?null:Number(input.value)]));
+}
 // ── Send pakke ────────────────────────────────────────────────────────────
 async function sendPakke() {
   const email = (document.getElementById('pakkeEmail')?.value || '').trim();
@@ -2764,7 +2678,6 @@ async function sendPakke() {
     if (inp) { inp.style.borderColor = 'var(--danger)'; setTimeout(() => inp.style.borderColor = '', 1500); inp.focus(); }
     return;
   }
-  if (!selectedBanks.size) { alert('Vælg mindst én bank.'); return; }
 
   const btn = document.getElementById('sendBtn');
   btn.disabled = true;
@@ -2775,14 +2688,14 @@ async function sendPakke() {
     const r = await fetch('/api/bankpakke/start', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ email, banker: [...selectedBanks], adresse })
+      body: JSON.stringify({ email, adresse, property:mortgageSubscriptionContext(),budget:mortgageBudgetContext() })
     });
     const data = await r.json();
     if (data.url) { window.location.href = data.url; return; }
     throw new Error(data.error || 'Fejl');
   } catch (err) {
     btn.disabled = false;
-    btn.innerHTML = '<span id="sendBtnTxt">Betal &amp; send til <span id="sendCount">' + selectedBanks.size + '</span> banker — 299 kr</span>';
+    btn.textContent='Køb din personlige bankpakke — 99 kr';
     alert('Kunne ikke oprette betaling: ' + err.message);
   }
 }
@@ -2864,7 +2777,7 @@ async function payCard() {
     const r = await fetch('/api/laanovervagning/start', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ email, periode: selectedPlan === 'aarlig' ? 'aar' : 'maaned', adresse, restgaeld, rente })
+      body: JSON.stringify({ email, periode: selectedPlan === 'aarlig' ? 'aar' : 'maaned', adresse, restgaeld, rente, ...mortgageSubscriptionContext(selectedPlan==='aarlig'?'aar':'maaned') })
     });
     const data = await r.json();
     if (data.url) { window.location.href = data.url; return; }
@@ -2875,11 +2788,27 @@ async function payCard() {
   }
 }
 
+async function verifyMortgagePaymentReturn(params) {
+  try {
+    const checkoutId=params.get('session_id');
+    const r=await fetch('/api/commerce/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({checkoutId})});
+    const v=await r.json();
+    if(!r.ok||!v.verified||v.type!==(params.has('bankpakke')?'bankpakke':'laanovervagning'))throw new Error();
+    if(v.type==='bankpakke'){
+      sessionStorage.setItem('blrBankpakkeCheckout',checkoutId);
+      const card=document.getElementById('successCard');
+      if(card)card.innerHTML='<h2>Betalingen er bekræftet</h2><p>'+(v.sent?'Bankpakken er sendt til din e-mail. Tjek også din spammappe.':'Mailen er endnu ikke bekræftet sendt. Leveringen forsøges igen; kontakt os, hvis pakken ikke kommer.')+'</p><p>Du får markedsværdi, friværdi, låneoverblik, budgetark og spørgsmål til banken. Vi kontakter ingen banker.</p><p>Dit betalte beløb kan modregnes én gang i første årsbetaling. Derefter 399 kr/år.</p>';
+    }
+    history.replaceState(null,'',location.pathname);
+    return true;
+  }catch{alert('Betalingen kunne ikke bekræftes endnu. Prøv igen senere eller kontakt os.');return false;}
+}
 // ── Handle Stripe return URLs ─────────────────────────────────────────────
 (function handleReturnParams() {
   const p = new URLSearchParams(window.location.search);
   if (p.get('bankpakke') === 'ok') {
-    window.addEventListener('DOMContentLoaded', function() {
+    window.addEventListener('DOMContentLoaded', async function() {
+      if(!await verifyMortgagePaymentReturn(p))return;
       [1,2,3,4,5,6,7,8].forEach(function(n) {
         const el = document.getElementById('panel-' + n);
         if (el) el.classList.remove('active');
@@ -2895,7 +2824,8 @@ async function payCard() {
       window.scrollTo({top:0,behavior:'smooth'});
     });
   } else if (p.get('overvagning') === 'ok') {
-    window.addEventListener('DOMContentLoaded', function() {
+    window.addEventListener('DOMContentLoaded', async function() {
+      if(!await verifyMortgagePaymentReturn(p))return;
       [1,2,3,4,5,6,7,8].forEach(function(n) {
         const el = document.getElementById('panel-' + n);
         if (el) el.classList.remove('active');

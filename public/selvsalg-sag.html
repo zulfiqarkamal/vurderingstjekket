@@ -53,6 +53,10 @@
   .sag-step-btn{white-space:nowrap;flex-direction:column;text-align:center;padding:10px 16px;font-size:12px;gap:6px}
   .sag-main{padding:20px}
 }
+#brochure-preview{background:white;border:1px solid var(--line);border-radius:12px;padding:24px;margin-top:20px;overflow-wrap:anywhere}
+.brochure-sheet{font:15px/1.6 system-ui;color:#172e29}.brochure-sheet h1{font:30px/1.2 Georgia,serif;margin:0 0 20px}.brochure-sheet dl{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px}.brochure-sheet dt{color:#56685f}.brochure-sheet dd{margin:0;font-weight:600}.brochure-description{white-space:pre-wrap;overflow-wrap:anywhere}.brochure-photos{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}.brochure-photos img{display:block;width:100%;height:220px;object-fit:contain}#brochure-print{display:none}
+@media(max-width:500px){.brochure-photos{grid-template-columns:1fr}.brochure-sheet dl{grid-template-columns:1fr}}
+@media print{@page{size:A4;margin:16mm}body>*{display:none!important}body>#brochure-print{display:block!important}.brochure-sheet h1{font-size:24pt}.brochure-photos img{height:65mm;break-inside:avoid}.brochure-photos{break-inside:auto}.brochure-sheet dl{break-inside:avoid}body{background:white!important}}
 </style></head>
 <body><a class="skip" href="#indhold">Gå til indhold</a>
 <header><nav class="wrap" aria-label="Hovednavigation">
@@ -88,6 +92,7 @@
     <div class="step-panel active" id="panel-0">
       <h2 id="overblik-titel">Overblik over dit salg</h2>
       <p class="sub" id="overblik-sub">Her er din kladdes aktuelle status.</p>
+      <p id="payment-status" role="status" hidden></p>
 
       <div id="status-free">
         <span class="status-badge">📋 Gratis kladde</span>
@@ -202,18 +207,20 @@
         <p>Lås salgspakken op for at generere din brochure.</p>
       </div>
       <div id="brochure-content" style="display:none">
-        <div style="background:white;border-radius:12px;border:1px solid var(--line);padding:28px;text-align:center">
-          <div style="font-size:40px;margin-bottom:12px">🖨️</div>
-          <h3 style="font:20px Georgia,serif;margin-bottom:8px">Din brochure er klar</h3>
-          <p style="color:var(--muted);font-size:14px;margin-bottom:20px">Brochuren er genereret med fakta og oplysninger fra din kladde.</p>
-          <button style="background:#1c5949;color:white;border:none;border-radius:8px;padding:12px 24px;font:600 14px system-ui;cursor:pointer" onclick="printBrochure()">Udskriv / gem som PDF</button>
-        </div>
+        <p>Tilpas annonceteksten under Annoncetekst, og vælg eventuelt billeder til brochuren.</p>
+        <label for="brochure-photos">Billeder til brochuren (højst 8, maks. 5 MB pr. billede)</label>
+        <input id="brochure-photos" type="file" accept="image/jpeg,image/png,image/webp" multiple onchange="selectBrochurePhotos(this)">
+        <p style="font-size:13px;color:var(--muted)">Billederne behandles kun lokalt i din browser. De sendes ikke til serveren og gemmes ikke, når du forlader siden.</p>
+        <p id="brochure-photo-status" role="status"></p>
+        <button type="button" style="background:#1c5949;color:white;border:none;border-radius:8px;padding:12px 24px;font:600 14px system-ui;cursor:pointer" onclick="printBrochure()">Udskriv brochure / gem som PDF</button>
+        <div id="brochure-preview" aria-label="Forhåndsvisning af salgsbrochure"></div>
       </div>
     </div>
 
   </div>
 </div>
 </main>
+<article id="brochure-print" aria-hidden="true"></article>
 
 <footer><div class="wrap"><span>Vurderingstjekket · Boliglånsradar · BoligSelvsalg</span><div><a href="/ejendomsvurdering">Ejendomsvurdering</a><a href="/boliglaanstjek">Boliglånstjek</a><a href="/selvsalg">Selvsalg</a></div></div></footer>
 
@@ -328,13 +335,17 @@ function initApp() {
   renderChecklist();
   renderExtServices();
 
-  if (SAG.betalt) {
+  if (SAG.betalt === true) {
     unlockPaid();
   }
 
-  // Handle ?pakke=ok from Stripe return
+  // A return URL is not payment proof. Only the server's settled case can unlock.
   if (new URLSearchParams(location.search).get("pakke") === "ok") {
-    unlockPaid();
+    if (SAG.betalt !== true) {
+      const status = document.getElementById("payment-status");
+      status.hidden = false;
+      status.textContent = "Betalingen er endnu ikke bekræftet. Genindlæs siden om lidt, hvis du har gennemført betalingen.";
+    }
     history.replaceState({}, "", location.pathname);
   }
 
@@ -415,6 +426,7 @@ function updateProgress() {
 }
 
 function unlockPaid() {
+  if (SAG?.betalt !== true) return;
   document.getElementById("status-free").style.display = "none";
   document.getElementById("status-paid").style.display = "block";
 
@@ -430,6 +442,8 @@ function unlockPaid() {
 
   // Generate annonce text
   if (SAG) generateAnnonceText();
+  renderBrochure();
+  document.getElementById("annonce-tekst").addEventListener("input", renderBrochure);
 
   // Render dok list
   renderDokList();
@@ -475,7 +489,67 @@ async function startCheckout() {
   }
 }
 
-function printBrochure() {
+let brochurePhotos = [];
+function buildBrochure() {
+  const sheet = document.createElement("section");
+  sheet.className = "brochure-sheet";
+  const heading = document.createElement("h1");
+  heading.textContent = SAG.adresse || "Bolig til salg";
+  sheet.appendChild(heading);
+  const facts = document.createElement("dl");
+  for (const [label, value] of [["Boligtype", SAG.boligtype], ["Boligareal", SAG.m2bolig ? SAG.m2bolig + " m²" : "Ikke oplyst"], ["Byggeår", SAG.byggeaar], ["Værelser", SAG.vaerelse]]) {
+    if (value === null || value === undefined || value === "") continue;
+    const term = document.createElement("dt"), detail = document.createElement("dd");
+    term.textContent = label; detail.textContent = String(value);
+    facts.appendChild(term); facts.appendChild(detail);
+  }
+  sheet.appendChild(facts);
+  const description = document.createElement("p");
+  description.className = "brochure-description";
+  description.textContent = document.getElementById("annonce-tekst").value || "";
+  sheet.appendChild(description);
+  const photos = document.createElement("div");
+  photos.className = "brochure-photos";
+  brochurePhotos.forEach((src, index) => {
+    const image = document.createElement("img");
+    image.src = src; image.alt = "Boligbillede " + (index + 1);
+    photos.appendChild(image);
+  });
+  sheet.appendChild(photos);
+  const note = document.createElement("p");
+  note.textContent = "Oplysninger fra sælgers kladde. Kontrollér fakta og tekst før deling.";
+  sheet.appendChild(note);
+  return sheet;
+}
+function renderBrochure() {
+  if (SAG?.betalt !== true) return;
+  document.getElementById("brochure-preview").replaceChildren(buildBrochure());
+  document.getElementById("brochure-print").replaceChildren(buildBrochure());
+}
+async function selectBrochurePhotos(input) {
+  if (SAG?.betalt !== true) return;
+  const files = Array.from(input.files || []);
+  const status = document.getElementById("brochure-photo-status");
+  if (files.length > 8 || files.some(file => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024)) {
+    status.textContent = "Vælg højst 8 JPG-, PNG- eller WebP-billeder på maks. 5 MB hver. De tidligere valgte billeder er bevaret.";
+    input.value = "";
+    return;
+  }
+  try {
+    brochurePhotos = await Promise.all(files.map(file => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("Billedet kunne ikke læses"));
+      reader.readAsDataURL(file);
+    })));
+    status.textContent = brochurePhotos.length + " billeder valgt lokalt.";
+    renderBrochure();
+  } catch { status.textContent = "Billederne kunne ikke læses. Prøv igen."; }
+}
+async function printBrochure() {
+  if (SAG?.betalt !== true) return;
+  renderBrochure();
+  await Promise.all(Array.from(document.querySelectorAll("#brochure-print img")).map(image => image.decode ? image.decode().catch(() => {}) : Promise.resolve()));
   window.print();
 }
 
