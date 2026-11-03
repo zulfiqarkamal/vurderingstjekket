@@ -1,3 +1,7 @@
+import {parseComparisonLoan,comparisonTeaser,isPaidBankComparisonCheckout,isPaidSubscriptionComparison,comparisonAlertSignal} from './mortgage-comparison-access.js';
+import {getMortgageCatalogue} from './mortgage-lender-catalogue.js';
+import {compareMortgageMarket} from './mortgage-market-comparison.js';
+import {renderMortgageComparison} from './mortgage-comparison-output.js';
 import { createDailyUsageLimiter, createUsageFileStore, enforceDailyUsage } from './anonymous-usage.js';
 import { normalizeClaudeLoanResponse, OCRNormalizationError, classifyOCRProviderError } from "./mortgage-ocr.js";
 import { fetchNykreditCurrentRates } from "./mortgage-current-rates.js";
@@ -264,7 +268,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 </style></head><body><div class="wrap">${content}<div class="footer">Vurderingstjekket · <a href="https://vurderingstjekket.dk/boliglaanstjek" style="color:#9ca3af">Se dit overblik</a> · <a href="https://vurderingstjekket.dk/afmeld?id={{ID}}" style="color:#9ca3af">Afmeld</a></div></div></body></html>`;
 }
 
-function buildConfirmationEmail({ email, adresse, nextMailDate }) {
+function buildConfirmationEmail({ email, adresse, nextMailDate, marketToken }) {
   const dato = nextMailDate || "den 1. i næste måned";
   const html = emailWrap(`
     <div class="hdr"><h1>📬 Du er tilmeldt BoligLånsRadar</h1><p>${monitoringEscape(adresse || "Dit boliglån er nu under opsyn")}</p></div>
@@ -287,7 +291,9 @@ function buildConfirmationEmail({ email, adresse, nextMailDate }) {
       <p style="font-size:.8rem;color:#9ca3af;text-align:center">Spørgsmål? Svar blot på denne mail.</p>
     </div>`);
   const text = `Tak for din tilmelding til BoligLånsRadar.\n\nDu modtager månedlige opdateringer om dit boliglån, markedsrenter og omlægningsmuligheder. Din første mail ankommer ${dato}.\n\nSe din beregning: https://vurderingstjekket.dk/boliglaanstjek`;
-  return { subject: "Velkommen til BoligLånsRadar — vi holder øje med dit lån", html, text };
+  const marketUrl=marketToken?(process.env.PUBLIC_BASE_URL||'https://www.vurderingstjekket.dk')+'/boliglaanstjek?market_token='+encodeURIComponent(marketToken):null;
+  const finalHtml=marketUrl?html.replace('</div></div></body>', '<p style="padding:16px"><a href="'+monitoringEscape(marketUrl)+'">Åbn din markedssammenligning</a></p></div></div></body>'):html;
+  return { subject: "Velkommen til BoligLånsRadar — vi holder øje med dit lån", html:finalHtml, text:text+(marketUrl?'\nDin markedssammenligning: '+marketUrl:'') };
 }
 
 function beregnMaanedligYdelse(restgaeld, renteAarlig, loebetidAar) {
@@ -300,40 +306,25 @@ function beregnMaanedligYdelse(restgaeld, renteAarlig, loebetidAar) {
 function monitoringEscape(value) {
   return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function buildMonthlyEmail(ab, aktuelleRenter, boligData) {
-  const snapshot=buildMonitoringSnapshot(ab,aktuelleRenter,boligData||{});
+function buildMonthlyEmail(ab,aktuelleRenter,boligData,comparison=null){
+  const snapshot=buildMonitoringSnapshot(ab,aktuelleRenter,boligData||{}),signal=comparisonAlertSignal(comparison,ab);
   const month=new Date().toLocaleString('da-DK',{month:'long',year:'numeric'});
-  const money=n=>n===null?'Mangler oplysninger':Math.round(n).toLocaleString('da-DK')+' kr';
-  const issue=snapshot.missingData.length
-    ? 'Opdatér dine bolig- og låneoplysninger for at få en sammenligning. Der sendes ingen handlingsalert på mangelfuldt grundlag.'
-    : snapshot.fallbackRates ? 'Aktuelle renter kunne ikke bekræftes. Reserve-renter vises kun som illustration; der sendes ingen handlingsalert.'
-    : snapshot.canAlert ? 'En beregnet lavere månedlig betaling opfylder din tærskel. Bed banken om et konkret tilbud.'
-    : 'Ingen ændring opfylder din valgte tærskel for en handlingsalert i denne beregning.';
-  const delta=snapshot.delta===null?'Mangler oplysninger':(snapshot.delta>0?'+':snapshot.delta<0?'−':'')+money(Math.abs(snapshot.delta));
-  const html=emailWrap(`
-    <div class="hdr"><h1>Din låneradar — ${monitoringEscape(month)}</h1><p>${monitoringEscape(ab.adresse||'Dit boliglån')}</p></div>
-    <div class="body">
-      <p>${monitoringEscape(issue)}</p>
-      <div class="section"><h2>Månedlig betaling</h2>
-        <p>Senest oplyste nuværende betaling: <strong>${money(snapshot.currentPayment)}/md</strong></p>
-        <p>Laveste beregnede nye betaling med afdrag: <strong>${money(snapshot.newPayment)}/md</strong></p>
-        <p>Ændring: <strong>${delta}/md</strong></p>
-        <p>${monitoringEscape(aktuelleRenter?.note||'Satserne er modelinput, ikke et bindende lånetilbud.')}</p><p>Lånetype: ${monitoringEscape(snapshot.rateKey||'Ikke tilgængelig')} · Rente: ${snapshot.rate===null?'Ikke tilgængelig':snapshot.rate.toFixed(2)+'%'} · Rentekilde: ${monitoringEscape(aktuelleRenter?.source||'Ukendt')}</p>
-        <p>Engangsomkostning (estimat): ${money(snapshot.fee)} · Tilbagebetaling via lavere betaling: ${snapshot.breakEvenMonths===null?'Ikke relevant':snapshot.breakEvenMonths+' måneder'}.</p>
-      </div>
-      <div class="section"><h2>Boliggrundlag</h2>
-        <p>${monitoringEscape(snapshot.sourceLabel)}</p>
-        <p>${snapshot.value===null?'Markedsestimat mangler':'Boligværdi (estimat): '+money(snapshot.value)}</p>
-        <p>${snapshot.equity===null?'Friværdi kan ikke beregnes':'Friværdi (estimat): '+money(snapshot.equity)}</p>
-        ${boligData?.note?`<p>${monitoringEscape(boligData.note)}</p>`:''}
-      </div>
-      <p>${monitoringEscape(snapshot.basisNote)}</p>
-      <p>Dette er månedlig overvågning. Beregninger er før skat og vejledende; faktiske indfrielseskurser, kreditgodkendelse og bankens gebyrer kræver et konkret tilbud.</p>
-      <a class="cta" href="https://www.vurderingstjekket.dk/overvagning?id=${encodeURIComponent(managementId(ab))}">Se og opdatér dine oplysninger →</a>
-    </div>`).replace(/{{ID}}/g,encodeURIComponent(managementId(ab)));
-  const text=`Din låneradar — ${month}\n\n${issue}\nSenest oplyste betaling: ${money(snapshot.currentPayment)}/md\nNy betaling med afdrag: ${money(snapshot.newPayment)}/md\nÆndring: ${delta}/md\n${snapshot.sourceLabel}\nBoligværdi (estimat): ${money(snapshot.value)}\nFriværdi (estimat): ${money(snapshot.equity)}\nRentekilde: ${aktuelleRenter?.source||'Ukendt'}\nEngangsomkostninger (estimat): ${money(snapshot.fee)}\n${snapshot.basisNote}\nMånedlig overvågning. Bed banken om et konkret tilbud.\nOpdatér tal og administrér abonnement: https://www.vurderingstjekket.dk/overvagning?id=${encodeURIComponent(managementId(ab))}`;
-  return {subject:`Din låneradar — ${month}`,html,text,goOmlæg:snapshot.canAlert,besparelse:snapshot.monthlyReduction,snapshot};
+  const money=n=>typeof n==='number'&&Number.isFinite(n)?Math.round(n).toLocaleString('da-DK')+' kr':'Mangler oplysninger';
+  const rendered=renderMortgageComparison(comparison||{});
+  const issue=signal.canAlert?'En sammenlignelig offentlig pris opfylder din tærskel for lavere betaling og positiv beregnet nettogevinst over fem år. Bed banken om et konkret tilbud.':'Ingen dokumenteret markedssammenligning opfylder alle betingelser for en handlingsalert. Ukendte omkostninger, manglende lånedata eller ændret risiko/løbetid kan udelukke en personlig gevinstberegning.';
+  const token=encodeURIComponent(managementId(ab)),origin=process.env.PUBLIC_BASE_URL||'https://www.vurderingstjekket.dk';
+  const marketUrl=origin+'/boliglaanstjek?market_token='+token;
+  const html=emailWrap(`<div class="hdr"><h1>Din låneradar — ${monitoringEscape(month)}</h1><p>${monitoringEscape(ab.adresse||'Dit boliglån')}</p></div><div class="body"><p>${monitoringEscape(issue)}</p><p>Senest oplyste betaling: <strong>${money(snapshot.currentPayment)}/md</strong>. Restgæld: ${money(Number(ab.restgaeld))}.</p>${rendered.html}<div class="section"><h2>Boliggrundlag</h2><p>${monitoringEscape(snapshot.sourceLabel)}</p><p>Boligværdi (estimat): ${money(snapshot.value)} · Friværdi (estimat): ${money(snapshot.equity)}.</p>${boligData?.note?'<p>'+monitoringEscape(boligData.note)+'</p>':''}</div><p>Restgæld og betaling er dine senest oplyste tal, ikke bankopdateringer. Opdatér dem, hvis lånet har ændret sig. Markedskontrollen er månedlig.</p><a class="cta" href="${monitoringEscape(marketUrl)}">Åbn din markedssammenligning →</a><p><a href="${monitoringEscape(origin+'/overvagning?id='+token)}">Opdatér dine bolig- og låneoplysninger</a></p></div>`).replace(/{{ID}}/g,token);
+  const text=['Din låneradar — '+month,issue,'Senest oplyste betaling: '+money(snapshot.currentPayment)+'/md','Restgæld: '+money(Number(ab.restgaeld)),rendered.text,snapshot.sourceLabel,'Boligværdi (estimat): '+money(snapshot.value),'Friværdi (estimat): '+money(snapshot.equity),'Markedspriserne sammenlignes på de viste vilkår; lavere betaling er ikke nødvendigvis en økonomisk besparelse.','Restgæld og betaling er senest oplyste tal. Månedlig overvågning.','Din markedssammenligning: '+marketUrl,'Opdatér tal og administrér abonnement: '+origin+'/overvagning?id='+token].join('\n');
+  return {subject:'Din låneradar — '+month,html,text,goOmlæg:signal.canAlert,besparelse:signal.monthlyReduction,snapshot,comparison,signal};
 }
+function buildMarketComparisonAlertEmail(ab,comparison,signal){
+  const origin=process.env.PUBLIC_BASE_URL||'https://www.vurderingstjekket.dk',marketUrl=origin+'/boliglaanstjek?market_token='+encodeURIComponent(managementId(ab));
+  const rendered=renderMortgageComparison(comparison),reduction=Math.round(signal.monthlyReduction).toLocaleString('da-DK'),benefit=Math.round(signal.netBenefit5Years).toLocaleString('da-DK');
+  const intro=`Den månedlige sammenligning på samme risiko og løbetid viser cirka ${reduction} kr lavere betaling pr. måned og ${benefit} kr positiv beregnet nettogevinst over fem år med de kendte omkostninger. Det er en offentlig prisberegning, ikke et personligt tilbud.`;
+  return {subject:'En markedssammenligning opfylder din valgte tærskel',html:emailWrap('<div class="hdr"><h1>Se din nye sammenligning</h1></div><div class="body"><p>'+monitoringEscape(intro)+'</p>'+rendered.html+'<a class="cta" href="'+monitoringEscape(marketUrl)+'">Se forudsætninger og kontakt →</a></div>').replace(/{{ID}}/g,encodeURIComponent(managementId(ab))),text:intro+'\n'+rendered.text+'\n'+marketUrl};
+}
+
 function buildAlertEmail(ab, snapshot) {
   const reduction=Math.round(snapshot.monthlyReduction).toLocaleString('da-DK');
   const html=emailWrap(`<div class="hdr"><h1>Din betaling kan muligvis sænkes</h1><p>${monitoringEscape(ab.adresse||'Dit boliglån')}</p></div><div class="body"><p>Den månedlige kontrol viser en beregnet reduktion i månedlig betaling på cirka <strong>${reduction} kr</strong> med afdrag. Det er ikke et bindende tilbud eller en garanti for en økonomisk besparelse.</p><p>${monitoringEscape(snapshot.basisNote)}</p><p>${monitoringEscape(snapshot.sourceLabel)}</p><p>Kontakt banken for en samlet sammenligning med indfrielseskurser, gebyrer og kreditgodkendelse.</p><a class="cta" href="https://www.vurderingstjekket.dk/boliglaanstjek">Se dine muligheder →</a></div>`).replace(/{{ID}}/g,encodeURIComponent(managementId(ab)));
@@ -929,34 +920,40 @@ function saveSager(sager) {
 const SAGER = loadSager(); // sagId → { adresse, boligtype, m2bolig, ... betalt, oprettet }
 
 // ─── Låneovervågning abonnenter ───────────────────────────────
-const ABONNENTER_FILE = path.join(__dirname, "data", "laanovervagning-abonnenter.json");
-function loadAbonnenter() {
-  try {
-    if (!fs.existsSync(path.join(__dirname, "data"))) fs.mkdirSync(path.join(__dirname, "data"), { recursive: true });
-    if (fs.existsSync(ABONNENTER_FILE)) return JSON.parse(fs.readFileSync(ABONNENTER_FILE, "utf8"));
-  } catch {}
-  return [];
+const ABONNENTER_LEGACY_FILE=path.join(__dirname,'data','laanovervagning-abonnenter.json');
+const ABONNENTER_FILE=fs.existsSync('/data')?path.join('/data','laanovervagning-abonnenter.json'):ABONNENTER_LEGACY_FILE;
+function loadAbonnenter(){
+  const read=file=>{if(!fs.existsSync(file))return [];const data=JSON.parse(fs.readFileSync(file,'utf8'));if(!Array.isArray(data))throw new Error('Invalid subscriber storage');return data;};
+  const legacy=read(ABONNENTER_LEGACY_FILE),current=ABONNENTER_FILE===ABONNENTER_LEGACY_FILE?[]:read(ABONNENTER_FILE);
+  const key=record=>record.id||record.stripeSubscriptionId||record.stripeCheckoutId||JSON.stringify(record);
+  const merged=[...new Map([...legacy,...current].map(record=>[key(record),record])).values()];
+  if(ABONNENTER_FILE!==ABONNENTER_LEGACY_FILE&&merged.length>current.length){fs.writeFileSync(ABONNENTER_FILE+'.tmp',JSON.stringify(merged),{mode:0o600});fs.renameSync(ABONNENTER_FILE+'.tmp',ABONNENTER_FILE);}
+  return merged;
 }
-function saveAbonnenter(liste) {
-  try {
-    if (!fs.existsSync(path.join(__dirname, "data"))) fs.mkdirSync(path.join(__dirname, "data"), { recursive: true });
-    fs.writeFileSync(ABONNENTER_FILE, JSON.stringify(liste, null, 2));
-  } catch (e) { console.error("saveAbonnenter fejl:", e.message); }
+function saveAbonnenter(liste){
+  try{const directory=path.dirname(ABONNENTER_FILE);if(!fs.existsSync(directory))fs.mkdirSync(directory,{recursive:true});fs.writeFileSync(ABONNENTER_FILE+'.tmp',JSON.stringify(liste),{mode:0o600});fs.renameSync(ABONNENTER_FILE+'.tmp',ABONNENTER_FILE);}
+  catch(error){console.error('Subscriber storage could not be saved');}
 }
 let ABONNENTER = loadAbonnenter(); // [{ id, email, restgaeld, rente, loebetid, laantype, adresse, ... }]
 
 // Customer bank-package orders live beside the existing persistent subscriber data.
-const BANK_ORDERS_FILE=path.join(__dirname,'data','bankpakke-orders.json');
+const BANK_ORDERS_LEGACY_FILE=path.join(__dirname,'data','bankpakke-orders.json');
+const BANK_ORDERS_FILE=fs.existsSync('/data')?path.join('/data','bankpakke-orders.json'):BANK_ORDERS_LEGACY_FILE;
 function loadBankOrders(){
-  if(!fs.existsSync(BANK_ORDERS_FILE))return {};
-  // Corrupted order storage must fail closed rather than lose paid fulfillment records.
-  return JSON.parse(fs.readFileSync(BANK_ORDERS_FILE,'utf8'));
+  const read=file=>{if(!fs.existsSync(file))return {};const data=JSON.parse(fs.readFileSync(file,'utf8'));if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('Invalid bank order storage');return data;};
+  const legacy=read(BANK_ORDERS_LEGACY_FILE),current=BANK_ORDERS_FILE===BANK_ORDERS_LEGACY_FILE?{}:read(BANK_ORDERS_FILE);
+  const merged={...legacy,...current};
+  // Copy legacy orders to the volume without deleting the original; current records win.
+  if(BANK_ORDERS_FILE!==BANK_ORDERS_LEGACY_FILE&&Object.keys(legacy).some(id=>!Object.hasOwn(current,id))){
+    fs.writeFileSync(BANK_ORDERS_FILE+'.tmp',JSON.stringify(merged),{mode:0o600});fs.renameSync(BANK_ORDERS_FILE+'.tmp',BANK_ORDERS_FILE);
+  }
+  return merged;
 }
 const BANK_ORDERS=loadBankOrders();
 function saveBankOrders(){
-  const directory=path.join(__dirname,'data');
+  const directory=path.dirname(BANK_ORDERS_FILE);
   if(!fs.existsSync(directory))fs.mkdirSync(directory,{recursive:true});
-  fs.writeFileSync(BANK_ORDERS_FILE+'.tmp',JSON.stringify(BANK_ORDERS));
+  fs.writeFileSync(BANK_ORDERS_FILE+'.tmp',JSON.stringify(BANK_ORDERS),{mode:0o600});
   fs.renameSync(BANK_ORDERS_FILE+'.tmp',BANK_ORDERS_FILE);
 }
 const BANK_DELIVERIES=new Map();
@@ -964,10 +961,14 @@ async function deliverCustomerBankPackage(co){
   const order=BANK_ORDERS[co.metadata?.bankOrderId];
   if(!order||order.checkoutId!==co.id||co.mode!=='payment'||co.payment_status!=='paid'||co.currency!=='dkk'||co.amount_total!==order.amount)
     return {verified:false,sent:false};
+  if(order.context?.marketComparison){
+    const paid=await stripe.checkout.sessions.retrieve(co.id,{expand:['payment_intent.latest_charge']});
+    if(!isPaidBankComparisonCheckout(paid,order))return {verified:false,sent:false};
+  }
   if(order.sentAt)return {verified:true,sent:true};
   if(BANK_DELIVERIES.has(co.id))return BANK_DELIVERIES.get(co.id);
   const task=(async()=>{
-    const sent=await sendEmail({to:order.email,...buildCustomerBankPackage(order.context),idempotencyKey:'bank-package-'+co.id});
+    const sent=await sendEmail({to:order.email,...buildCustomerBankPackage({...order.context,marketAccessUrl:(process.env.PUBLIC_BASE_URL||'https://www.vurderingstjekket.dk')+'/boliglaanstjek?market_checkout='+encodeURIComponent(co.id)}),idempotencyKey:'bank-package-'+co.id});
     if(!sent)return {verified:true,sent:false};
     order.sentAt=new Date().toISOString();
     try{saveBankOrders();}catch(error){delete order.sentAt;throw error;}
@@ -983,6 +984,74 @@ function subscriberFromToken(token){
   return id?ABONNENTER.find(a=>a.id===id):null;
 }
 function managementId(ab){return createManagementToken(ab.id,managementSecret)||'';}
+function comparisonContext(record,market){return {adresse:String(record.adresse||'').slice(0,250),restgaeld:Number(record.restgaeld),propertyValue:market?.markedsvaerdi??record.market?.markedsvaerdi??null,loebetid:Number(record.loebetid)};}
+async function calculateMortgageComparison(loan,goal='refinance'){
+  const now=new Date();
+  // The catalogue owns its public-source headers, timeout, in-flight coalescing and cache.
+  const catalogue=await getMortgageCatalogue({now});
+  return compareMortgageMarket({loan,offers:catalogue.offers,now,goal,coverage:catalogue.coverage});
+}
+async function paidSubscriptionReceipt(ab){
+  if(!ab||!stripe||(ab.subscriptionStatus||ab.status)!=='active'||!ab.stripeCheckoutId||!ab.stripeSubscriptionId||!ab.stripeCustomerId)return false;
+  const checkout=await stripe.checkout.sessions.retrieve(ab.stripeCheckoutId);
+  const subscription=await stripe.subscriptions.retrieve(ab.stripeSubscriptionId,{expand:['latest_invoice.payment_intent.latest_charge']});
+  return isPaidSubscriptionComparison(checkout,subscription,ab);
+}
+async function subscriberMarketComparison(ab,request={},existingMarket=null){
+  const goal=request.goal||'refinance';
+  if(!['refinance','borrow','repay'].includes(goal))throw Object.assign(new Error('Vælg en gyldig sammenligning.'),{status:400});
+  const term=Number(request.newTermYears??30);
+  if(![10,15,20,25,30,Number(ab.loebetid)].includes(term))throw Object.assign(new Error('Vælg en gyldig løbetid.'),{status:400});
+  const type=mortgagePropertyType(ab.anvKode),area=Number(ab.m2);
+  if(!type||!/^\d{4}$/.test(String(ab.postnr||''))||!(area>=20&&area<=2000))throw Object.assign(new Error('Opdatér dine boligoplysninger via det personlige link først.'),{status:422});
+  const market=existingMarket||await mortgageMarketLookup({postnr:String(ab.postnr),m2:area,type,anvKode:String(ab.anvKode),adresseId:ab.adresseId||null,address:String(ab.adresse||''),officialEV:Number(ab.officialEV)||null});
+  const loan=parseComparisonLoan({...ab,propertyValue:market.markedsvaerdi,newTermYears:term});
+  if(!loan)throw Object.assign(new Error('Bolig- eller lånegrundlaget mangler. Opdatér dine oplysninger først.'),{status:422});
+  if(goal!=='refinance'){
+    const raw=request.scenario?.newDebt;
+    const amount=typeof raw==='number'?raw:typeof raw==='string'&&/^\d+(?:\.\d+)?$/.test(raw)?Number(raw):NaN;
+    if(!Number.isFinite(amount)||amount<=0||amount>100000000||amount>loan.propertyValue*.8||
+      (goal==='borrow'?amount<=loan.restgaeld:amount>=loan.restgaeld))throw Object.assign(new Error('Angiv et gyldigt nyt lånebeløb inden for boligens belåningsgrænse.'),{status:400});
+    loan.newDebt=amount;
+  }
+  return {comparison:await calculateMortgageComparison(loan,goal),context:comparisonContext(ab,market),accessType:'subscription'};
+}
+app.post('/api/mortgage-market-preview',async(req,res)=>{
+  res.set('Cache-Control','no-store');
+  const loan=parseComparisonLoan(req.body?.loan);
+  if(!loan||(req.body?.goal&&req.body.goal!=='refinance'))return res.status(400).json({error:'Kontrollér boligværdi, lånetal og den valgte løbetid.'});
+  // Pure public-price calculation: the property lookup already consumed its daily quota.
+  // No additional property lookup, paid API or raw catalogue is exposed here.
+  try{return res.json({teaser:comparisonTeaser(await calculateMortgageComparison(loan,'refinance'))});}
+  catch{return res.status(503).json({error:'Markedspriserne kunne ikke bekræftes. Prøv igen senere.'});}
+});
+app.post('/api/mortgage-market-comparison',async(req,res)=>{
+  res.set('Cache-Control','no-store');res.set('Referrer-Policy','no-referrer');
+  if(!stripe)return res.status(503).json({error:'Adgangen kan ikke bekræftes lige nu.'});
+  const access=req.body?.access||{},checkoutId=access.checkoutId,token=access.managementToken;
+  if((!!checkoutId)===(!!token))return res.status(403).json({error:'Åbn det personlige link fra din mail eller din verificerede betaling.'});
+  try{
+    let subscriber;
+    if(token)subscriber=subscriberFromToken(token);
+    else{
+      if(typeof checkoutId!=='string'||!/^cs_(?:test_|live_)?[A-Za-z0-9]{8,200}$/.test(checkoutId))return res.status(403).json({error:'Adgangen kunne ikke bekræftes.'});
+      const checkout=await stripe.checkout.sessions.retrieve(checkoutId,{expand:['payment_intent.latest_charge']});
+      if(checkout.metadata?.type==='bankpakke'){
+        const order=BANK_ORDERS[checkout.metadata?.bankOrderId];
+        if(!isPaidBankComparisonCheckout(checkout,order))return res.status(403).json({error:'Adgangen kunne ikke bekræftes.'});
+        if(!order.context?.marketComparison)return res.status(409).json({error:'Denne betaling har ikke et gemt markedsudtræk. Kontakt os om dit køb.'});
+        return res.json({comparison:order.context.marketComparison,context:comparisonContext(order.context,order.context.market),accessType:'bankpakke',snapshot:true});
+      }
+      if(checkout.metadata?.type==='laanovervagning'){
+        subscriber=ABONNENTER.find(ab=>ab.stripeCheckoutId===checkoutId);
+        if(!subscriber&&checkout.status==='complete'&&checkout.payment_status==='paid')return res.status(409).json({error:'Betalingen er modtaget. Dit abonnement er ved at blive aktiveret. Prøv igen om lidt.'});
+      }
+    }
+    if(!await paidSubscriptionReceipt(subscriber))return res.status(403).json({error:'Et aktivt, betalt abonnement kræves til en ny sammenligning.'});
+    return res.json(await subscriberMarketComparison(subscriber,req.body));
+  }catch(error){return res.status(error.status||503).json({error:error.status?error.message:'Adgangen eller markedspriserne kunne ikke bekræftes. Prøv igen senere.'});}
+});
+
 app.get('/overvagning',(req,res)=>{
   res.set('Cache-Control','no-store');res.set('Referrer-Policy','no-referrer');
   const ab=subscriberFromToken(req.query.id);
@@ -1455,6 +1524,9 @@ app.post("/api/stripe-webhook", async (req, res) => {
           status: 'active',
           stripeCustomerId: typeof co.customer==='string'?co.customer:co.customer?.id||'',
           currentPayment: Number(co.metadata?.currentPayment)||null,
+          afdragsfriAar:co.metadata?.afdragsfriAar!==undefined&&co.metadata.afdragsfriAar!==''?Number(co.metadata.afdragsfriAar):null,
+          redemptionPrice:co.metadata?.redemptionPrice!==undefined&&co.metadata.redemptionPrice!==''?Number(co.metadata.redemptionPrice):null,
+          redemptionFee:co.metadata?.redemptionFee!==undefined&&co.metadata.redemptionFee!==''?Number(co.metadata.redemptionFee):null,
           institution:co.metadata?.institution||'',currentBidrag:co.metadata?.currentBidrag!==undefined&&co.metadata.currentBidrag!==''?Number(co.metadata.currentBidrag):null,
           m2: Number(co.metadata?.m2)||null,anvKode:co.metadata?.anvKode||'',
           adresseId:co.metadata?.adresseId||'',kommunekode:co.metadata?.kommunekode||'',officialEV:Number(co.metadata?.officialEV)||null,
@@ -1476,7 +1548,7 @@ app.post("/api/stripe-webhook", async (req, res) => {
         console.log(`✅ Overvågning tilmeldt: ${email}`);
         // Send bekræftelsesmail
         const nextMailDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString("da-DK", { day:"numeric", month:"long" });
-        const mail = buildConfirmationEmail({ email, adresse: ab.adresse, nextMailDate });
+        const mail = buildConfirmationEmail({ email, adresse: ab.adresse, nextMailDate,marketToken:managementId(ab) });
         sendEmail({ to: email, ...mail, html:mail.html.replace(/{{ID}}/g,encodeURIComponent(managementId(ab))), text:mail.text+'\n\nAdministrér dine oplysninger og næste fornyelse: https://www.vurderingstjekket.dk/overvagning?id='+encodeURIComponent(managementId(ab)) }).catch(() => {});
       }
       return;
@@ -2130,7 +2202,9 @@ app.post("/api/laanovervagning/start", async (req, res) => {
       if(!annual)return res.status(400).json({error:"Bankpakken kan kun modregnes i årspakken."});
       credit=await bankPackageAnnualCredit(stripe,b.bankpakkeCheckoutId);
     }
-    const meta={institution:['Nordea','Nykredit','Totalkredit','Realkredit Danmark','Jyske'].includes(b.institution)?b.institution:'',currentBidrag:typeof b.currentBidrag==='number'&&b.currentBidrag>=0&&b.currentBidrag<=10?String(b.currentBidrag):'',type:'laanovervagning',periode:annual?'aar':'maaned',restgaeld:String(rest),rente:String(rate),
+    const comparisonMeta={};
+    for(const field of ['afdragsfriAar','redemptionPrice','redemptionFee']){const raw=b[field],n=typeof raw==='number'?raw:typeof raw==='string'&&/^\d+(?:\.\d+)?$/.test(raw)?Number(raw):null;comparisonMeta[field]=n!==null&&Number.isFinite(n)&&n>=0&&n<=(field==='redemptionFee'?10000000:field==='redemptionPrice'?200:50)?String(n):'';}
+    const meta={...comparisonMeta,institution:['Nordea','Nykredit','Totalkredit','Realkredit Danmark','Jyske'].includes(b.institution)?b.institution:'',currentBidrag:typeof b.currentBidrag==='number'&&b.currentBidrag>=0&&b.currentBidrag<=10?String(b.currentBidrag):'',type:'laanovervagning',periode:annual?'aar':'maaned',restgaeld:String(rest),rente:String(rate),
       loebetid:String(years),currentPayment:String(current),laantype:['F1','F3','F5','fastforrentet','afdragsfri'].includes(b.laantype)?b.laantype:'fastforrentet',
       adresse:String(b.adresse||'').slice(0,250),postnr:/^\d{4}$/.test(String(b.postnr||''))?String(b.postnr):'',
       m2:String(Number(b.m2)||0),anvKode:String(b.anvKode||''),kommunekode:String(b.kommunekode||''),
@@ -2161,6 +2235,7 @@ app.post('/api/commerce/verify',async(req,res)=>{
       ['bankpakke','laanovervagning'].includes(type)&&expected>0&&co.amount_total===expected;
     if(!valid)return res.status(403).json({verified:false});
     const delivery=type==='bankpakke'?await deliverCustomerBankPackage(co):null;
+    if(type==='bankpakke'&&BANK_ORDERS[co.metadata?.bankOrderId]?.context?.marketComparison&&delivery?.verified!==true)return res.status(403).json({verified:false});
     res.json({verified:true,type,sent:delivery?.sent||false,creditAmount:type==='bankpakke'?Math.min(co.amount_total,29900):0});
   }catch{return res.status(403).json({verified:false});}
 });
@@ -2191,6 +2266,10 @@ app.post("/api/bankpakke/start", async (req, res) => {
       laantype:String(b.laantype||'fastforrentet'),market,budget:body.budget||{},
       contribution:estimateContributionOpportunity({restgaeld:rest,value:market.markedsvaerdi,anvKode:b.anvKode,currentBidrag:b.currentBidrag,targetBidrag:b.targetBidrag,oneOffCosts:b.oneOffCosts}),
       monitoring:buildMonitoringSnapshot({...b,restgaeld:rest,currentPayment:current},await fetchLiveRenter().catch(()=>({source:'fallback'})),market)}};
+    Object.assign(order.context,{postnr:String(b.postnr),m2:area,anvKode:String(b.anvKode),adresseId:b.adresseId||null});
+    const comparisonLoan=parseComparisonLoan({...b,propertyValue:market.markedsvaerdi,newTermYears:30});
+    if(!comparisonLoan)return res.status(400).json({error:'Kontrollér lånegrundlaget før betaling.'});
+    order.context.marketComparison=await calculateMortgageComparison(comparisonLoan,'refinance');
     BANK_ORDERS[id]=order;saveBankOrders();
     const co=await stripe.checkout.sessions.create({mode:'payment',payment_method_types:['card'],customer_creation:'always',
       customer_email:email,line_items:[{price_data:{currency:'dkk',unit_amount:9900,product_data:{name:'Din personlige bankforhandlingspakke',description:'Bolig- og låneoverblik, budgetskabelon og spørgsmål til banken. Sendes kun til din e-mail.'}},quantity:1}],
@@ -2629,6 +2708,7 @@ app.post("/api/cron/monthly-monitoring", async (req, res) => {
     await hydrateLegacySubscriber(ab);
     if ((ab.subscriptionStatus || ab.status) !== 'active') continue;
     try {
+      if(!await paidSubscriptionReceipt(ab))continue;
       // Same recent-sales/current-listings/explicit-EV pipeline as the dashboard.
       let boligData = null;
       const postcode=String(ab.postnr||'');
@@ -2643,12 +2723,14 @@ app.post("/api/cron/monthly-monitoring", async (req, res) => {
         } catch { /* Missing market data suppresses action alerts in the snapshot. */ }
       }
 
-      const mail = buildMonthlyEmail(ab, renter, boligData);
+      let comparison=null;
+      try{comparison=(await subscriberMarketComparison(ab,{goal:'refinance',newTermYears:Number(ab.loebetid)},boligData)).comparison;}catch{ /* No verified comparison means no action alert. */ }
+      const mail=buildMonthlyEmail(ab,renter,boligData,comparison);
 
       // Tjek om alert-mail skal sendes (og om den ikke allerede er sendt denne måned)
       const alertMaanedKey = new Date().toISOString().slice(0, 7); // "2026-11"
       if (mail.goOmlæg && mail.besparelse > 0 && ab.alertSentAt?.slice(0, 7) !== alertMaanedKey) {
-        const alertMail = buildAlertEmail(ab, mail.snapshot);
+        const alertMail = buildMarketComparisonAlertEmail(ab,mail.comparison,mail.signal);
         const ok = await sendEmail({ to: ab.email, ...alertMail, idempotencyKey:'monitor-alert-'+ab.id+'-'+alertMaanedKey });
         if (ok) { ab.alertSentAt = new Date().toISOString(); alerts++; }
       }

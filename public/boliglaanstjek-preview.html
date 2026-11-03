@@ -2372,6 +2372,7 @@ function renderResultat(d) {
       </div>
 
       <div class="blr-scenario-card">${blrScenarioMarkup(d)}</div>
+      ${typeof blrMarketShell==='function'?blrMarketShell(d):''}
 
       <!-- LTV deep-dive -->
       <details class="blr-ltv-details"><summary>Ejendom, belåning og bankpakke</summary>${renderLTVSektion(rest, rente, loeb, ltype, markedsEjd, ejd, compsCount, handler)}</details>
@@ -2831,10 +2832,15 @@ async function verifyMortgagePaymentReturn(params) {
     const r=await fetch('/api/commerce/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({checkoutId})});
     const v=await r.json();
     if(!r.ok||!v.verified||v.type!==(params.has('bankpakke')?'bankpakke':'laanovervagning'))throw new Error();
+    sessionStorage.setItem('blrMarketCheckout',checkoutId);
     if(v.type==='bankpakke'){
       sessionStorage.setItem('blrBankpakkeCheckout',checkoutId);
       const card=document.getElementById('successCard');
       if(card)card.innerHTML='<h2>Betalingen er bekræftet</h2><p>'+(v.sent?'Bankpakken er sendt til din e-mail. Tjek også din spammappe.':'Mailen er endnu ikke bekræftet sendt. Leveringen forsøges igen; kontakt os, hvis pakken ikke kommer.')+'</p><p>Du får markedsværdi, friværdi, låneoverblik, budgetark og spørgsmål til banken. Vi kontakter ingen banker.</p><p>Dit betalte beløb kan modregnes én gang i første årsbetaling. Derefter 399 kr/år.</p>';
+    }
+    const marketHolder=document.getElementById(v.type==='bankpakke'?'successCard':'p8-success');
+    if(marketHolder&&typeof blrOpenPaidMarket==='function'&&!document.getElementById('blrShowPurchasedMarket')){
+      const show=document.createElement('button');show.type='button';show.id='blrShowPurchasedMarket';show.className='btn btn-primary';show.textContent='Se din markedssammenligning';show.onclick=()=>blrOpenPaidMarket({checkoutId});marketHolder.append(show);
     }
     history.replaceState(null,'',location.pathname);
     return true;
@@ -2898,4 +2904,5 @@ async function verifyMortgagePaymentReturn(params) {
 </script>
 <script src="/mortgage-property.js"></script>
 <script src="/mortgage-scenarios.js"></script>
+<script src="/mortgage-market-ui.js"></script>
 </body></html>
