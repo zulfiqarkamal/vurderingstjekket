@@ -216,7 +216,7 @@ body::before{
 /* ── Form ───────────────────────────────────────────────────────────────── */
 .field{margin-bottom:16px;}
 .field label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;}
-.field input,.field select{
+.field input,.field select,#loanExtra input,#loanExtra select{
   width:100%;padding:12px 14px;font-size:1rem;font-family:inherit;
   background:var(--bg);border:1.5px solid var(--border);border-radius:10px;
   color:var(--text);transition:.15s;
@@ -2150,7 +2150,7 @@ async function beregn() {
   // ── Udvidede lånetyper: F1/F3/F5, fastforrentet, afdragsfri toggle ──
   const extScener = [];
   const ltypeOptions = [
-    { key: 'F1',            label: 'F1 Flekslån',   note: 'Variabel — justeres hvert år',      kursNote: '≈100' },
+    { key: 'F1',            label: 'F1 — kun visse eksisterende lån',   note: 'Betinget profilskifte/refinansiering; ikke almindeligt nyt lån',      kursNote: '≈100' },
     { key: 'F3',            label: 'F3 Flekslån',   note: 'Variabel — justeres hvert 3. år',   kursNote: '≈100' },
     { key: 'F5',            label: 'F5 Flekslån',   note: 'Variabel — justeres hvert 5. år',   kursNote: '≈100' },
     { key: 'fastforrentet', label: 'Fastforrentet', note: 'Fast rente i hele løbetiden',        kursNote: 'varierer' },
@@ -2373,7 +2373,7 @@ function renderResultat(d) {
         <ul class="blr-monitoring-feat">
           <li><span class="blr-feat-icon">✓</span>Vi holder øje med dit lån, så du ikke behøver gøre det selv</li>
           <li><span class="blr-feat-icon">✓</span>Besked når markedsrenter ændrer sig markant ift. dit lån</li>
-          <li><span class="blr-feat-icon">✓</span>F1/F3/F5 og fast rente sammenlignes ved den månedlige kontrol</li>
+          <li><span class="blr-feat-icon">✓</span>F3/F5 og fast rente sammenlignes ved den månedlige kontrol</li>
           <li><span class="blr-feat-icon">✓</span>Månedlig kontrol af dine oplyste lån og relevante ændringer</li>
           <li><span class="blr-feat-icon">✓</span>Månedlig rapport med friværdi og renteudvikling</li>
           <li><span class="blr-feat-icon">✓</span>Ingen binding — opsig når som helst</li>
@@ -2408,7 +2408,7 @@ function renderResultat(d) {
 
       <!-- Paywall / subscription CTA -->
       <div class="blr-paywall-card" id="blrPaywallCard">
-        <div class="blr-value"><p><strong>Gratis: dit overblik nu</strong><br>Analyse, F1/F3/F5/fast rente og scenarier for lån op/ned.</p><p><strong>Abonnement: løbende opfølgning</strong><br>Overvågning, personlig status og besked ved relevante ændringer. 49 kr/md eller 399 kr/år.</p><p>De gratis beregninger kræver ikke abonnement. Bankpakken til 99 kr. kan modregnes i første årsbetaling: betal derefter 300 kr. for første år. Årspakken fornyes til 399 kr/år.</p></div>
+        <div class="blr-value"><p><strong>Gratis: dit overblik nu</strong><br>Analyse, F3/F5/fast rente og scenarier for lån op/ned. F1 vises særskilt som betinget reference for eksisterende lån.</p><p><strong>Abonnement: løbende opfølgning</strong><br>Overvågning, personlig status og besked ved relevante ændringer. 49 kr/md eller 399 kr/år.</p><p>De gratis beregninger kræver ikke abonnement. Bankpakken til 99 kr. kan modregnes i første årsbetaling: betal derefter 300 kr. for første år. Årspakken fornyes til 399 kr/år.</p></div>
         <div class="blr-paywall-lock">🔔</div>
         <div class="blr-paywall-h">Få besked, når dit lån kan forbedres</div>
         <p class="blr-paywall-p">Vi kontrollerer månedligt og giver besked, når beregningen opfylder din valgte tærskel. Bed banken om et konkret tilbud.</p>

@@ -94,3 +94,5 @@ test('optional verified term and refinance date enter PDF and fifth question wit
 test('missing contribution rate never creates current lender cost from hypothetical cuts',()=>{
  const s=full();s.institution='Nordea';const p=buildCustomerBankPackage(s);assert.doesNotMatch(p.html,/Dit oplyste bidrag hos|nuværende omkostning/);assert.match(p.html,/Hypotetiske fald/);
 });
+
+test('F1 in email and PDF is a conditional existing-loan/profile reference, not a new-loan promise',()=>{const p=buildCustomerBankPackage(full());assert.match(p.text,/F1 — eksisterende\/profilskifte/);assert.match(p.text,/ikke et nyt lånevalg/);assert.match(p.text,/vis F3, F5 og fast rente/);assert.doesNotMatch(p.text,/vis F1, F3, F5 og fast rente/);assert.match(pdf(p).toString('latin1'),/profilskifte/)});
