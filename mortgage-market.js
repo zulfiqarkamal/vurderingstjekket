@@ -78,7 +78,7 @@ export function createMortgageMarketLookup({fetchJson, getCoordinates, distance,
     const koord = input.adresseId ? await getCoordinates(input.adresseId).catch(()=>null) : null;
     const subject = {...input,koord,distance};
     let sales = [], listings = [], rawSales = [], rawListings = [], soldUnavailable = false;
-    try { rawSales = await boliga(input.postnr,input.type,true);sales = mortgageComparables(rawSales,subject,true,now()); }
+    try { rawSales = [...await boliga(input.postnr,input.type,true)];sales = mortgageComparables(rawSales,subject,true,now()); }
     catch (_) { soldUnavailable = true; }
     function estimate(rows,kilde) {
       const amount = Math.round(median(rows.map(row=>row.squareMeterPrice))*input.m2);
@@ -91,7 +91,7 @@ export function createMortgageMarketLookup({fetchJson, getCoordinates, distance,
         note:[kilde==='boliga-udbud'||kilde==='boliga-omraade-udbud'?'Baseret på aktuelle udbudspriser, ikke gennemførte salg.':kilde==='boliga-omraade'?'Lokale salgspriser pr. m² × boligens areal. Størrelserne er mindre direkte sammenlignelige.':null,rows.length<3?'Lille datagrundlag; estimatet er ekstra usikkert.':null].filter(Boolean).join(' ')||null};
     }
     if (sales.length) return estimate(sales,'boliga');
-    try { rawListings=await boliga(input.postnr,input.type,false);listings = mortgageComparables(rawListings,subject,false,now()); }
+    try { rawListings=[...await boliga(input.postnr,input.type,false)];listings = mortgageComparables(rawListings,subject,false,now()); }
     catch (_) { /* Continue with local square-metre prices or the explicit EV reserve. */ }
     if (listings.length) return estimate(listings,'boliga-udbud');
     const areaSales=mortgageComparables(rawSales,{...subject,relaxSize:true},true,now());
