@@ -64,36 +64,25 @@ export async function fetchMarketBrief({fetchText=async url=>{const r=await fetc
  if(cache)inflight=job;try{const value=await job;if(cache)cached={at:+now,value};return structuredClone(value);}finally{if(cache)inflight=null;}
 }
 export function renderMarketBrief(brief,ab={},previous={}){
- const items=[],fmt=n=>Number(n).toLocaleString('da-DK',{maximumFractionDigits:2}),date=s=>new Date(s).toLocaleDateString('da-DK',{timeZone:'Europe/Copenhagen'});
- const add=(title,text,url,sourceDate)=>items.push({title,text,url,sourceDate});
- const f=brief?.forecast;
- if(f){const type=ab.underlyingLaantype||ab.laantype,key=f.values[type]?type:type==='fastforrentet'?'fixed':'CITA6',v=f.values[key];if(v){const label=key==='fixed'?'Effektiv referencerente, fast 30 år':key==='CITA6'?'CITA6 (referencerente for korte lån)':key;
- add('Renteudsigt · prognose',`Nykredit anslår ${label}: ${fmt(v.current)} % aktuelt → ${fmt(v.expected)} % ved ${date(f.targetDate)}. ${previous.forecastDate===f.date&&JSON.stringify(previous.forecastValues)===JSON.stringify(f.values)&&previous.forecastTarget===f.targetDate?'Prognosen er uændret siden din seneste mail. ':''}Det er én udbyders prognose, ikke et lånetilbud eller en sikker renteudvikling.`,BRIEF_SOURCES.forecast.url,f.date);}}
- if(brief?.europe){const g=brief.europe;add('Vækst i euroområdet · faktiske tal',`Euroområdet (20 lande): BNP ${g.period} ${g.value>0?'+':''}${fmt(g.value)} % mod kvartalet før.${g.previous!==null?' Foregående kvartal: '+fmt(g.previous)+' %.':''} ${g.value<0?'Tallene viser tilbagegang i dette kvartal.':'Tallene viser ikke tilbagegang i dette kvartal.'} Ét kvartal er ikke en samlet recessionsvurdering.`,BRIEF_SOURCES.europe.url,g.updated);}
- if(brief?.usa){const g=brief.usa;add('USA · faktiske væksttal',g.value===null?'BEA har offentliggjort nye BNP-oplysninger. Se periode og tal i kilden.':`${g.title}: ${g.value>0?'+':''}${fmt(g.value)} % i annualiseret kvartalsvækst. USA-tallet er opregnet til årstakt og kan ikke sammenlignes direkte med euroområdets kvartalstal.`,g.url,g.date);}
+ const rows=[],fmt=n=>Number(n).toLocaleString('da-DK',{maximumFractionDigits:2}),date=s=>new Date(s).toLocaleDateString('da-DK',{timeZone:'Europe/Copenhagen'});
+ const link=(name,url,when)=>'<a style="color:#607468;text-decoration:underline" href="'+escape(url)+'">'+escape(name+' '+date(when))+'</a>';
+ const add=(icon,title,fact,impact,tone='neutral',sources=[])=>rows.push({icon,title,fact,impact,tone,sources});
+ const f=brief?.forecast,type=ab.underlyingLaantype||ab.laantype,key=f?.values[type]?type:type==='fastforrentet'?'fixed':'CITA6',v=f?.values[key];
+ if(v){const delta=v.expected-v.current,label=key==='fixed'?'Fast 30 år · effektiv rente':key==='CITA6'?'CITA6 · kort reference':key;
+  const unchanged=previous.forecastDate===f.date&&JSON.stringify(previous.forecastValues)===JSON.stringify(f.values)&&previous.forecastTarget===f.targetDate;
+  add(delta<0?'↘':delta>0?'↗':'🔮','Renteprognose',label+': '+fmt(v.current)+' → '+fmt(v.expected)+' % ved '+date(f.targetDate)+(unchanged?' · uændret siden sidst':''),delta<0?'Pejler mod lavere renter. Ingen sikker besparelse.':delta>0?'Pejler mod højere renter. Følg næste rentetilpasning.':'Ingen rentelettelse i denne prognose.',delta<0?'calm':delta>0?'attention':'neutral',[[BRIEF_SOURCES.forecast.name,BRIEF_SOURCES.forecast.url,f.date]]);
+ }else add('◌','Renteprognose','Aktuel prognose kunne ikke bekræftes.','Vi angiver ingen forventet renteændring.');
  const cutoff=previous.asOf?Date.parse(previous.asOf):Date.parse(brief?.asOf||'')-35*DAY;
  const news=(brief?.news||[]).filter(i=>Date.parse(i.date)>cutoff&&Date.parse(brief.asOf)-Date.parse(i.date)<=45*DAY);
- // Prefer a policy decision; do not flood a short customer mail with speeches.
- const selected=['ecb','nationalbanken','fed'].map(id=>news.find(i=>i.id===id)).filter(Boolean);
- const policy=i=>{
-  const d=i.description;
-  if(i.id==='ecb'&&/decided to keep[\s\S]{0,100}interest rates unchanged/i.test(d))return 'ECB fastholder de pengepolitiske renter.';
-  if(i.id==='ecb'&&/decided to (?:lower|cut)[\s\S]{0,100}interest rates/i.test(d))return 'ECB sænker de pengepolitiske renter.';
-  if(i.id==='ecb'&&/decided to (?:raise|increase)[\s\S]{0,100}interest rates/i.test(d))return 'ECB hæver de pengepolitiske renter.';
-  if(i.id==='fed'&&/decided to maintain the target range/i.test(d))return 'FED fastholder sit rentemål.';
-  if(i.id==='fed'&&/decided to lower the target range/i.test(d))return 'FED sænker sit rentemål.';
-  if(i.id==='fed'&&/decided to raise the target range/i.test(d))return 'FED hæver sit rentemål.';
-  if(i.id==='ecb')return 'ECB har offentliggjort sin seneste rentebeslutning. Beslutningens retning kunne ikke bekræftes automatisk; se kilden.';
-  if(i.id==='fed')return 'FED har offentliggjort sin seneste rentebeslutning. Beslutningens retning kunne ikke bekræftes automatisk; se kilden.';
-  const sentence=i.description.match(/^.{1,250}?[.!?](?:\s|$)/)?.[0]?.trim();
-  return i.title+(sentence?' · '+sentence:'');
- };
- for(const item of selected)add('Nyt · '+BRIEF_SOURCES[item.id].name,policy(item)+(item.id==='fed'?' USA kan påvirke globale renter, men FED fastsætter ikke din danske lånerente.':''),item.url,item.date);
-
- if(!news.length)add('Nyhedskontrol',brief?.unavailable?.some(id=>['ecb','nationalbanken','fed'].includes(id))?'Nogle nyhedskilder kunne ikke kontrolleres. Det er ikke det samme som uændrede renter.':'Ingen nyere relevante centralbanknyheder fundet i de kontrollerede feeds siden sidste kontrol. Renter kan stadig have flyttet sig.');
- if(!brief?.europe||!brief?.usa)add('Væksttal · datastatus','BNP-tal kunne ikke bekræftes for '+[!brief?.europe?'euroområdet':null,!brief?.usa?'USA':null].filter(Boolean).join(' og ')+'. Vi drager ingen konklusion om recession på manglende tal.');
- if(!f)add('Renteudsigt','En tilstrækkeligt aktuel prognose kunne ikke bekræftes. Vi angiver derfor ingen forventet renteændring.');
- const context='For dig som boligejer: Svagere vækst kan dæmpe rentepresset, mens vedvarende inflation kan trække modsat. Danske korte renter er især knyttet til ECB/Nationalbanken. Ingen enkelt nyhed er i sig selv grund til at omlægge.';
- const html='<h2 style="font-size:17px;margin:24px 5px 8px">🌍 Markedet denne måned</h2>'+items.map(i=>'<div style="margin:10px 5px;font-size:13px"><strong>'+escape(i.title)+'</strong><p style="margin:4px 0">'+escape(i.text)+'</p>'+(i.url?'<a style="font-size:12px;color:#52665a" href="'+escape(i.url)+'">Kilde · '+escape(date(i.sourceDate))+'</a>':'')+'</div>').join('')+'<p style="font-size:12px;color:#64766b;margin:12px 5px">'+escape(context)+'</p>';
- return {html,text:['MARKEDET DENNE MÅNED',...items.map(i=>i.title+'\n'+i.text+(i.url?'\nKilde '+date(i.sourceDate)+': '+i.url:'')),context].join('\n\n'),snapshot:{asOf:brief?.asOf||null,forecastDate:f?.date||null,forecastTarget:f?.targetDate||null,forecastValues:f?.values||null}};
+ const decision=i=>{const d=i?.description||'';if(/decided to (?:keep[\s\S]{0,100}interest rates unchanged|maintain the target range)/i.test(d))return 'fastholder';if(/decided to (?:lower|cut)[\s\S]{0,100}(?:interest rates|the target range)/i.test(d))return 'sænker';if(/decided to (?:raise|increase)[\s\S]{0,100}(?:interest rates|the target range)/i.test(d))return 'hæver';return null;};
+ const ecb=news.find(i=>i.id==='ecb'),nb=news.find(i=>i.id==='nationalbanken'),fed=news.find(i=>i.id==='fed'),ecbDirection=decision(ecb),fedDirection=decision(fed);
+ const missingNews=!brief||brief.unavailable?.some(id=>['ecb','nationalbanken','fed'].includes(id));
+ add('🏦','ECB / Nationalbanken',ecb?(ecbDirection?'ECB '+ecbDirection+' renten.':'Ny ECB-beslutning; retning ikke bekræftet.')+(nb?' Nyt fra Nationalbanken.':''):missingNews?'Nyheder kunne ikke kontrolleres.':nb?'Nyt fra Nationalbanken. Ingen ny ECB-beslutning fundet.':'Ingen nyere centralbanknyheder fundet.',ecbDirection==='sænker'?'Kan lette rentepresset på danske korte lån.':ecbDirection==='hæver'?'Kan øge rentepresset på danske korte lån.':ecbDirection==='fastholder'?'Ingen ny rentelettelse fra ECB til danske korte lån.':'Danske korte renter følger især ECB / Nationalbanken.',ecbDirection==='hæver'?'attention':'policy',[ecb&&['ECB',ecb.url,ecb.date],nb&&['Nationalbanken',nb.url,nb.date]].filter(Boolean));
+ const g=brief?.europe;
+ add('📊','Euroområdet · BNP',g?g.period+': '+(g.value>0?'+':'')+fmt(g.value)+' % fra kvartalet før.':'BNP-tal kunne ikke bekræftes.',g?(g.value<=0?'Svag vækst kan dæmpe rentepresset.':'Vækst alene afgør ikke, om renten falder.'):'Ingen konklusion om recession på manglende tal.',g?.value<0?'attention':'europe',g?[['Eurostat',BRIEF_SOURCES.europe.url,g.updated]]:[]);
+ const u=brief?.usa,period=u?.title?.match(/(\d)(?:st|nd|rd|th) Quarter (\d{4})/i);
+ add('🌎','USA · BNP / FED',(u?(u.value===null?'BNP-tal: se BEA.':(period?period[2]+'-Q'+period[1]+': ':'')+(u.value>0?'+':'')+fmt(u.value)+' % i årstakt.'):'BNP-tal kunne ikke bekræftes.')+(fed?(fedDirection?' FED '+fedDirection+' renten.':' Ny FED-beslutning.'):''),'USA påvirker globale renter; kun indirekte dit danske lån.','usa',[u&&['BEA',u.url,u.date],fed&&['FED',fed.url,fed.date]].filter(Boolean));
+ const colors={neutral:'#f2f5f8',calm:'#eaf5ee',attention:'#fff4df',policy:'#eaf5ee',europe:'#f1eef9',usa:'#fff4e6'};
+ const html='<h2 style="font-size:16px;margin:14px 0 7px">🌍 Markedet på 30 sekunder</h2><table aria-label="Nyheder og mulig betydning for danske boligejere" style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px;line-height:1.35"><thead><tr style="background:#194d3b;color:#fff"><th scope="col" style="width:54%;text-align:left;padding:8px">Nyt / prognose</th><th scope="col" style="text-align:left;padding:8px">Mulig betydning for dig</th></tr></thead><tbody>'+rows.map(r=>'<tr><td style="padding:8px;vertical-align:top;border-bottom:3px solid #fff;background:'+colors[r.tone]+';overflow-wrap:anywhere"><strong>'+r.icon+' '+escape(r.title)+'</strong><br>'+escape(r.fact)+(r.sources.length?'<div style="font-size:10px;margin-top:3px">'+r.sources.map(a=>link(...a)).join(' · ')+'</div>':'')+'</td><td style="padding:8px;vertical-align:top;border-bottom:3px solid #fff;background:'+colors[r.tone]+';overflow-wrap:anywhere">'+escape(r.impact)+'</td></tr>').join('')+'</tbody></table><p style="font-size:10px;color:#607468;margin:5px 0">Renteudsigt: én udbyders prognose, ikke et tilbud. BNP er væksttal, ikke en recessionsprognose; USA er i årstakt, EU pr. kvartal.</p>';
+ return {html,text:['MARKEDET PÅ 30 SEKUNDER',...rows.map(r=>r.title+': '+r.fact+' → '+r.impact+(r.sources.length?'\n'+r.sources.map(a=>a[0]+' '+date(a[2])+': '+a[1]).join(' · '):'')),'Renteudsigt: én udbyders prognose, ikke et tilbud. BNP er væksttal; USA i årstakt, EU pr. kvartal.'].join('\n'),snapshot:{asOf:brief?.asOf||null,forecastDate:f?.date||null,forecastTarget:f?.targetDate||null,forecastValues:f?.values||null}};
 }
