@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeClaudeLoanResponse,OCRNormalizationError} from '../mortgage-ocr.js';
+import {normalizeClaudeLoanResponse,OCRNormalizationError,classifyOCRProviderError} from '../mortgage-ocr.js';
 const provider=text=>({content:[{type:'text',text}],stop_reason:'end_turn'});
 test('DanishOCR numbers normalize into usable typed fields',()=>{
  const r=normalizeClaudeLoanResponse(provider('```json\n{"restgaeld":"2.400.000 kr", "maanedligYdelse":"10.800,50", "rente":"3,08 %", "loebetid":"21 år", "laantype":"F3", "institution":"Nordea Kredit"}\n```'));
@@ -56,4 +56,21 @@ test('metadata supports zero and rejects invalid bidragduration and calendar dat
  const r=normalizeClaudeLoanResponse({rente:0,currentBidrag:0,afdragsfriAar:0,refinansiering:'2028-02-30'});
  assert.equal(r.currentBidrag,0);assert.equal(r.afdragsfriAar,0);assert.equal(r.refinansiering,null);
  const invalid=normalizeClaudeLoanResponse({rente:0,currentBidrag:11,afdragsfriAar:31});assert.equal(invalid.currentBidrag,null);assert.equal(invalid.afdragsfriAar,null);
+});
+
+test('provider errors classify only to fixed diagnostic categories without returning sensitive text',()=>{
+ const privateValue='SYNTHETIC_PRIVATE_INPUT_NOT_FOR_LOGS';
+ for(const [status,error,category]of [
+  [400,{type:'invalid_request_error',message:'Your credit balance is too low to access the Anthropic API. '+privateValue},'credit_balance'],
+  [401,{type:'authentication_error',message:privateValue},'auth'],
+  [403,{type:'permission_error',message:privateValue},'auth'],
+  [404,{type:'not_found_error',message:'model: unavailable '+privateValue},'model'],
+  [400,{type:'invalid_request_error',message:'Model does not exist '+privateValue},'model'],
+  [400,{type:'invalid_request_error',message:'Invalid image '+privateValue},'request'],
+  [413,{type:'request_too_large',message:privateValue},'request'],
+  [429,{type:'rate_limit_error',message:privateValue},'unavailable'],
+  [529,{type:'overloaded_error',message:privateValue},'unavailable']
+ ])assert.equal(classifyOCRProviderError(status,JSON.stringify({error,request_id:privateValue})),category);
+ for(const value of ['<html>private input</html>','notJSON',null,[],{},'x'.repeat(70000)])assert.equal(classifyOCRProviderError(503,value),'unavailable');
+ assert.equal(classifyOCRProviderError(400,'notJSON'),'request');
 });

@@ -1,4 +1,4 @@
-import { normalizeClaudeLoanResponse, OCRNormalizationError } from "./mortgage-ocr.js";
+import { normalizeClaudeLoanResponse, OCRNormalizationError, classifyOCRProviderError } from "./mortgage-ocr.js";
 import { fetchNykreditCurrentRates } from "./mortgage-current-rates.js";
 import { estimateContributionOpportunity } from "./mortgage-contribution.js";
 import { createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate } from "./mortgage-account.js";
@@ -2013,7 +2013,7 @@ app.post("/api/analyze-screenshot", async (req, res) => {
   const { image, mediaType } = req.body || {};
   if (!image || typeof image !== "string") return res.status(400).json({ error: "Mangler billede" });
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(503).json({ error: "OCR ikke konfigureret" });
+  if (!apiKey) return res.status(503).json({ error: "Billedanalysen er midlertidigt utilgængelig. Indtast lånetallene manuelt." });
 
   try {
     const isPdf = mediaType === "application/pdf";
@@ -2052,17 +2052,21 @@ app.post("/api/analyze-screenshot", async (req, res) => {
     });
 
     if (!response.ok) {
-      const err = await response.text();
-      console.warn("[OCR] Provider status:", response.status);
-      return res.status(502).json({ error: "Analyse mislykkedes" });
+      let providerBody;
+      try { providerBody = await response.text(); } catch { /* Classify by status only. */ }
+      const category = classifyOCRProviderError(response.status, providerBody);
+      console.warn("[OCR] Provider error category:", category);
+      return res.status(502).json({ error: category === 'request'
+        ? "Dokumentet kunne ikke analyseres. Prøv en mindre PDF, JPG eller PNG, eller indtast lånetallene manuelt."
+        : "Billedanalysen er midlertidigt utilgængelig. Indtast lånetallene manuelt." });
     }
 
     const data=await response.json();
     try {return res.json(normalizeClaudeLoanResponse(data));}
     catch(error){if(error instanceof OCRNormalizationError)return res.status(422).json({error:error.message});throw error;}
   } catch (err) {
-    console.warn("[OCR] Analyse utilgængelig");
-    res.status(500).json({ error: "Serverfejl ved billedanalyse" });
+    console.warn("[OCR] Provider error category:", "unavailable");
+    res.status(500).json({ error: "Billedanalysen er midlertidigt utilgængelig. Indtast lånetallene manuelt." });
   }
 });
 

@@ -1,4 +1,4 @@
-import { normalizeClaudeLoanResponse, OCRNormalizationError } from '../mortgage-ocr.js';
+import { normalizeClaudeLoanResponse, OCRNormalizationError, classifyOCRProviderError } from '../mortgage-ocr.js';
 import { fetchNykreditCurrentRates } from '../mortgage-current-rates.js';
 import { estimateContributionOpportunity } from '../mortgage-contribution.js';
 import { createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate } from '../mortgage-account.js';
@@ -30,7 +30,7 @@ function fixture(env={}){
   billingPortal={sessions:{create:async options=>{calls.portals.push(options);if(!portalResult)throw Error('Synthetic portal unavailable');return{url:'https://billing.example.invalid/session'}}}};
   webhooks={constructEvent:(body,signature)=>{if(signature!=='synthetic-signature')throw Error('bad signature');return body}};
  }
- const context=vm.createContext({express,Stripe,path,fileURLToPath,crypto,bankPackageAnnualCredit,buildMonitoringSnapshot,mortgagePropertyType,buildCustomerBankPackage,estimateContributionOpportunity,fetchNykreditCurrentRates,normalizeClaudeLoanResponse,OCRNormalizationError,createManagementToken,verifyManagementToken,renderMortgageAccount,parseMonitoringUpdate,
+ const context=vm.createContext({express,Stripe,path,fileURLToPath,crypto,bankPackageAnnualCredit,buildMonitoringSnapshot,mortgagePropertyType,buildCustomerBankPackage,estimateContributionOpportunity,fetchNykreditCurrentRates,normalizeClaudeLoanResponse,OCRNormalizationError,classifyOCRProviderError,createManagementToken,verifyManagementToken,renderMortgageAccount,parseMonitoringUpdate,
  createMortgageMarketLookup:()=>async input=>{calls.market.push(input);return{markedsvaerdi:4700000,kilde:'boligsiden-udbud',aktiveAnnoncer:8,note:'Aktuelle udbudspriser'}} ,
  fs:{existsSync:()=>false,writeFileSync(){}}, process:{env:{NODE_ENV:'test',STRIPE_SECRET_KEY:'synthetic',STRIPE_WEBHOOK_SECRET:'synthetic',ADMIN_KEY:'synthetic',RESEND_API_KEY:'synthetic-mail',...env}},
  URL,URLSearchParams,AbortController,AbortSignal,Buffer,setTimeout,clearTimeout,console:{log(){},warn(){},error(){}},fetch:async()=>{throw Error('External network prohibited')},

@@ -80,3 +80,21 @@ export function normalizeClaudeLoanResponse(response){
  return result;
 }
 
+
+// Provider messages can contain sensitive input. Return only a fixed diagnostic category.
+// Callers must never log or send the original response body to the customer.
+export function classifyOCRProviderError(status, body) {
+ let data = body;
+ if (typeof body === 'string') {
+  try { data = body.length <= 65536 ? JSON.parse(body) : null; } catch { data = null; }
+ }
+ const error = data && typeof data === 'object' && !Array.isArray(data) ? data.error : null;
+ const type = error && typeof error.type === 'string' ? error.type : '';
+ const message = error && typeof error.message === 'string' ? error.message.slice(0,4096) : '';
+ if (status === 401 || status === 403 || ['authentication_error','permission_error'].includes(type)) return 'auth';
+ if (status === 402 || /credit balance is too low|insufficient (?:credit balance|credits?)/i.test(message)) return 'credit_balance';
+ if (status === 404 || /model[^\n]*(?:not found|does not exist|not available|not supported|deprecated)/i.test(message)) return 'model';
+ if (status === 429 || status >= 500 || ['overloaded_error','api_error','rate_limit_error'].includes(type)) return 'unavailable';
+ if ([400,413,422].includes(status) || ['invalid_request_error','request_too_large'].includes(type)) return 'request';
+ return 'unavailable';
+}
