@@ -1,3 +1,4 @@
+import { normalizeClaudeLoanResponse, OCRNormalizationError } from '../mortgage-ocr.js';
 import { fetchNykreditCurrentRates } from '../mortgage-current-rates.js';
 import { estimateContributionOpportunity } from '../mortgage-contribution.js';
 import { createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate } from '../mortgage-account.js';
@@ -35,7 +36,7 @@ function fixture(extraEnv = {}) {
       return body;
     } };
   }
-  const context = vm.createContext({ fetchNykreditCurrentRates, estimateContributionOpportunity, createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate, buildCustomerBankPackage, buildMonitoringSnapshot, bankPackageAnnualCredit, createMortgageMarketLookup, mortgagePropertyType, express, Stripe, path, fileURLToPath, crypto,
+  const context = vm.createContext({ normalizeClaudeLoanResponse, OCRNormalizationError, fetchNykreditCurrentRates, estimateContributionOpportunity, createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate, buildCustomerBankPackage, buildMonitoringSnapshot, bankPackageAnnualCredit, createMortgageMarketLookup, mortgagePropertyType, express, Stripe, path, fileURLToPath, crypto,
     fs: { existsSync: file => /[\\/]public[\\/]index\.html$/.test(file), writeFileSync() { throw new Error('Disk writes prohibited'); } },
     process: { env: { STRIPE_SECRET_KEY: 'synthetic-test-key', STRIPE_WEBHOOK_SECRET: 'synthetic-test-secret', ADMIN_KEY: 'synthetic-test-admin', NODE_ENV: 'production', ...extraEnv } },
     console: { log() {}, warn() {}, error() {} }, URL, URLSearchParams, AbortController, AbortSignal,

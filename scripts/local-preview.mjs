@@ -1,3 +1,4 @@
+import { normalizeClaudeLoanResponse, OCRNormalizationError } from '../mortgage-ocr.js';
 import { fetchNykreditCurrentRates } from '../mortgage-current-rates.js';
 import { estimateContributionOpportunity } from '../mortgage-contribution.js';
 import { createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate } from '../mortgage-account.js';
@@ -60,7 +61,7 @@ export function createLocalPreview() {
   }
   const localExpress = Object.assign(() => app, { static: express.static, raw: express.raw, json: express.json, urlencoded: express.urlencoded });
   const context = vm.createContext({
-    fetchNykreditCurrentRates, estimateContributionOpportunity, createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate, buildCustomerBankPackage, buildMonitoringSnapshot, bankPackageAnnualCredit, createMortgageMarketLookup, mortgagePropertyType, express: localExpress, Stripe: MockStripe, path, fileURLToPath, crypto,
+    normalizeClaudeLoanResponse, OCRNormalizationError, fetchNykreditCurrentRates, estimateContributionOpportunity, createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate, buildCustomerBankPackage, buildMonitoringSnapshot, bankPackageAnnualCredit, createMortgageMarketLookup, mortgagePropertyType, express: localExpress, Stripe: MockStripe, path, fileURLToPath, crypto,
     // Only HTML existence checks are allowed; no customer/cache files are read.
     fs: { existsSync: file => /\.html$/.test(file) && fs.existsSync(file), writeFileSync() {} },
     process: { env: { NODE_ENV: 'development', STRIPE_SECRET_KEY: 'synthetic-local-only',

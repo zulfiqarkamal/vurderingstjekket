@@ -49,3 +49,5 @@ test('Market valuation is approximate on screen while LTV uses the full estimate
  assert.equal(m.value,4730572);
  assert.equal(m.up.find(e=>e.pct===80).debt,4730572*.8);
 });
+
+test('F1 is visible as conditional reference but cannot become best new-loan dashboard choice',()=>{const state={...d,renter:{...d.renter,F1:0}};const m=ctx.blrScenarioModel(state);assert.equal(m.lower.length,4);assert.equal(m.best.key,'F3');assert.ok(m.lower[0].payment<m.best.payment);assert.equal(m.lower[0].eligibleForNewLoan,false);assert.match(m.lower[0].label,/eksisterende\/profilskifte/);assert.match(ctx.blrScenarioMarkup(state),/Nordea tilbyder ikke nye F1-lån/)});

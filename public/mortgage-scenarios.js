@@ -3,12 +3,12 @@ function blrScenarioModel(d) {
   const value = d.markedsEjd || d.ejd;
   const baseline = Math.round(d.nuv);
   const fee = konvOmk(d.rest);
-  const types = [['F1','F1 Flekslån'],['F3','F3 Flekslån'],['F5','F5 Flekslån'],['fastforrentet','Fast rente']];
+  const types = [['F1','F1 — eksisterende/profilskifte'],['F3','F3 Flekslån'],['F5','F5 Flekslån'],['fastforrentet','Fast rente']];
   const lower = types.map(([key,label]) => {
     const rate = d.renter[key] ?? d.renter.fastforrentet;
     const payment = Math.round(mYdelse(d.rest, rate, d.loeb, bidragssats(d.rest/value*100)));
     const delta = payment-baseline;
-    return {key,label,rate,payment,delta,fee,breakEven: delta < 0 && d.ltype !== 'afdragsfri' ? Math.ceil(fee/-delta) : null};
+    return {key,label,rate,payment,delta,fee,eligibleForNewLoan:key!=='F1',breakEven: delta < 0 && d.ltype !== 'afdragsfri' ? Math.ceil(fee/-delta) : null};
   });
   const levels = [0,10,20,30,40,50,55,60,65,70,75,80];
   function at(pct) {
@@ -19,7 +19,7 @@ function blrScenarioModel(d) {
     return {pct,debt,gross,fee:cost,cash:gross-cost,payment,delta:payment-baseline,bidrag:bidragssats(pct)};
   }
   const current = d.rest/value*100;
-  return {baseline,value,lower,best:lower.reduce((a,b)=>a.payment<=b.payment?a:b),
+  return {baseline,value,lower,best:lower.filter(row=>row.eligibleForNewLoan).reduce((a,b)=>a.payment<=b.payment?a:b),
     up:levels.filter(p=>p>current+0.000001 && (p-current>=0.1 || bidragssats(p)!==bidragssats(current))).map(at),
     down:levels.filter(p=>p<current-0.000001 && (current-p>=0.1 || bidragssats(p)!==bidragssats(current))).reverse().slice(0,5).map(at)};
 }
@@ -36,9 +36,9 @@ function blrTable(headers,rows) {
 }
 function blrScenarioMarkup(d) {
   const m=blrScenarioModel(d);
-  const help={lower:'Sammenlign F1, F3, F5 og fast rente med afdrag. Se ny samlet ydelse og ændringen fra din nuværende betaling.',up:'Se ekstra gæld, beløbet du får udbetalt efter anslåede omkostninger og din nye samlede ydelse. Kræver långivers vurdering og kreditgodkendelse.',down:'Se engangsindbetalingen inklusive anslåede omkostninger, ny restgæld og samlet ydelse ved lavere belåningsgrad.'};
+  const help={lower:'Sammenlign F3, F5 og fast rente med afdrag. F1 vises kun som betinget reference for eksisterende lån/profilskifte og vælges ikke som bedste nye lån. Dette er modelscenarier med indikative renter og anslået bidrag, ikke en rangering af bankernes tilbud. Se ny samlet ydelse og ændringen fra din nuværende betaling.',up:'Se ekstra gæld, beløbet du får udbetalt efter anslåede omkostninger og din nye samlede ydelse. Kræver långivers vurdering og kreditgodkendelse.',down:'Se engangsindbetalingen inklusive anslåede omkostninger, ny restgæld og samlet ydelse ved lavere belåningsgrad.'};
   const tabs=[['lower','Lavere ydelse'],['up','Lån op'],['down','Betal ned']];
-  const hold=[`Behold nuværende lån (${d.ltype==='afdragsfri'?'uden afdrag':'med afdrag'})`,d.rente.toFixed(2)+'%',blrMoney(m.baseline)+'/md','0 kr/md'];
+  const hold=[`Behold nuværende ${['Nordea','Nykredit','Totalkredit','Realkredit Danmark','Jyske'].includes(d.institution)?blrEscape(d.institution)+'-lån':'lån'} (${d.ltype==='afdragsfri'?'uden afdrag':'med afdrag'})`,d.rente.toFixed(2)+'%',blrMoney(m.baseline)+'/md','0 kr/md'];
   const lowerRows=m.lower.map(e=>[e.label,e.rate.toFixed(2)+'%',blrMoney(e.payment)+'/md',blrDelta(e.delta)]);
   const extras=(d.extScener||[]).filter(e=>['afdragsfri','afdrag'].includes(e.key));
   const extraHtml=extras.length?`<details><summary>Afdrag og afdragsfrihed</summary>${blrTable(['Alternativ','Samlet ydelse','Ændring/md.'],extras.map(e=>[e.label,blrMoney(e.ydelse)+'/md',blrDelta(e.ydelse-m.baseline)]))}<p>Afdragsfrihed sænker betalingen, men restgælden afdrages ikke. Skift til afdrag øger betalingen og nedbringer gælden. Lavere ydelse er ikke nødvendigvis en økonomisk besparelse.</p></details>`:'';
@@ -54,7 +54,7 @@ function blrScenarioMarkup(d) {
   }
   return `<div class="blr-scenario-title">Omlægningsscenarier</div><p class="blr-scenario-intro">Hvad vil du undersøge? Nuværende betaling: <strong>${blrMoney(m.baseline)}/md</strong></p>
     <div class="blr-scenario-tabs" role="tablist" aria-label="Vælg scenarie">${tabs.map(([key,label],i)=>`<button type="button" role="tab" id="blr-tab-${key}" aria-controls="blr-panel-${key}" aria-selected="${i===0}" tabindex="${i===0?0:-1}" title="${help[key]}" onclick="blrSelectScenario('${key}')" onkeydown="blrScenarioKey(event,${i})">${label}</button>`).join('')}</div>
-    ${tabs.map(([key,label],i)=>`<section role="tabpanel" id="blr-panel-${key}" aria-labelledby="blr-tab-${key}" ${i?'hidden':''}>${basis}<details class="blr-help"><summary>ⓘ ${label} — sådan læses tallene</summary><p>${help[key]}</p></details>${key==='lower'?blrTable(['Lånetype','Rente','Samlet ydelse/md.','Ændring/md.'],[...lowerRows,hold])+`<p class="blr-cost-note">Anslåede omkostninger ved omlægning: <strong>${blrMoney(m.lower[0].fee)}</strong> én gang. Beholder du lånet, er der ingen omlægningsomkostning.</p>`+extraHtml:ltvRows(key==='up'?m.up:m.down,key==='up')}</section>`).join('')}
+    ${tabs.map(([key,label],i)=>`<section role="tabpanel" id="blr-panel-${key}" aria-labelledby="blr-tab-${key}" ${i?'hidden':''}>${basis}<details class="blr-help"><summary>ⓘ ${label} — sådan læses tallene</summary><p>${help[key]}</p></details>${key==='lower'?blrTable(['Lånetype','Rente','Samlet ydelse/md.','Ændring/md.'],[...lowerRows,hold])+`<p class="blr-help">F1 er ikke et almindeligt nyt lånevalg hos de anvendte kilder: Nordea tilbyder ikke nye F1-lån; Nykredit viser F1 ved profilskifte fra eksisterende F3/F5. Banken skal bekræfte, hvad der er muligt for dit lån.</p><p class="blr-cost-note">Anslåede omkostninger ved omlægning: <strong>${blrMoney(m.lower[0].fee)}</strong> én gang. Beholder du lånet, er der ingen omlægningsomkostning.</p>`+extraHtml:ltvRows(key==='up'?m.up:m.down,key==='up')}</section>`).join('')}
     <details class="blr-help"><summary>Forudsætninger og omkostninger</summary><p>Alle ydelser er før skat og inkluderer modellens anslåede bidrag. Minus ved månedlig ændring betyder lavere betaling; plus betyder højere betaling. Kontantbeløb: plus er penge til dig, minus er penge du skal betale.</p><p>Omkostninger anslås med den eksisterende model (15.000 kr + 0,5% af beregningsgælden). Ved omlægning og nedbetaling betales de kontant; ved lån op trækkes de fra udbetalingen. De finansieres ikke i den viste gæld. Ved fuld indfrielse vises 0 kr i modelgebyr; indfrielsesgebyrer kan forekomme.</p><p>Lån op/ned bruger din nuværende rente og resterende løbetid på hele gælden, med afdrag. Lavere ydelse viser markedsestimater med afdrag over samme løbetid. Afdragsfrie alternativer er særskilt mærket under Afdrag og afdragsfrihed. Variabel rente kan ændre ydelsen.</p><p>Kurser, indfrielsesvilkår og faktiske gebyrer er ikke kendt og er ikke med i disse scenarier. Kontakt din långiver for et bindende tilbud og kreditgodkendelse.</p></details>`;
 }
 function blrEscape(value) {return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
