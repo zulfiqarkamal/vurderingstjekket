@@ -47,7 +47,7 @@ test('localdraft is case-specific and preserves edits onreload without paidguard
 test('allownedpages show199price and keep paymentproof and brochurefeatures',()=>{
  for(const name of ['selvsalg.html','selvsalg-sag.html','selvsalg-start.html']){const page=fs.readFileSync(new URL(name,root),'utf8');assert.doesNotMatch(page,/799/);assert.match(page,/199 kr/);}
  assert.match(html,/SAG\.betalt === true/);assert.match(html,/if \(SAG\?\.betalt !== true\) return/);assert.match(html,/function printBrochure/);assert.match(html,/image\.decode/);assert.match(html,/function selectBrochurePhotos/);
- const landing=fs.readFileSync(new URL('selvsalg.html',root),'utf8');assert.match(landing,/checkout aktiveres, når vilkår er godkendt/);
+ const landing=fs.readFileSync(new URL('selvsalg.html',root),'utf8');assert.match(landing,/produktindhold og produktgrænser/);
  assert.doesNotMatch(captureDraft(),/Lys og velholdt/);
  function captureDraft(){return fixture(row).c.selvsalgAnnonceDraft(row);}
 });

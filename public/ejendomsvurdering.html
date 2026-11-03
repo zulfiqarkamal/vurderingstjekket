@@ -246,7 +246,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
   </div>
 
   <div class="warn-note">
-    <strong>Husk klagefrist.</strong> Klagefristen er typisk 90 dage eller 3 måneder fra du modtog vurderingen. Den præcise frist står i klagevejledningen i din vurdering.
+    <strong>Husk klagefrist.</strong> Brug klagefristen og betingelserne i den konkrete afgørelse og klagevejledning. En generel frist kan ikke erstatte din klagevejledning.
     Tjek din præcise frist på <a href="https://vurderingsportalen.dk" target="_blank" rel="noopener">vurderingsportalen.dk</a> inden du handler.
   </div>
 
@@ -264,7 +264,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 
 <!-- ══ STEP 4: PAYMENT ══════════════════════════════════════════ -->
 <div class="card hidden" id="card-pay">
-  <h2>Hvad kan du gøre nu?</h2>
+  <h2>Hvad kan du gøre nu?</h2><p class="note"><strong>Vurderingsår:</strong> Den nuværende rapport bruger vurderingstidspunktet 1. januar 2022 og historiske handler. Den er ikke en klageanalyse af en indekseret 2024-vurdering eller en foreløbig vurdering. Kontrollér år, afgørelsestype og klagevejledning inden køb.</p>
   <p class="sub" id="pay-sub">Få en dokumenteret analyse med prisjusteringer og et klageudkast, hvis datagrundlaget understøtter det.</p>
   <div class="note" style="margin:12px 0 16px;padding:12px 14px;">
     <strong>Dette får du i rapporten</strong><br>
@@ -275,7 +275,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
   <p class="note" style="margin:0 0 10px;font-size:0.9rem;">Bemærk: Skatteankestyrelsen opkræver selv et klagegebyr på 1.300 kr., når du sender klagen. Det er ikke med i prisen her.</p>
   <label style="display:flex;gap:8px;align-items:flex-start;margin:0 0 12px;font-size:0.95rem;cursor:pointer;">
     <input type="checkbox" id="final-check" style="margin-top:3px;">
-    <span>Jeg har modtaget min <strong>endelige</strong> ejendomsvurdering med klagevejledning. En foreløbig vurdering kan ikke påklages.</span>
+    <span>Jeg har kontrolleret, at min <strong>endelige 2022-vurdering</strong> har klagevejledning, og at fristen ikke er udløbet. Jeg bruger ikke en foreløbig eller indekseret 2024-vurdering.</span>
   </label>
   <p id="final-check-err" class="hidden" style="margin:0 0 10px;color:#b91c1c;font-size:0.9rem;">Sæt kryds, før du køber. Har du kun en foreløbig vurdering, kan du ikke klage endnu.</p>
 
@@ -304,14 +304,14 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 
 <!-- ══ TILMELDING (ingen sag) ══════════════════════════════════ -->
 <div class="card hidden" id="card-notify">
-  <h2>Få besked ved næste vurdering</h2>
-  <p class="sub">Vi sender dig en mail, når der kommer en ny vurdering, så du kan tjekke den igen gratis.</p>
+  <h2>Registrér interesse for et nyt vurderingstjek</h2>
+  <p class="sub">Registrér din e-mail til en relevant besked om vurderingstjekket. Følg også selv din Digital Post og klagevejledning; registreringen giver os ikke adgang til dem.</p>
   <div class="email-row">
     <input type="email" id="notify-email" placeholder="din@email.dk" autocomplete="email" />
-    <button id="notify-btn">Giv mig besked</button>
+    <button id="notify-btn">Registrér min interesse</button>
   </div>
   <div id="notify-msg" style="margin-top:8px;font-size:0.9rem;"></div>
-  <p style="margin:8px 0 0;font-size:0.8rem;color:var(--gray-600);">Vi bruger kun din mail til denne besked. Du kan afmelde dig når som helst.</p>
+  <p style="margin:8px 0 0;font-size:0.8rem;color:var(--gray-600);">Du får en kvittering med linket til vurderingstjekket. Din registrering opretter ikke abonnement eller låneovervågning.</p>
 </div>
 
 <!-- ══ STEP 5: KLAGE ════════════════════════════════════════════ -->
@@ -359,7 +359,7 @@ footer{text-align:center;color:var(--gray-600);font-size:0.78rem;padding:20px;}
 <footer>
   Vurderingstjekket — uafhængig analyse baseret på officielle BBR-data og offentligt tilgængeligt datagrundlag.
   Ikke juridisk rådgivning. Kontrollér altid frister og tal inden indsendelse.
-</footer>
+<p style="margin:12px 0 0;font:12px/1.5 Arial,sans-serif;text-align:center"><a href="/vigtig-information" style="color:inherit;text-decoration:underline">Vigtig information om beregninger og produktgrænser</a></p></footer>
 
 <script>
 // ─── Test mode (URL: /?test=1) ───────────────────────────────
@@ -753,7 +753,7 @@ function renderFreeResult(d, ev, m2) {
     : "";
 
   const deadlineNote = d.canBuy
-    ? `<div class="note" style="margin-top:8px;">⏰ <strong>Klagefrist:</strong> Klagefristen er typisk 90 dage eller 3 måneder fra du modtog vurderingen. Den præcise frist står i klagevejledningen i din vurdering.</div>`
+    ? `<div class="note" style="margin-top:8px;">⏰ <strong>Klagefrist:</strong> Brug klagefristen og betingelserne i den konkrete afgørelse og klagevejledning. En generel frist kan ikke erstatte din klagevejledning.</div>`
     : "";
 
   const method = lokal
@@ -843,7 +843,7 @@ async function signupNotify() {
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || "Ukendt fejl");
-    msg.textContent = "✅ Tak! Vi giver dig besked.";
+    msg.textContent = "✅ Din registrering er modtaget. Kvitteringen er sendt til din mail.";
     msg.style.color = "var(--green-600)";
   } catch (err) {
     msg.textContent = "⚠️ " + err.message;

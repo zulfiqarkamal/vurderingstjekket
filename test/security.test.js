@@ -30,6 +30,7 @@ function fixture(extraEnv = {}) {
   let emails = 0;
   let generations = 0;
   let checkoutOptions;
+  let noticeMail;
   class Stripe {
     static createFetchHttpClient() { return {}; }
     checkout = { sessions: { create: async options => {
@@ -81,7 +82,7 @@ function fixture(extraEnv = {}) {
       currency: 'dkk', amount_total: 35000, ...fields,
     } } },
   });
-  return { checkout, report, mail, complete, request, get emails() { return emails; }, get generations() { return generations; },
+  return { captureNoticeMail(sent=true){context.sendEmail=async m=>{noticeMail=m;return sent;};},get noticeMail(){return noticeMail;},checkout, report, mail, complete, request, get emails() { return emails; }, get generations() { return generations; },
     get checkoutOptions() { return checkoutOptions; },
     get staticOptions() { return staticOptions; },
     hasRoute: key => routes.has(key),
@@ -289,4 +290,11 @@ test('normal homepage routing and independent API ownership are preserved', asyn
   assert.equal(f.hasRoute('POST /api/analyze-screenshot'), true);
   const preview = await fixture({ BOLIGLAANSRADAR_URL: '' }).request('GET', '/boliglaanstjek');
   assert.match(preview.file, /boliglaanstjek-preview\.html$/);
+});
+
+
+test('free EV link request sends the requested product only and never reports failed delivery as success',async()=>{
+ const f=fixture();f.captureNoticeMail();let response=await f.request('POST','/api/notify-signup',{body:{email:'reader@example.invalid',address:'Demovej <img src=x>'}});
+ assert.equal(response.statusCode,200);assert.match(f.noticeMail.subject,/vurderingstjek/);assert.match(f.noticeMail.html,/&lt;img/);assert.doesNotMatch(f.noticeMail.html,/<img|Du er tilmeldt BoligLånsRadar|første måneds|\{\{ID\}\}/);assert.match(f.noticeMail.text,/ikke et abonnement/);
+ f.captureNoticeMail(false);response=await f.request('POST','/api/notify-signup',{body:{email:'reader@example.invalid'}});assert.equal(response.statusCode,503);assert.notEqual(response.body.ok,true);
 });
