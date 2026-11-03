@@ -1181,7 +1181,7 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
   </div>
   <div class="blr-hide-on-active">
     <div class="logo-text">BoligLånsRadar</div>
-    <span class="logo-sub">Låneoptimering for boligejere</span>
+    <span class="logo-sub">Låneoverblik for boligejere</span>
   </div>
   <!-- BLR full nav (dashboard step 4) -->
   <a class="blr-nav-brand blr-show-on-active" href="/">
@@ -1320,7 +1320,7 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
 <!-- ═══════════════════ STEP 2 — SCREENSHOT ═════════════════════════════ -->
 <div class="panel" id="panel-2">
   <div class="card">
-    <div class="card-title">Upload skærmbillede</div>
+    <div class="card-title">Upload skærmbillede</div><p class="field-hint">Ved billedanalyse sendes billedet til Anthropic (Claude) for at aflæse lånetallene. Skjul CPR-nummer, kontonumre og andre uvedkommende oplysninger. Du kan også indtaste tallene selv. <a href="/vigtig-information#data">Læs om databehandlingen</a>.</p>
     <div class="card-sub">Gå ind på dit boliglån i netbanken og tag et screenshot af oversigtssiden. Se eksemplet herunder.</div>
 
     <!-- Example netbank screenshot -->
@@ -1495,7 +1495,7 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
       <label for="loanRedemptionPriceDate" style="display:block;margin-top:10px">Dato for indfrielseskursen</label><input id="loanRedemptionPriceDate" style="display:block;width:100%;box-sizing:border-box" type="date">
       <label for="loanRefinancing" style="display:block;margin-top:10px">Næste refinansiering</label><input id="loanRefinancing" style="display:block;width:100%;box-sizing:border-box" type="date">
     </details>
-    <button class="btn btn-primary" onclick="beregn()">Beregn min optimering →</button>
+    <button class="btn btn-primary" onclick="beregn()">Beregn mine lånescenarier →</button>
     <button class="btn btn-ghost" onclick="goTo(2)">← Tilbage</button>
   </div>
 </div>
@@ -1833,7 +1833,7 @@ details[open] .blr-all-sc-toggle::before{content:'▼ ';}
       </div>
       <div class="tl-item">
         <div class="tl-dot">⏳</div>
-        <div><div class="tl-title">Bankerne kontakter dig</div><div class="tl-desc">Forventet inden for 2–3 hverdage</div></div>
+        <div><div class="tl-title">Du kontakter selv banken</div><div class="tl-desc">Brug din bankpakke som forberedelse til samtalen</div></div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">
@@ -2138,7 +2138,7 @@ async function beregn() {
   let sc = { type:'ingen', nyRente:mrente, nyYdelse:nuv, nyRest:rest, besparelse:0, omk:0, tb:null, anbefalet:false, txt:'', kurstab:0, kursgevinst:0 };
 
   if (Math.abs(rentediff) < 0.25) {
-    sc.txt = `Renteforskellen er kun ${Math.abs(rentediff).toFixed(2)} pct.point — konvertering kan ikke betale sig nu.`;
+    sc.txt = `Renteforskellen er kun ${Math.abs(rentediff).toFixed(2)} pct.point — beregningen fastslår ikke, om en omlægning er økonomisk fordelagtig.`;
   } else if (rentediff > 0) {
     // Nedkonvertering: ny rente er lavere
     const kurstab = Math.max(0, -kursDiff);
@@ -2150,8 +2150,8 @@ async function beregn() {
     const anbef   = tb !== null && tb <= 48 && ltv <= 80;
     sc = { type:'nedkonvertering', nyRente:mrente, nyYdelse:ny, nyRest:rest, besparelse:bespar,
            omk:tomk, tb, anbefalet:anbef, kurstab, kursgevinst:0,
-           txt: tb ? `Din rente (${rente.toFixed(2)}%) er ${rentediff.toFixed(2)} pp over markedet (${mrente.toFixed(2)}%). Månedlig besparelse: ${fmt(Math.round(bespar))} kr. Tilbagebetaling: ${tb} måneder.`
-                   : `Din rente (${rente.toFixed(2)}%) er ${rentediff.toFixed(2)} pp over markedet — besparelsen er marginal.` };
+           txt: tb ? `Din rente (${rente.toFixed(2)}%) er ${rentediff.toFixed(2)} pp over markedet (${mrente.toFixed(2)}%). Beregnet forskel i månedlig betaling: ${fmt(Math.round(bespar))} kr. Tilbagebetaling: ${tb} måneder.`
+                   : `Din rente (${rente.toFixed(2)}%) er ${rentediff.toFixed(2)} pp over markedet — modellens forskel i betaling er begrænset.` };
   } else {
     // Opkonvertering: din rente er lavere end marked → kursgevinst ved at omlægge til lavere kurs
     const kursgevinst = Math.max(0, kursDiff);
@@ -2163,8 +2163,8 @@ async function beregn() {
     const anbef = kursgevinst > omk * 1.5;
     sc = { type:'opkonvertering', nyRente:mrente, nyYdelse:ny, nyRest, besparelse:bespar,
            omk, tb:null, anbefalet:anbef, kurstab:0, kursgevinst,
-           txt: anbef ? `Kursgevinst ved indfrielse: ~${fmt(Math.round(kursgevinst))} kr (${(kursgevinst/rest*100).toFixed(1)}% af restgæld). Ny gæld: ~${fmt(Math.round(nyRest))} kr.`
-                      : `Kursgevinsten (~${fmt(Math.round(kursgevinst))} kr) dækker knap omkostningerne (${fmt(Math.round(omk))} kr) — overvej at vente på større rentestigninger.` };
+           txt: anbef ? `Illustrativ kursforskel i modellen: ~${fmt(Math.round(kursgevinst))} kr (${(kursgevinst/rest*100).toFixed(1)}% af restgæld). Beregnet restgæld: ~${fmt(Math.round(nyRest))} kr. Faktisk indfrielseskurs og omkostninger skal bekræftes.`
+                      : `Kursgevinsten (~${fmt(Math.round(kursgevinst))} kr) dækker knap omkostningerne (${fmt(Math.round(omk))} kr) — modellen kan ikke afgøre, om eller hvornår det er relevant at ændre lånet.` };
   }
 
   // Scenarie-sammenligning (hold vs. konverter)
@@ -2202,7 +2202,7 @@ async function beregn() {
     const nyB2 = bidragssats(ltvMarked);
     const nyYd = mYdelse(rest, r, loeb, nyB2, true);
     const bespar = Math.round(nuv - nyYd);
-    extScener.push({ key: 'afdragsfri', label: 'Afdragsfri (LTV < 60%)', rente: r, ydelse: Math.round(nyYd), besparelse: bespar, omk: konvOmk(rest), tb: bespar > 50 ? Math.ceil(konvOmk(rest)/bespar) : null, note: 'Du er under 60% — afdragsfrihed er mulig', kursNote: '≈100' });
+    extScener.push({ key: 'afdragsfri', label: 'Afdragsfri (LTV < 60%)', rente: r, ydelse: Math.round(nyYd), besparelse: bespar, omk: konvOmk(rest), tb: bespar > 50 ? Math.ceil(konvOmk(rest)/bespar) : null, note: 'Du er under 60% — afdragsfrihed afhænger af produktvilkår og bankens kreditgodkendelse', kursNote: '≈100' });
   }
 
   // ── Render panel-4 ─────────────────────────────────────────────────────
@@ -2230,20 +2230,20 @@ function renderResultat(d) {
   let heroH, heroP, heroBadge, heroBadgeClass;
   const hasConv = sc && sc.type !== 'ingen';
   if (hasConv && sc.anbefalet && sc.besparelse > 0) {
-    heroBadge = '⊙ PERSONLIG ANBEFALING';
+    heroBadge = '⊙ ILLUSTRATIV BEREGNING';
     heroBadgeClass = '';
-    heroH = 'Det kan være et godt tidspunkt at overveje omlægning';
-    heroP = `Baseret på din aktuelle rente og markedsrenter kan en omlægning spare dig op til <strong>${fmt(Math.round(sc.besparelse * 12))} kr./år</strong>. Beregningerne er vejledende — kontakt din bank for et bindende tilbud.`;
+    heroH = 'Se den beregnede forskel i betaling';
+    heroP = `Baseret på din aktuelle rente og markedsrenter viser modellen en forskel i betaling på op til <strong>${fmt(Math.round(sc.besparelse * 12))} kr./år</strong>. Beregningerne er vejledende — kontakt din bank for et bindende tilbud.`;
   } else if (ltv > 80) {
     heroBadge = '⚠ BEMÆRK';
     heroBadgeClass = 'warn';
     heroH = 'Din belåningsgrad er over 80%';
-    heroP = `Med en LTV på <strong>${ltv.toFixed(1)}%</strong> er en del af dit lån i banken til højere rente. Prioritér at nedbringe til 80% for at forbedre vilkårene.`;
+    heroP = `Med en LTV på <strong>${ltv.toFixed(1)}%</strong> ligger den beregnede samlede belåning over 80 %. Tallet viser ikke i sig selv, hvordan din gæld er fordelt på lånetyper. Se effekten af forskellige belåningsgrader i scenarierne. Den faktiske lånefordeling og vilkårene skal bekræftes af banken.`;
   } else {
     heroBadge = '◉ ANALYSE KLAR';
     heroBadgeClass = '';
     heroH = 'Dit lån er analyseret';
-    heroP = sc ? (sc.txt || 'Dit lån er vurderet til at være konkurrencedygtigt på nuværende tidspunkt.') + ' Overvåg markedet — renterne kan ændre sig.' : 'Overvåg markedet — renterne kan ændre sig.';
+    heroP = sc ? (sc.txt || 'Se de beregnede scenarier og deres forudsætninger.') + ' Overvåg markedet — renterne kan ændre sig.' : 'Overvåg markedet — renterne kan ændre sig.';
   }
 
   const scenarioModel = blrScenarioModel(d);
@@ -2419,7 +2419,7 @@ function renderResultat(d) {
         <div class="blr-sc-title">Næste skridt for dig</div>
         <div class="blr-nextstep-item">
           <div class="blr-nextstep-num">1</div>
-          <div class="blr-nextstep-text"><strong>Aktiver overvågning</strong> — få automatisk besked når det er tid til at handle.</div>
+          <div class="blr-nextstep-text"><strong>Aktiver overvågning</strong> — få besked om beregnede ændringer og forhold, du kan undersøge med banken.</div>
         </div>
         <div class="blr-nextstep-item">
           <div class="blr-nextstep-num">2</div>
@@ -2911,4 +2911,4 @@ async function verifyMortgagePaymentReturn(params) {
 <script src="/mortgage-property.js"></script>
 <script src="/mortgage-scenarios.js"></script>
 <script src="/mortgage-market-ui.js"></script>
-</body></html>
+<footer style="padding:16px;color:#52665b"><p style="margin:12px 0 0;font:12px/1.5 Arial,sans-serif;text-align:center"><a href="/vigtig-information" style="color:inherit;text-decoration:underline">Vigtig information om beregninger og produktgrænser</a></p></footer></body></html>

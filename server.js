@@ -51,6 +51,7 @@ app.use("/api/stripe-webhook", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "25mb" }));
 
 // Product routing: Railway retains all assessment APIs and its Stripe webhook.
+app.get('/vigtig-information', (_req,res)=>res.set('Cache-Control','no-cache').sendFile(path.join(__dirname,'public','vigtig-information.html')));
 app.get("/ejendomsvurdering", (_req, res) => {
   res.set("Cache-Control", "no-cache").sendFile(path.join(__dirname, "public", "ejendomsvurdering.html"));
 });
@@ -188,7 +189,7 @@ async function sendKlageMail(to, address, klageTekst, hasGrounds = true) {
 
     <p style="margin-top:20px;font-size:.85rem;color:#6b7280">⚠️ <em>${hasGrounds ? "Klageteksten" : "Analysen"} er vejledende og udgør ikke juridisk rådgivning. Kontrollér selv frister og beløb inden indsendelse.</em></p>
   </div>
-  <div class="footer">Vurderingstjekket · Spørgsmål? Svar på denne mail.</div>
+  <div class="footer">Vurderingstjekket · Spørgsmål? Svar på denne mail. · <a href="https://www.vurderingstjekket.dk/vigtig-information">Vigtig information</a></div>
 </div>
 </body>
 </html>`;
@@ -266,7 +267,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .cta{display:block;background:#0b2447;color:#fff;text-decoration:none;text-align:center;padding:14px 24px;border-radius:8px;font-weight:700;font-size:1rem;margin:24px 0}
 .news{background:#eff6ff;border-left:3px solid #3b82f6;padding:12px 16px;border-radius:0 8px 8px 0;font-size:.88rem;color:#1e40af}
 .footer{border-top:1px solid #e2e8f0;padding:18px 32px;font-size:.75rem;color:#9ca3af;text-align:center}
-</style></head><body><div class="wrap">${content}<div class="footer">Vurderingstjekket · <a href="https://vurderingstjekket.dk/boliglaanstjek" style="color:#9ca3af">Se dit overblik</a> · <a href="https://vurderingstjekket.dk/afmeld?id={{ID}}" style="color:#9ca3af">Afmeld</a></div></div></body></html>`;
+</style></head><body><div class="wrap">${content}<div class="footer">Vurderingstjekket · <a href="https://vurderingstjekket.dk/boliglaanstjek" style="color:#9ca3af">Se dit overblik</a> · <a href="https://www.vurderingstjekket.dk/vigtig-information" style="color:#9ca3af">Vigtig information</a> · <a href="https://vurderingstjekket.dk/afmeld?id={{ID}}" style="color:#9ca3af">Afmeld</a></div></div></body></html>`;
+}
+
+function buildEVLinkEmail({adresse=''}) {
+ const address=monitoringEscape(String(adresse).slice(0,250));
+ return {subject:'Din registrering til vurderingstjekket',html:'<!doctype html><html lang="da"><head><meta charset="utf-8"></head><body style="font:16px/1.6 Arial,sans-serif;max-width:650px;margin:24px auto;padding:0 16px"><h1>Din registrering er modtaget</h1>'+(address?'<p>'+address+'</p>':'')+'<p>Tak for din interesse i et nyt vurderingstjek. Her er linket, som du også selv kan bruge, når du modtager en vurdering og dens klagevejledning.</p><p><a href="https://www.vurderingstjekket.dk/ejendomsvurdering">Åbn vurderingstjekket</a></p><p>Denne mail opretter ikke et abonnement eller automatisk overvågning. Kontrollér vurderingsår og klagefrist i din afgørelse.</p><p><a href="https://www.vurderingstjekket.dk/vigtig-information">Vigtig information</a></p></body></html>',text:'Din interesse i et nyt vurderingstjek er registreret. Gem linket: https://www.vurderingstjekket.dk/ejendomsvurdering\nDenne mail opretter ikke et abonnement eller automatisk overvågning. Kontrollér vurderingsår og klagefrist i din afgørelse.'};
 }
 
 function buildConfirmationEmail({ email, adresse, nextMailDate, marketToken }) {
@@ -330,8 +336,8 @@ function buildMonthlyEmail(ab,aktuelleRenter,boligData,comparison=null,marketBri
  const other=ordered.slice(1).map(event=>'<p style="font-size:14px;padding:12px;background:#f6f8f6;border-radius:8px"><strong>'+e(event.title)+'</strong><br>'+e(short(event))+'</p>').join('');
  const comparisonSummary=examples.length?examples.length+' udbydere · '+(comparison.scopeLabel||'Undersøgte lån'):'Ingen sammenlignelige markedspriser bekræftet.';
  const loanExamples=examples.length?'<table aria-label="Lånemuligheder fra gemte låneoplysninger" style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px"><thead><tr style="background:#eef6f1"><th scope="col" style="width:46%;text-align:left;padding:8px">Udbyder</th><th scope="col" style="width:18%;text-align:right;padding:8px">Rente</th><th scope="col" style="text-align:right;padding:8px">Ydelse/md.</th></tr></thead><tbody>'+examples.map(row=>'<tr><td style="padding:8px;border-bottom:1px solid #e2ebe6;overflow-wrap:anywhere">'+e(row.providerName)+'</td><td style="padding:8px;border-bottom:1px solid #e2ebe6;text-align:right">'+e(Number(row.nominalRate).toLocaleString('da-DK'))+' %</td><td style="padding:8px;border-bottom:1px solid #e2ebe6;text-align:right;overflow-wrap:anywhere">'+e(money(row.monthlyPayment))+'</td></tr>').join('')+'</tbody></table><p style="font-size:11px;color:#607468;margin:6px 0 10px">Beregnet på dine gemte lånetal, inkl. afdrag og bidrag. '+e(ab.laantype==='afdragsfri'?'Du betaler nu uden afdrag, så tallene er ikke en ren besparelsessammenligning. ':'')+'Før skat og skifteomkostninger. Priseksempler, ikke personlige banktilbud.</p>':'';
- const html='<!doctype html><html lang="da"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f1f5f2;font-family:Arial,sans-serif;color:#20362b;line-height:1.35"><div style="max-width:680px;margin:0 auto;background:#fff"><div style="background:#194d3b;color:#fff;padding:12px 16px"><div style="font-size:11px;letter-spacing:1px;color:#cbe4d5">BOLIGLÅNSRADAR · '+e(month.toUpperCase())+'</div><h1 style="font-size:21px;line-height:1.2;margin:5px 0">'+e(propertyHeading)+'</h1></div><div style="padding:10px 14px"><div style="padding:9px;background:#eaf5ee;border-left:3px solid #194d3b;font-size:12px"><strong>🎯 '+e(lead?lead.title:'Denne måned')+'</strong><br>'+e(intro)+'</div>'+cards+'<p style="font-size:10px;color:#607468;margin:2px 5px">Restgæld '+e(money(Number(ab.restgaeld)))+' · '+e(ab.laantype==='afdragsfri'?'Betaling uden afdrag':'Senest oplyste betaling')+'</p>'+other+briefOutput.html+'<p style="font-size:11px;margin:10px 0 5px"><strong>↔ Din markedssammenligning</strong><br>'+e(comparisonSummary)+'</p>'+loanExamples+'<a href="'+e(marketUrl)+'" style="display:block;background:#194d3b;color:#fff;text-decoration:none;text-align:center;padding:11px;border-radius:7px;font-weight:700;font-size:14px">Se dine tal og lånemuligheder →</a><p style="font-size:10px;color:#607468;margin:6px 0">'+e(snapshot.sourceLabel)+'. Lånetal er senest oplyste. Nye lån med afdrag kan have højere betaling. Muligheder er før skifteomkostninger, ikke sikre besparelser.</p><p style="font-size:10px;text-align:center;margin:8px 0 0"><a style="color:#607468" href="'+e(accountUrl)+'">Ret oplysninger / administrér abonnement</a></p></div></div></body></html>';
- const text=['BOLIGLÅNSRADAR — '+month,propertyHeading,lead?lead.title:'Denne måned',intro,...statRows.map(([label,value])=>label+': '+value),'Restgæld: '+money(Number(ab.restgaeld)),ab.laantype==='afdragsfri'?'Nuværende betaling er uden afdrag.':'',...ordered.slice(1).map(event=>event.title+'\n'+short(event)),briefOutput.text,'DIN MARKEDSSAMMENLIGNING',comparisonSummary,...examples.map(row=>row.providerName+': '+Number(row.nominalRate).toLocaleString('da-DK')+' % rente · '+money(row.monthlyPayment)+'/md. inkl. afdrag og bidrag. Beregnet på gemte lånetal; før skat og skifteomkostninger, ikke et personligt banktilbud.'),'Nye lån med afdrag kan have højere betaling; før skifteomkostninger. Ingen sikker besparelse.','Se dine tal og lånemuligheder: '+marketUrl,snapshot.sourceLabel,'Lånetal er senest oplyste. Månedlig overvågning.','Administrér abonnement: '+accountUrl].filter(Boolean).join('\n');
+ const html='<!doctype html><html lang="da"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f1f5f2;font-family:Arial,sans-serif;color:#20362b;line-height:1.35"><div style="max-width:680px;margin:0 auto;background:#fff"><div style="background:#194d3b;color:#fff;padding:12px 16px"><div style="font-size:11px;letter-spacing:1px;color:#cbe4d5">BOLIGLÅNSRADAR · '+e(month.toUpperCase())+'</div><h1 style="font-size:21px;line-height:1.2;margin:5px 0">'+e(propertyHeading)+'</h1></div><div style="padding:10px 14px"><div style="padding:9px;background:#eaf5ee;border-left:3px solid #194d3b;font-size:12px"><strong>🎯 '+e(lead?lead.title:'Denne måned')+'</strong><br>'+e(intro)+'</div>'+cards+'<p style="font-size:10px;color:#607468;margin:2px 5px">Restgæld '+e(money(Number(ab.restgaeld)))+' · '+e(ab.laantype==='afdragsfri'?'Betaling uden afdrag':'Senest oplyste betaling')+'</p>'+other+briefOutput.html+'<p style="font-size:11px;margin:10px 0 5px"><strong>↔ Din markedssammenligning</strong><br>'+e(comparisonSummary)+'</p>'+loanExamples+'<a href="'+e(marketUrl)+'" style="display:block;background:#194d3b;color:#fff;text-decoration:none;text-align:center;padding:11px;border-radius:7px;font-weight:700;font-size:14px">Se dine tal og lånemuligheder →</a><p style="font-size:10px;color:#607468;margin:6px 0">'+e(snapshot.sourceLabel)+'. Lånetal er senest oplyste. Nye lån med afdrag kan have højere betaling. Muligheder er før skifteomkostninger, ikke sikre besparelser.</p><p style="font-size:10px;text-align:center;margin:8px 0 0"><a style="color:#607468" href="'+e(accountUrl)+'">Ret oplysninger / administrér abonnement</a> · <a href="https://www.vurderingstjekket.dk/vigtig-information" style="color:#607468">Vigtig information</a></p></div></div></body></html>';
+ const text=['BOLIGLÅNSRADAR — '+month,propertyHeading,lead?lead.title:'Denne måned',intro,...statRows.map(([label,value])=>label+': '+value),'Restgæld: '+money(Number(ab.restgaeld)),ab.laantype==='afdragsfri'?'Nuværende betaling er uden afdrag.':'',...ordered.slice(1).map(event=>event.title+'\n'+short(event)),briefOutput.text,'DIN MARKEDSSAMMENLIGNING',comparisonSummary,...examples.map(row=>row.providerName+': '+Number(row.nominalRate).toLocaleString('da-DK')+' % rente · '+money(row.monthlyPayment)+'/md. inkl. afdrag og bidrag. Beregnet på gemte lånetal; før skat og skifteomkostninger, ikke et personligt banktilbud.'),'Nye lån med afdrag kan have højere betaling; før skifteomkostninger. Ingen sikker besparelse.','Se dine tal og lånemuligheder: '+marketUrl,snapshot.sourceLabel,'Lånetal er senest oplyste. Månedlig overvågning.','Administrér abonnement: '+accountUrl,'Vigtig information: '+origin+'/vigtig-information'].filter(Boolean).join('\n');
  return {subject:'Din låneradar — '+(lead?headline:month),html,text,goOmlæg:signal.canAlert,besparelse:signal.monthlyReduction,snapshot,comparison,signal,events,marketBriefSnapshot:briefOutput.snapshot};
 }
 function renderBankDialogueEvents(events=[]){return events.length?'<div class="section"><h2>Værd at tage op med din bank</h2>'+events.map(event=>'<h3>'+monitoringEscape(event.title)+'</h3><p>'+monitoringEscape(event.text)+'</p>').join('')+'</div>':'';}
@@ -2391,16 +2397,15 @@ app.post("/api/selvsalg/checkout", async (req, res) => {
   }
 });
 
-app.post("/api/notify-signup", (req, res) => {
+app.post("/api/notify-signup", async (req, res) => {
   const { email, address, verdict } = req.body || {};
   if (!email || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(String(email).trim())) return res.status(400).json({ error: "Ugyldig e-mailadresse" });
   const em = String(email).trim();
   logEvent("notify_signup", { customerEmail: em, address: address || "", verdict: verdict || null });
-  res.json({ ok: true });
-  // Send bekræftelsesmail til fri-tilmelding (ingen betaling)
-  const nextMailDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString("da-DK", { day:"numeric", month:"long" });
-  const mail = buildConfirmationEmail({ email: em, adresse: address || "", nextMailDate });
-  sendEmail({ to: em, ...mail }).catch(() => {});
+  const mail = buildEVLinkEmail({ adresse: address || "" });
+  const sent=await sendEmail({ to: em, ...mail }).catch(()=>false);
+  if(!sent)return res.status(503).json({error:"Mailen kunne ikke sendes. Du kan åbne vurderingstjekket direkte på hjemmesiden."});
+  res.json({ok:true});
 });
 
 // Hvor langt kommer kunden: så købeknappen, klikkede (også når kryds mangler). Kun faste hændelser.

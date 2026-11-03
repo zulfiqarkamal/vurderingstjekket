@@ -101,7 +101,7 @@
           <p>Du har oprettet en gratis kladde. Når du er klar, kan du låse din fulde salgspakke op for en engangsbetaling.</p>
           <div class="price-row">
             <span class="price-big">199 kr.</span>
-            <span class="price-note">inkl. moms<br>Engangsbetaling — aldrig løbende</span>
+            <span class="price-note">samlet pris<br>Engangsbetaling — aldrig løbende</span>
           </div>
           <ul class="incl-list">
             <li>Fotoguide til professionelle billeder</li>
@@ -220,7 +220,7 @@
 </main>
 <article id="brochure-print" aria-hidden="true"></article>
 
-<footer><div class="wrap"><span>Vurderingstjekket · Boliglånsradar · BoligSelvsalg</span><div><a href="/ejendomsvurdering">Ejendomsvurdering</a><a href="/boliglaanstjek">Boliglånstjek</a><a href="/selvsalg">Selvsalg</a></div></div></footer>
+<footer><div class="wrap"><span>Vurderingstjekket · Boliglånsradar · BoligSelvsalg</span><div><a href="/ejendomsvurdering">Ejendomsvurdering</a><a href="/boliglaanstjek">Boliglånstjek</a><a href="/selvsalg">Selvsalg</a></div></div><p style="margin:12px 0 0;font:12px/1.5 Arial,sans-serif;text-align:center"><a href="/vigtig-information" style="color:inherit;text-decoration:underline">Vigtig information om beregninger og produktgrænser</a></p></footer>
 
 <script>
 const EXT_SERVICES = [
@@ -228,28 +228,28 @@ const EXT_SERVICES = [
     id:"es1", icon:"⚡", label:"Elinstallationsrapport",
     who:"Autoriseret elinstallatør",
     price:"Ca. 2.500–4.500 kr.",
-    desc:"Obligatorisk ved boligsalg. Rapporten dokumenterer el-installationernes tilstand og er nødvendig for, at køber kan tegne ejerskifteforsikring. Gyldighed: 1 år.",
-    where:"Find autoriserede elinstallatører på <a href=\"https://www.stifi.dk\" target=\"_blank\" rel=\"noopener\">stifi.dk</a> (Sikkerhedsstyringen) eller via din forsikrings­rådgiver."
+    desc:"Ikke generelt obligatorisk ved boligsalg. En gyldig elinstallationsrapport indgår, hvis huseftersynsordningen anvendes. Afklar relevans og gyldighed med en autoriseret elinstallatør.",
+    where:"Find autoriserede elinstallatører på <a href=\"https://www.sik.dk\" target=\"_blank\" rel=\"noopener\">sik.dk</a> (Sikkerhedsstyrelsen) eller via din forsikrings­rådgiver."
   },
   {
     id:"es2", icon:"🏠", label:"Tilstandsrapport",
     who:"Beskikket bygningssagkyndig",
     price:"Ca. 3.500–6.000 kr.",
-    desc:"Lovpligtig ved salg af hus (ikke ejerlejligheder). Rapporten gennemgår boligens synlige tilstand og er grundlag for huseforsikring til køber. Gyldighed: 6 måneder.",
-    where:"Find beskikkede bygningssagkyndige på <a href=\"https://www.boligejer.dk\" target=\"_blank\" rel=\"noopener\">boligejer.dk</a> (ejendomsmæglernes portal) eller <a href=\"https://www.tilstandsrapport.dk\" target=\"_blank\" rel=\"noopener\">tilstandsrapport.dk</a>."
+    desc:"En tilstandsrapport er ikke generelt lovpligtig ved salg. Den indgår sammen med de øvrige betingelser i den frivillige huseftersynsordning. Afklar relevans og gyldighed med en beskikket bygningssagkyndig.",
+    where:"Find beskikkede bygningssagkyndige på <a href=\"https://www.boligejer.dk\" target=\"_blank\" rel=\"noopener\">boligejer.dk</a> (offentlig boligejerinformation) eller <a href=\"https://www.tilstandsrapport.dk\" target=\"_blank\" rel=\"noopener\">tilstandsrapport.dk</a>."
   },
   {
     id:"es3", icon:"🌿", label:"Energimærke (EPC)",
     who:"Certificeret energimærkefirma",
     price:"Ca. 2.500–5.000 kr.",
-    desc:"Skal foreligge ved annoncering af boligen. Energimærket vurderer boligens energiforbrug og giver forslag til forbedringer. Gyldighed: 10 år (eller 5 år for ældre bygninger).",
+    desc:"Skal foreligge ved annoncering af boligen. Energimærket vurderer boligens energiforbrug og giver forslag til forbedringer. Kontrollér mærkets gyldighed og eventuelle undtagelser hos Energistyrelsen.",
     where:"Find certificerede firmaer via <a href=\"https://sparenergi.dk\" target=\"_blank\" rel=\"noopener\">sparenergi.dk</a> (Energistyrelsen) og sammenlign priser lokalt."
   },
   {
     id:"es4", icon:"⚖️", label:"Advokats berigtigelse",
     who:"Ejendomsadvokat",
     price:"Ca. 8.000–15.000 kr.",
-    desc:"Advokaten udarbejder købsaftale, skøde og håndterer tinglysning og pengeoverførsler. Inddrag altid advokat <strong>inden</strong> underskrift af købsaftalen. Berigtigelse er normalt købers og sælgers fælles udgift.",
+    desc:"Advokaten udarbejder købsaftale, skøde og håndterer tinglysning og pengeoverførsler. Inddrag altid advokat <strong>inden</strong> underskrift af købsaftalen. Fordelingen af udgifter og rådgiverens opgaver aftales konkret.",
     where:"Find ejendomsadvokater via <a href=\"https://www.advokatsamfundet.dk\" target=\"_blank\" rel=\"noopener\">advokatsamfundet.dk</a> (Advokatfind) — søg på 'fast ejendom' i dit postnummer."
   },
   {
@@ -270,14 +270,14 @@ const EXT_SERVICES = [
     id:"es7", icon:"🛡️", label:"Forsikring og offentlige afgifter",
     who:"Forsikringsselskab + Tinglysningsretten",
     price:"Varierer (se nedenfor)",
-    desc:"<strong>Ejerskifteforsikring</strong> tegnes normalt af køber, men sælger betaler halvdelen (ca. 5.000–12.000 kr.). <strong>Tinglysningsafgift</strong> for skøde: 1.850 kr. + 0,6 % af handelsprisen. <strong>Ejendomsværdiskat</strong>: opgøres i forbindelse med overtagelsesdatoen.",
+    desc:"<strong>Ejerskifteforsikring</strong> tegnes normalt af køber, og huseftersynsordningen kræver bl.a., at sælger skriftligt tilbyder at betale mindst halvdelen af præmien i det fremlagte forsikringstilbud. <strong>Tinglysningsafgift</strong> for skøde: 1.850 kr. + 0,6 % af handelsprisen. <strong>Ejendomsværdiskat</strong>: opgøres i forbindelse med overtagelsesdatoen.",
     where:"Ejerskifteforsikring tilbydes af store forsikringsselskaber. Tinglysningsafgifter fremgår på <a href=\"https://www.tinglysning.dk\" target=\"_blank\" rel=\"noopener\">tinglysning.dk</a>."
   },
 ];
 
 const CHECKLIST_ITEMS = [
   { id:"c1", label:"Bestem salgspris", hint:"Undersøg sammenlignelige salg i dit område de seneste 6 måneder." },
-  { id:"c2", label:"Indhent tilstandsrapport", hint:"Bestil hos en beskikket bygningssagkyndig — kræves for huseforsikring til køber." },
+  { id:"c2", label:"Indhent tilstandsrapport", hint:"Bestil hos en beskikket bygningssagkyndig — kan være relevant for huseftersynsordningen; afklar med fagperson." },
   { id:"c3", label:"Indhent elinstallationsrapport", hint:"Skal udføres af en autoriseret elinstallatør." },
   { id:"c4", label:"Indhent energimærke (EPC)", hint:"Kræves ved salg. Bestil hos et certificeret energimærkefirma." },
   { id:"c5", label:"Find advokat til berigtigelse", hint:"Advokaten opretter skøde og håndterer overdragelsen. Inddrag inden underskrift af købsaftale." },
