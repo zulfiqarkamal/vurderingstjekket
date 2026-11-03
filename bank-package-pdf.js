@@ -76,7 +76,12 @@ export function renderBankPackagePdf(report={}){
  if(facts.length>4)table([],facts.slice(4));
  for(const section of Array.isArray(report.sections)?report.sections:[]){
   if(!section||typeof section!=='object')continue;
-  if(section.title)heading(section.title);
+  if(section.title){
+   const first=Array.isArray(section.paragraphs)?section.paragraphs[0]:null;
+   const nextHeight=first?Math.min(wrap(first,W-2*M,10).length*13.5+4,BOTTOM-150):Array.isArray(section.rows)&&section.rows.length?70:0;
+   need(8+wrap(section.title,W-2*M,14,true).length*18.9+4+nextHeight);
+   heading(section.title);
+  }
   for(const p of Array.isArray(section.paragraphs)?section.paragraphs:[])paragraph(p);
   if(Array.isArray(section.rows)&&section.rows.length)table(Array.isArray(section.headers)?section.headers:[],section.rows);
  }

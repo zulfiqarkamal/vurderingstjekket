@@ -1,3 +1,6 @@
+import {parseComparisonLoan,comparisonTeaser,isPaidBankComparisonCheckout,isPaidSubscriptionComparison,comparisonAlertSignal} from '../mortgage-comparison-access.js';
+import {compareMortgageMarket} from '../mortgage-market-comparison.js';
+import {renderMortgageComparison} from '../mortgage-comparison-output.js';
 import {createDailyUsageLimiter,enforceDailyUsage} from '../anonymous-usage.js';
 import { normalizeClaudeLoanResponse, OCRNormalizationError, classifyOCRProviderError } from '../mortgage-ocr.js';
 import { fetchNykreditCurrentRates } from '../mortgage-current-rates.js';
@@ -61,7 +64,7 @@ export function createLocalPreview() {
     webhooks = { constructEvent() { throw new Error('Webhooks disabled in local preview'); } };
   }
   const localExpress = Object.assign(() => app, { static: express.static, raw: express.raw, json: express.json, urlencoded: express.urlencoded });
-  const context = vm.createContext({createDailyUsageLimiter,enforceDailyUsage,createUsageFileStore:()=>({load:()=>null,save(){}}),
+  const context = vm.createContext({parseComparisonLoan,comparisonTeaser,isPaidBankComparisonCheckout,isPaidSubscriptionComparison,comparisonAlertSignal,compareMortgageMarket,renderMortgageComparison,getMortgageCatalogue:async()=>({offers:[],coverage:{requestedLenders:4}}),createDailyUsageLimiter,enforceDailyUsage,createUsageFileStore:()=>({load:()=>null,save(){}}),
     normalizeClaudeLoanResponse, OCRNormalizationError, classifyOCRProviderError, fetchNykreditCurrentRates, estimateContributionOpportunity, createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate, buildCustomerBankPackage, buildMonitoringSnapshot, bankPackageAnnualCredit, createMortgageMarketLookup, mortgagePropertyType, express: localExpress, Stripe: MockStripe, path, fileURLToPath, crypto,
     // Only HTML existence checks are allowed; no customer/cache files are read.
     fs: { existsSync: file => /\.html$/.test(file) && fs.existsSync(file), writeFileSync() {} },

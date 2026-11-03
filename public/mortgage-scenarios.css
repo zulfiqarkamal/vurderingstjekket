@@ -38,3 +38,5 @@
 .blr-scenario-tabs button{font-family:inherit;font-size:.82rem;font-weight:600}
 
 .blr-payment-basis{background:#f1f7f4;border-left:3px solid #247254;border-radius:6px;padding:12px;font-size:.82rem;line-height:1.6}.blr-cost-note{font-size:.8rem;line-height:1.6;color:#475569;margin-top:12px}#markedsBadgeText{white-space:normal!important;overflow:visible!important}#markedsBadge{overflow:visible!important}
+
+#blrMarketCard p,#blrPaidMarket p{margin:10px 0;line-height:1.5} #blrPaidMarket h2{margin:18px 0 10px} .blr-market-cell{display:block;min-width:0;flex:1} #blrPaidMarket input,#blrPaidMarket select,#blrMarketYears{font:inherit;border:1px solid #dce7e1;border-radius:8px;box-sizing:border-box} #blrPaidMarket fieldset label{display:block;margin-top:10px}
