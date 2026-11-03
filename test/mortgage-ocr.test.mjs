@@ -74,3 +74,17 @@ test('provider errors classify only to fixed diagnostic categories without retur
  for(const value of ['<html>private input</html>','notJSON',null,[],{},'x'.repeat(70000)])assert.equal(classifyOCRProviderError(503,value),'unavailable');
  assert.equal(classifyOCRProviderError(400,'notJSON'),'request');
 });
+
+test('copied quarterpayment in a field namedmonthly cannot override its explicit quarterperiod',()=>{
+ const r=normalizeClaudeLoanResponse({naesteBetaling:'25.030 kr.',maanedligYdelse:'25.030 kr.',betalingsperiode:'kvartal'});
+ assert.equal(r.naesteBetaling,25030);assert.equal(r.maanedligYdelse,25030/3);assert.equal(r.betalingsperiode,'kvartal');
+ assert.equal(Math.round(r.maanedligYdelse*100)/100,8343.33);
+ const different=normalizeClaudeLoanResponse({naesteBetaling:25030,maanedligYdelse:9000,betalingsperiode:'kvartal'});assert.equal(different.maanedligYdelse,9000);
+});
+test('copied payments use only stated periods and unknown frequencies never divide',()=>{
+ for(const [betalingsperiode,months] of [['maaned',1],['kvartal',3],['halvaar',6],['aar',12]]){
+  const r=normalizeClaudeLoanResponse({naesteBetaling:25030,maanedligYdelse:25030,betalingsperiode});assert.equal(r.maanedligYdelse,25030/months);
+ }
+ assert.equal(normalizeClaudeLoanResponse({naesteBetaling:25030,betalingsperiode:'ukendt'}).maanedligYdelse,null);
+ assert.equal(normalizeClaudeLoanResponse({naesteBetaling:0,maanedligYdelse:0,betalingsperiode:'kvartal'}).maanedligYdelse,0);
+});

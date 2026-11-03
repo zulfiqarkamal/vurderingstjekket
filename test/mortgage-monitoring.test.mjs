@@ -8,9 +8,9 @@ const market={markedsvaerdi:4730572,kilde:'boligsiden-udbud',aktiveAnnoncer:8};
 
 test('Interest-only10800 baseline cannot become a fabricated amortizing saving',()=>{
  const r=buildMonitoringSnapshot(loan,rates,market,now);
- assert.equal(r.currentPayment,10800);assert.equal(r.rateKey,'F3');
- // Independent annuity equation: 252 payments, annual3.5% plus0.55% model contribution.
- const monthly=.0405/12;const expected=Math.round(2400000*monthly/(1-(1+monthly)**-252));
+ assert.equal(r.currentPayment,10800);assert.equal(r.rateKey,'F1');
+ // Independent annuity equation: 252 payments, annual3.2% plus0.55% model contribution.
+ const monthly=.0375/12;const expected=Math.round(2400000*monthly/(1-(1+monthly)**-252));
  assert.equal(r.newPayment,expected);assert.equal(r.delta,expected-10800);
  assert.ok(r.delta>0);assert.equal(r.canAlert,false);assert.equal(r.monthlyReduction,0);
  assert.match(r.basisNote,/uden afdrag/);assert.match(r.basisNote,/ikke en ren økonomisk besparelse/);
@@ -72,4 +72,12 @@ test('No rate or invalid debt yields missing data without NaN payments',()=>{
  assert.equal(r.newPayment,null);assert.ok(r.missingData.includes('rates'));
 });
 
-test('F1 remains a conditional reference but never wins new-loan monitoring or alerts',()=>{const r=buildMonitoringSnapshot({...loan,currentPayment:30000},{...rates,F1:0},market,now);assert.equal(r.rateKey,'F3');assert.equal(r.scenarios.find(row=>row.rateKey==='F1').eligibleForNewLoan,false);assert.ok(r.scenarios.find(row=>row.rateKey==='F1').newPayment<r.newPayment);assert.match(r.basisNote,/F1.*eksisterende lån\/profilskifte/);const onlyF1=buildMonitoringSnapshot({...loan,currentPayment:30000},{F1:0,source:'verified'},market,now);assert.equal(onlyF1.newPayment,null);assert.equal(onlyF1.rateKey,null);assert.equal(onlyF1.canAlert,false);assert.ok(onlyF1.missingData.includes('rates'));assert.equal(onlyF1.scenarios.length,1)});
+test('F1 competes alongside all four loan types without a blanket provider exclusion',()=>{
+ const r=buildMonitoringSnapshot({...loan,currentPayment:30000},{...rates,F1:0},market,now);
+ assert.equal(r.rateKey,'F1');assert.equal(r.scenarios.length,4);assert.equal(r.scenarios.find(row=>row.rateKey==='F1').eligibleForNewLoan,true);
+ const monthly=.0055/12,expected=Math.round(2400000*monthly/(1-(1+monthly)**-252));
+ assert.equal(r.newPayment,expected);assert.equal(r.canAlert,true);
+ assert.match(r.basisNote,/ikke alle banker tilbyder alle typer/);assert.doesNotMatch(r.basisNote,/kun.*profilskifte|ikke et nyt lånevalg/);
+ const onlyF1=buildMonitoringSnapshot({...loan,currentPayment:30000},{F1:0,source:'synthetic verified reference'},market,now);
+ assert.equal(onlyF1.rateKey,'F1');assert.equal(onlyF1.newPayment,expected);assert.equal(onlyF1.canAlert,true);assert.equal(onlyF1.scenarios.length,1);
+});

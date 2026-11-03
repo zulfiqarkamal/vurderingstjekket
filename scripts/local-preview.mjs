@@ -1,3 +1,4 @@
+import {createDailyUsageLimiter,enforceDailyUsage} from '../anonymous-usage.js';
 import { normalizeClaudeLoanResponse, OCRNormalizationError, classifyOCRProviderError } from '../mortgage-ocr.js';
 import { fetchNykreditCurrentRates } from '../mortgage-current-rates.js';
 import { estimateContributionOpportunity } from '../mortgage-contribution.js';
@@ -60,7 +61,7 @@ export function createLocalPreview() {
     webhooks = { constructEvent() { throw new Error('Webhooks disabled in local preview'); } };
   }
   const localExpress = Object.assign(() => app, { static: express.static, raw: express.raw, json: express.json, urlencoded: express.urlencoded });
-  const context = vm.createContext({
+  const context = vm.createContext({createDailyUsageLimiter,enforceDailyUsage,createUsageFileStore:()=>({load:()=>null,save(){}}),
     normalizeClaudeLoanResponse, OCRNormalizationError, classifyOCRProviderError, fetchNykreditCurrentRates, estimateContributionOpportunity, createManagementToken, verifyManagementToken, renderMortgageAccount, parseMonitoringUpdate, buildCustomerBankPackage, buildMonitoringSnapshot, bankPackageAnnualCredit, createMortgageMarketLookup, mortgagePropertyType, express: localExpress, Stripe: MockStripe, path, fileURLToPath, crypto,
     // Only HTML existence checks are allowed; no customer/cache files are read.
     fs: { existsSync: file => /\.html$/.test(file) && fs.existsSync(file), writeFileSync() {} },
