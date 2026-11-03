@@ -15,7 +15,7 @@ function blrScenarioModel(d) {
     const debt = value*pct/100;
     const gross = debt-d.rest;
     const cost = debt === 0 ? 0 : konvOmk(Math.max(debt,d.rest));
-    const payment = Math.round(mYdelse(debt,d.rente,d.loeb,bidragssats(pct),d.ltype==='afdragsfri'));
+    const payment = Math.round(mYdelse(debt,d.rente,d.loeb,bidragssats(pct),false));
     return {pct,debt,gross,fee:cost,cash:gross-cost,payment,delta:payment-baseline,bidrag:bidragssats(pct)};
   }
   const current = d.rest/value*100;
@@ -35,18 +35,34 @@ function blrScenarioMarkup(d) {
   const m=blrScenarioModel(d);
   const help={lower:'Sammenlign F1, F3, F5 og fast rente med afdrag. Se ny samlet ydelse og ændringen fra din nuværende betaling.',up:'Se ekstra gæld, beløbet du får udbetalt efter anslåede omkostninger og din nye samlede ydelse. Kræver långivers vurdering og kreditgodkendelse.',down:'Se engangsindbetalingen inklusive anslåede omkostninger, ny restgæld og samlet ydelse ved lavere belåningsgrad.'};
   const tabs=[['lower','Lavere ydelse'],['up','Lån op'],['down','Betal ned']];
-  const hold=['Behold nuværende lån',d.rente.toFixed(2)+'%',blrMoney(m.baseline)+'/md','0 kr/md','0 kr','—'];
-  const lowerRows=m.lower.map(e=>[e.label,e.rate.toFixed(2)+'%',blrMoney(e.payment)+'/md',blrDelta(e.delta),blrMoney(-e.fee,true),e.breakEven?e.breakEven+' md.':'Ikke relevant']);
+  const hold=[`Behold nuværende lån (${d.ltype==='afdragsfri'?'uden afdrag':'med afdrag'})`,d.rente.toFixed(2)+'%',blrMoney(m.baseline)+'/md','0 kr/md'];
+  const lowerRows=m.lower.map(e=>[e.label,e.rate.toFixed(2)+'%',blrMoney(e.payment)+'/md',blrDelta(e.delta)]);
   const extras=(d.extScener||[]).filter(e=>['afdragsfri','afdrag'].includes(e.key));
-  const extraHtml=extras.length?`<details><summary>Afdrag og afdragsfrihed</summary>${blrTable(['Alternativ','Samlet ydelse','Ændring/md.','Omkostninger'],extras.map(e=>[e.label,blrMoney(e.ydelse)+'/md',blrDelta(e.ydelse-m.baseline),blrMoney(-e.omk,true)]))}<p>Afdragsfrihed sænker betalingen, men restgælden afdrages ikke. Skift til afdrag øger betalingen og nedbringer gælden. Lavere ydelse er ikke nødvendigvis en økonomisk besparelse.</p></details>`:'';
+  const extraHtml=extras.length?`<details><summary>Afdrag og afdragsfrihed</summary>${blrTable(['Alternativ','Samlet ydelse','Ændring/md.'],extras.map(e=>[e.label,blrMoney(e.ydelse)+'/md',blrDelta(e.ydelse-m.baseline)]))}<p>Afdragsfrihed sænker betalingen, men restgælden afdrages ikke. Skift til afdrag øger betalingen og nedbringer gælden. Lavere ydelse er ikke nødvendigvis en økonomisk besparelse.</p></details>`:'';
+  const basis=`<p class="blr-payment-basis"><strong>Nye scenarier: med afdrag over ${d.loeb} år.</strong> ${d.ltype==='afdragsfri'?`Din nuværende betaling på ${blrMoney(m.baseline)}/md er <strong>uden afdrag</strong>. Grønne/røde ændringer sammenligner med denne betaling. En højere ydelse omfatter også afdrag, som reducerer din gæld — ikke kun en ekstra udgift.`:'Grønne/røde ændringer sammenligner med din nuværende betaling med afdrag.'}</p>`;
+  function costNote(rows,up=false) {
+    const fees=rows.map(e=>Math.round(e.fee));const min=Math.min(...fees),max=Math.max(...fees);
+    const amount=min===max?blrMoney(min):`${blrMoney(min)}–${blrMoney(max)}`;
+    return `<p class="blr-cost-note">Anslåede omkostninger: <strong>${amount}</strong>${up?' afhængigt af lånebeløb; allerede trukket fra udbetalingen.':'; betales én gang og er med i den viste indbetaling.'}</p>`;
+  }
   function ltvRows(rows,up) {
     if(!rows.length) return `<p class="blr-empty">${up?'Der er ikke plads til yderligere realkreditbelåning inden for 80% i dette estimat.':'Ingen lavere belåningsgrader at vise.'}</p>`;
-    return blrTable(['Belåning (LTV)',up?'Ekstra gæld':'Afdrag på gæld',up?'Udbetalt efter omk.':'Indbetaling inkl. omk.','Ny restgæld','Samlet ydelse/md.','Ændring/md.','Omkostninger'],rows.map(e=>[e.pct+'% · bidrag '+e.bidrag.toFixed(2)+'%',blrMoney(Math.abs(e.gross)),blrMoney(e.cash,true),blrMoney(e.debt),blrMoney(e.payment)+'/md',blrDelta(e.delta),blrMoney(e.fee)]));
+    return blrTable(['Belåning (LTV)',up?'Ekstra gæld':'Afdrag på gæld',up?'Udbetalt efter omk.':'Indbetaling inkl. omk.','Ny restgæld','Samlet ydelse/md.','Ændring/md.'],rows.map(e=>[e.pct+'%',blrMoney(Math.abs(e.gross)),blrMoney(e.cash,true),blrMoney(e.debt),blrMoney(e.payment)+'/md',blrDelta(e.delta)]))+costNote(rows,up);
   }
   return `<div class="blr-scenario-title">Omlægningsscenarier</div><p class="blr-scenario-intro">Hvad vil du undersøge? Nuværende betaling: <strong>${blrMoney(m.baseline)}/md</strong></p>
     <div class="blr-scenario-tabs" role="tablist" aria-label="Vælg scenarie">${tabs.map(([key,label],i)=>`<button type="button" role="tab" id="blr-tab-${key}" aria-controls="blr-panel-${key}" aria-selected="${i===0}" tabindex="${i===0?0:-1}" title="${help[key]}" onclick="blrSelectScenario('${key}')" onkeydown="blrScenarioKey(event,${i})">${label}</button>`).join('')}</div>
-    ${tabs.map(([key,label],i)=>`<section role="tabpanel" id="blr-panel-${key}" aria-labelledby="blr-tab-${key}" ${i?'hidden':''}><details class="blr-help"><summary>ⓘ ${label} — sådan læses tallene</summary><p>${help[key]}</p></details>${key==='lower'?blrTable(['Lånetype','Rente','Samlet ydelse/md.','Ændring/md.','Betales nu (omk.)','Break-even'],[...lowerRows,hold])+extraHtml:ltvRows(key==='up'?m.up:m.down,key==='up')}</section>`).join('')}
-    <details class="blr-help"><summary>Forudsætninger og omkostninger</summary><p>Alle ydelser er før skat og inkluderer det eksisterende beregningsmodells anslåede bidrag. Minus ved månedlig ændring betyder lavere betaling; plus betyder højere betaling. Kontantbeløb: plus er penge til dig, minus er penge du skal betale.</p><p>Omkostninger anslås med den eksisterende model (15.000 kr + 0,5% af beregningsgælden). Ved omlægning og nedbetaling betales de kontant; ved lån op trækkes de fra udbetalingen. De finansieres ikke i den viste gæld. Ved fuld indfrielse vises 0 kr i modelgebyr; indfrielsesgebyrer kan forekomme.</p><p>Lån op/ned bruger din nuværende rente, resterende løbetid (${d.loeb} år) og afdragsform på hele gælden. Lavere ydelse viser markedsestimater med afdrag over samme løbetid. Variabel rente kan ændre ydelsen. Bidragstrin er modelestimater; faktisk pris afhænger af långiver.</p><p>Kurser, indfrielsesvilkår og faktiske gebyrer er ikke kendt og er ikke med i disse scenarier. Break-even er kun en simpel tilbagebetaling af de anslåede gebyrer ved uændret afdragsform. Det er ikke en samlet rentabilitetsberegning. Kontakt din långiver for et bindende tilbud og kreditgodkendelse.</p></details>`;
+    ${tabs.map(([key,label],i)=>`<section role="tabpanel" id="blr-panel-${key}" aria-labelledby="blr-tab-${key}" ${i?'hidden':''}>${basis}<details class="blr-help"><summary>ⓘ ${label} — sådan læses tallene</summary><p>${help[key]}</p></details>${key==='lower'?blrTable(['Lånetype','Rente','Samlet ydelse/md.','Ændring/md.'],[...lowerRows,hold])+`<p class="blr-cost-note">Anslåede omkostninger ved omlægning: <strong>${blrMoney(m.lower[0].fee)}</strong> én gang. Beholder du lånet, er der ingen omlægningsomkostning.</p>`+extraHtml:ltvRows(key==='up'?m.up:m.down,key==='up')}</section>`).join('')}
+    <details class="blr-help"><summary>Forudsætninger og omkostninger</summary><p>Alle ydelser er før skat og inkluderer modellens anslåede bidrag. Minus ved månedlig ændring betyder lavere betaling; plus betyder højere betaling. Kontantbeløb: plus er penge til dig, minus er penge du skal betale.</p><p>Omkostninger anslås med den eksisterende model (15.000 kr + 0,5% af beregningsgælden). Ved omlægning og nedbetaling betales de kontant; ved lån op trækkes de fra udbetalingen. De finansieres ikke i den viste gæld. Ved fuld indfrielse vises 0 kr i modelgebyr; indfrielsesgebyrer kan forekomme.</p><p>Lån op/ned bruger din nuværende rente og resterende løbetid på hele gælden, med afdrag. Lavere ydelse viser markedsestimater med afdrag over samme løbetid. Afdragsfrie alternativer er særskilt mærket under Afdrag og afdragsfrihed. Variabel rente kan ændre ydelsen.</p><p>Kurser, indfrielsesvilkår og faktiske gebyrer er ikke kendt og er ikke med i disse scenarier. Kontakt din långiver for et bindende tilbud og kreditgodkendelse.</p></details>`;
+}
+function blrEscape(value) {return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function blrPropertySource(d) {
+  const p=d.property||window._mortgageProperty||{};
+  if(p.kilde==='boliga-udbud')return `${p.aktiveAnnoncer||0} sammenlignelige udbud · udbudspriser`;
+  if(p.kilde==='boliga')return `${p.compsCount||0} sammenlignelige salg · seneste 12 måneder`;
+  if(p.kilde==='boliga-omraade')return `${p.compsCount||0} lokale salg · m²-estimat · seneste 12 måneder`;
+  if(p.kilde==='boliga-omraade-udbud')return `${p.aktiveAnnoncer||0} lokale udbud · områdebaseret m²-estimat`;
+  if(p.kilde==='ev')return 'EV-reserve · Skats vurdering — handelsprisen kan være højere';
+  return d.markedsEjd?'Markedsestimat':'Markedsværdi mangler';
 }
 function blrSelectScenario(key,focus=false) {
   ['lower','up','down'].forEach(k=>{
