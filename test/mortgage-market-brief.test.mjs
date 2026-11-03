@@ -29,8 +29,8 @@ test('source failures produce honest fallback and do not prevent monthly content
 });
 test('rendering labels unchanged forecasts, skips previously covered news and escapes source text',()=>{
  const f=parseBriefForecast(forecast,now),brief={asOf:now.toISOString(),forecast:f,europe:parseEuropeGrowth(gdp,now),usa:null,news:parseBriefFeed(rss(),'ecb',now),unavailable:[]};
- const first=renderMarketBrief(brief,{laantype:'F3'});assert.match(first.text,/ECB fastholder/);assert.match(first.text,/én udbyders prognose/);assert.match(first.text,/Lavere renter kan lette ydelsen/);assert.doesNotMatch(first.text,/sikker besparelse på/);
- const next=renderMarketBrief(brief,{laantype:'F3'},first.snapshot);assert.match(next.text,/uændret siden/);assert.doesNotMatch(next.text,/ECB fastholder/);
+ const first=renderMarketBrief(brief,{laantype:'F3'});assert.match(first.text,/ECB fastholder/);assert.match(first.text,/én udbyders prognose/);assert.match(first.text,/Korte lån kan blive billigere/);assert.doesNotMatch(first.text,/sikker besparelse på/);
+ const next=renderMarketBrief(brief,{laantype:'F3'},first.snapshot);assert.match(next.text,/Uændret siden/);assert.doesNotMatch(next.text,/ECB fastholder/);
  brief.news[0].title='<img src=x onerror=alert(1)>';brief.news[0].description='';assert.doesNotMatch(renderMarketBrief(brief).html,/<img/);
 });
 test('shared fetch cache avoids per-customer source requests',async()=>{
@@ -41,4 +41,11 @@ test('shared fetch cache avoids per-customer source requests',async()=>{
 test('official policy pages enrich headlines once; unavailable pages keep honest fallback',async()=>{
  let count=0;const b=await fetchMarketBrief({now,cache:false,fetchText:async url=>{count++;if(url.includes('/press/a'))return '<main>The Governing Council decided to lower the three key interest rates by 25 basis points.</main>';if(url.endsWith('press.html'))return rss();throw Error('offline');}});
  assert.equal(count,7);assert.match(renderMarketBrief(b).text,/ECB sænker/);assert.equal(b.unavailable.includes('ecb'),false);
+});
+
+test('customer outlook uses the nearest published horizon, never a later fall to describe a near-term rise',()=>{
+ const two=forecast.replace('<th>30-09-27</th>','<th>30-12-26</th><th>30-09-27</th>').replace('<td>2,9%</td>','<td>3,5%</td><td>2,9%</td>');
+ const f=parseBriefForecast(two,now);assert.equal(f.values.F3.expected,2.9);assert.equal(f.nearTerm.values.F3.expected,3.5);
+ const out=renderMarketBrief({asOf:now.toISOString(),forecast:f,news:[],unavailable:[]},{laantype:'F3'});
+ assert.match(out.text,/Nykredit forventer renten på F3-lån højere frem mod 30.12.2026/);assert.match(out.text,/Fra 3,3 % nu til 3,5 %/);assert.doesNotMatch(out.text,/Korte lån kan blive billigere/);assert.equal(out.snapshot.forecastTarget,'2026-12-30T00:00:00.000Z');
 });
