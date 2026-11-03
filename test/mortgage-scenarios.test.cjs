@@ -42,3 +42,10 @@ test('Interest-only comparison visibly explains principal repayments and reports
  const down=markup.split('id="blr-panel-down"')[1].split('</section>')[0];
  assert.doesNotMatch(down,/bidrag/);assert.doesNotMatch(down,/<th[^>]*>Omkostninger/);
 });
+
+test('Market valuation is approximate on screen while LTV uses the full estimate',()=>{
+ assert.equal(ctx.blrPropertyAmount(4730572),'ca. 4,7 mio. kr');
+ const m=ctx.blrScenarioModel({...d,ejd:4730572});
+ assert.equal(m.value,4730572);
+ assert.equal(m.up.find(e=>e.pct===80).debt,4730572*.8);
+});

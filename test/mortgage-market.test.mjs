@@ -72,3 +72,19 @@ test('Reserve provider rejects wrong postcode, wrong property type and stale lis
   if(url.includes('api.boliga.dk'))throw Error('blocked');return {totalHits:3,cases:[{...base,addressType:'condo'},{...base,address:{...base.address,zipCode:9998}},{...base,daysListed:{days:400}}]};
  }});const result=await lookup({...subject,officialEV:4200000});assert.equal(result.kilde,'ev');assert.equal(result.markedsvaerdi,4200000);
 });
+
+
+test('Nonempty but unusable primary listings do not bypass fresh independent listings',async()=>{
+ const urls=[];
+ const lookup=createMortgageMarketLookup({now:()=>date,getCoordinates:async()=>null,distance:()=>0,fetchJson:async url=>{
+  urls.push(url);
+  if(url.includes('/sold/'))return {results:[]};
+  if(url.includes('api.boliga.dk'))return {results:[sold(1,{createdDate:'2020-01-01'})]};
+  return {totalHits:1,cases:[{caseID:'fresh',status:'open',addressType:'villa',address:{roadName:'Demovej',houseNumber:'20',zipCode:9999,livingArea:150},priceCash:4500000,daysListed:{days:10}}]};
+ }});
+ const result=await lookup({...subject,officialEV:2000000});
+ assert.equal(result.kilde,'boligsiden-udbud');assert.equal(result.markedsvaerdi,4500000);
+ assert.equal(result.aktiveAnnoncer,1);assert.ok(urls.some(url=>url.includes('boligsiden')));
+ await lookup({...subject,m2:160,officialEV:2000000});
+ assert.equal(urls.filter(url=>url.includes('boligsiden')).length,1,'independent source rows are cached');
+});

@@ -13,14 +13,15 @@ test('real Express preview serves both products and runs the assessment with moc
   const post = (route, body) => request(route, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin }, body: JSON.stringify(body) });
   const home = await (await request('/')).text();
   assert.match(home, /Ejendomsvurdering/);
-  assert.match(home, /Boliglånstjek/);
+  assert.match(home, /BoligLånsRadar/);
   assert.match(home, /LOKAL DEMO/);
   const form = await (await request('/ejendomsvurdering')).text();
   assert.match(form, /id="address-input"/);
   assert.match(form, /LOKAL DEMO/);
   const mortgage = await request('/boliglaanstjek');
-  assert.equal(mortgage.status, 302);
-  assert.equal(mortgage.headers.get('location'), 'https://boliglansradar.gamma7th.workers.dev/');
+  assert.equal(mortgage.status, 200);
+  assert.equal(mortgage.headers.get('location'), null);
+  assert.match(await mortgage.text(), /id="panel-1"/);
   const suggestions = await (await request('/api/adresse?q=demo')).json();
   assert.equal(suggestions.suggestions[0].adresseId, 'local-address');
   const bbr = await (await request('/api/bbr?husnummerId=local-building')).json();
