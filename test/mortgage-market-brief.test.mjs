@@ -25,11 +25,11 @@ test('GDP validates region and basis, preserves prior quarter without inventing 
 test('source failures produce honest fallback and do not prevent monthly content',async()=>{
  let calls=0;const brief=await fetchMarketBrief({now,cache:false,fetchText:async()=>{calls++;throw Error('offline');}});
  assert.equal(calls,6);assert.equal(brief.unavailable.length,6);
- const out=renderMarketBrief(brief);assert.match(out.text,/kunne ikke kontrolleres/);assert.match(out.text,/ingen forventet renteændring/);assert.match(out.text,/ingen konklusion om recession/);
+ const out=renderMarketBrief(brief);assert.match(out.text,/kunne ikke kontrolleres/);assert.match(out.text,/ingen forventet renteændring/);assert.match(out.text,/ingen konklusion om recession/i);
 });
 test('rendering labels unchanged forecasts, skips previously covered news and escapes source text',()=>{
  const f=parseBriefForecast(forecast,now),brief={asOf:now.toISOString(),forecast:f,europe:parseEuropeGrowth(gdp,now),usa:null,news:parseBriefFeed(rss(),'ecb',now),unavailable:[]};
- const first=renderMarketBrief(brief,{laantype:'F3'});assert.match(first.text,/ECB fastholder/);assert.match(first.text,/én udbyders prognose/);
+ const first=renderMarketBrief(brief,{laantype:'F3'});assert.match(first.text,/ECB fastholder/);assert.match(first.text,/én udbyders prognose/);assert.match(first.text,/Pejler mod lavere renter/);assert.doesNotMatch(first.text,/sikker besparelse på/);
  const next=renderMarketBrief(brief,{laantype:'F3'},first.snapshot);assert.match(next.text,/uændret siden/);assert.doesNotMatch(next.text,/ECB fastholder/);
  brief.news[0].title='<img src=x onerror=alert(1)>';brief.news[0].description='';assert.doesNotMatch(renderMarketBrief(brief).html,/<img/);
 });
