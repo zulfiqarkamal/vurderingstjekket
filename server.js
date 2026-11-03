@@ -1,3 +1,4 @@
+import {fetchMarketBrief,renderMarketBrief} from './mortgage-market-brief.js';
 import {parseComparisonLoan,comparisonTeaser,isPaidBankComparisonCheckout,isPaidSubscriptionComparison,comparisonAlertSignal} from './mortgage-comparison-access.js';
 import {getMortgageCatalogue} from './mortgage-lender-catalogue.js';
 import {compareMortgageMarket} from './mortgage-market-comparison.js';
@@ -306,18 +307,19 @@ function beregnMaanedligYdelse(restgaeld, renteAarlig, loebetidAar) {
 function monitoringEscape(value) {
   return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function buildMonthlyEmail(ab,aktuelleRenter,boligData,comparison=null){
+function buildMonthlyEmail(ab,aktuelleRenter,boligData,comparison=null,marketBrief=null){
  const snapshot=buildMonitoringSnapshot(ab,aktuelleRenter,boligData||{}),signal=comparisonAlertSignal(comparison,ab),events=buildMonitoringEvents(ab,boligData||{},comparison);
  const e=monitoringEscape,money=n=>typeof n==='number'&&Number.isFinite(n)?Math.round(n).toLocaleString('da-DK')+' kr.':'Ikke oplyst';
  const month=new Date().toLocaleString('da-DK',{month:'long',year:'numeric',timeZone:'Europe/Copenhagen'});
  const token=encodeURIComponent(managementId(ab)),origin=process.env.PUBLIC_BASE_URL||'https://www.vurderingstjekket.dk';
  const marketUrl=origin+'/boliglaanstjek?market_token='+token,accountUrl=origin+'/overvagning?id='+token;
  const priority={deadline:0,interest_only_end:1,refinancing:2,payment:3,debt:4,conversion_review:5,ltv:6};
- const ordered=[...events].sort((a,b)=>(priority[a.kind]??9)-(priority[b.kind]??9));
+ const ordered=events.filter(event=>!Object.hasOwn(ab.monitoringEventsSent||{},event.key)).sort((a,b)=>(priority[a.kind]??9)-(priority[b.kind]??9));
  const lead=ordered[0];
+ const briefOutput=renderMarketBrief(marketBrief,ab,ab.lastMarketBrief||{});
  const ltv=snapshot.value>0&&Number(ab.restgaeld)>0?Number(ab.restgaeld)/snapshot.value*100:null;
  const short=event=>event.kind==='ltv'?'Din estimerede belåning er højst '+event.threshold+' %. Bed banken undersøge, om en ny vurdering kan give bedre bidragsvilkår. En lavere belåning giver ikke automatisk lavere bidrag, og banken skal godkende værdien.':event.text;
- const headline=lead?lead.kind==='ltv'?'Din belåning er værd at tage op med banken':lead.title:'Dit boliglån — månedens overblik';
+ const headline=lead?lead.kind==='ltv'?'Din belåning er værd at tage op med banken':lead.title:'Din bolig og renterne — månedens overblik';
  const intro=lead?short(lead):'Vi har gennemgået de tilgængelige priser og dine gemte oplysninger. Denne kontrol giver ikke grundlag for en ny mulighedsbesked. Dit overblik og de undersøgte lånemuligheder ligger klar.';
  const question=lead?.kind==='ltv'?'Kan I vurdere min bolig på ny og beregne, om min belåningsgrad giver mulighed for lavere bidrag — og hvad en eventuel ændring koster?':null;
  const statRows=[['🏠 Boligværdi · estimat',money(snapshot.value)],['📊 Belåningsgrad',ltv===null?'Ikke oplyst':ltv.toLocaleString('da-DK',{maximumFractionDigits:1})+' %'],['🔑 Friværdi · estimat',money(snapshot.equity)],['💳 Din betaling nu',money(snapshot.currentPayment)+'/md.']];
@@ -327,9 +329,9 @@ function buildMonthlyEmail(ab,aktuelleRenter,boligData,comparison=null){
  const byProvider=new Map();for(const row of rows){const id=row.providerId||row.providerName;if(!byProvider.has(id))byProvider.set(id,row);}const examples=[...byProvider.values()].slice(0,3);
  const table=examples.length?'<h2 style="font-size:17px;margin:24px 0 6px">↔ Din markedssammenligning</h2><p style="font-size:13px;color:#52665a;margin:0 0 10px">'+e(comparison.scopeLabel||'Undersøgte lån')+'. Eksempler, ikke personlige tilbud.</p><table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed"><thead><tr><th style="text-align:left;padding:8px 4px;border-bottom:2px solid #dce7e1">Udbyder</th><th style="text-align:right;padding:8px 4px;border-bottom:2px solid #dce7e1">Rente</th><th style="text-align:right;padding:8px 4px;border-bottom:2px solid #dce7e1">Ydelse/md.</th></tr></thead><tbody>'+examples.map(row=>'<tr><td style="padding:10px 4px;border-bottom:1px solid #e5ece8;overflow-wrap:anywhere">'+e(row.providerName)+'</td><td style="text-align:right;padding:10px 4px;border-bottom:1px solid #e5ece8">'+e(Number(row.nominalRate).toLocaleString('da-DK'))+' %</td><td style="text-align:right;padding:10px 4px;border-bottom:1px solid #e5ece8">'+e(money(row.monthlyPayment))+'</td></tr>').join('')+'</tbody></table><p style="font-size:12px;color:#64766b;margin:8px 0">'+e(ab.laantype==='afdragsfri'?'Du betaler nu uden afdrag. Eksemplerne er med afdrag og kan derfor have højere betaling, selv med lavere rente.':'Eksemplerne bruger den viste løbetid og afdragsform.')+' Beregningerne er før skiftegebyrer; sammenlign også ny gæld og samlede omkostninger online.</p>':'<p style="font-size:13px;color:#64766b">Vi kunne ikke bekræfte sammenlignelige markedspriser ved denne kontrol. Der vises ingen opdigtet pris eller besparelse.</p>';
  const other=ordered.slice(1).map(event=>'<p style="font-size:14px;padding:12px;background:#f6f8f6;border-radius:8px"><strong>'+e(event.title)+'</strong><br>'+e(short(event))+'</p>').join('');
- const html='<!doctype html><html lang="da"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f1f5f2;font-family:Arial,sans-serif;color:#20362b;line-height:1.5"><div style="max-width:680px;margin:0 auto;background:#fff"><div style="background:#194d3b;color:#fff;padding:24px 20px"><div style="font-size:12px;letter-spacing:1px;color:#cbe4d5">BOLIGLÅNSRADAR · '+e(month.toUpperCase())+'</div><h1 style="font-size:25px;line-height:1.2;margin:8px 0">'+e(headline)+'</h1><p style="font-size:14px;color:#e4efe8;margin:0">'+e(ab.adresse||'Dit boliglån')+'</p></div><div style="padding:20px 16px"><div style="padding:16px;background:#f3f8f4;border-left:4px solid #194d3b;border-radius:6px"><strong>🎯 Det vigtigste denne måned</strong><p style="margin:8px 0 0;font-size:15px">'+e(intro)+'</p></div><h2 style="font-size:17px;margin:22px 5px 8px">🏠 Din bolig i tal</h2>'+cards+'<p style="font-size:12px;color:#64766b;margin:6px 5px">Restgæld: '+e(money(Number(ab.restgaeld)))+' · '+e(ab.laantype==='afdragsfri'?'Nuværende betaling uden afdrag':'Senest oplyste betaling')+'</p>'+(question?'<div style="margin:18px 5px"><strong>💬 Spørg banken</strong><p style="margin:6px 0;font-size:15px">“'+e(question)+'”</p></div>':'')+other+table+'<a href="'+e(marketUrl)+'" style="display:block;background:#194d3b;color:#fff;text-decoration:none;text-align:center;padding:15px 12px;border-radius:9px;font-weight:700;margin:22px 4px 10px">Se dine tal og lånemuligheder →</a><p style="font-size:12px;color:#64766b;margin:12px 5px">'+e(snapshot.sourceLabel)+'. '+e(boligData?.note||'Boligværdien er et estimat, ikke bankens godkendte vurdering.')+' Lånetal er senest oplyste; kontrollen er månedlig. Muligheder er ikke sikre nettobesparelser.</p><p style="font-size:12px;text-align:center;border-top:1px solid #e5ece8;padding-top:14px"><a style="color:#52665a" href="'+e(accountUrl)+'">Ret låneoplysninger eller administrér abonnement</a></p></div></div></body></html>';
- const text=['BOLIGLÅNSRADAR — '+month,headline,intro,...statRows.map(([label,value])=>label+': '+value),'Restgæld: '+money(Number(ab.restgaeld)),ab.laantype==='afdragsfri'?'Nuværende betaling er uden afdrag.':'',question?'Spørg banken: '+question:'',...ordered.slice(1).map(event=>event.title+'\n'+short(event)),'DIN MARKEDSSAMMENLIGNING — priseksempler',...examples.map(row=>row.providerName+': '+row.nominalRate+' % rente, '+money(row.monthlyPayment)+'/md. med afdrag; før skiftegebyrer.'),'Eksempler er ikke personlige tilbud eller sikre nettobesparelser. Se også ny gæld og samlede omkostninger.','Se dine tal og lånemuligheder: '+marketUrl,snapshot.sourceLabel,boligData?.note||'Boligværdien er et estimat.','Lånetal er senest oplyste. Månedlig overvågning.','Opdatér oplysninger og administrér abonnement: '+accountUrl].filter(Boolean).join('\n');
- return {subject:'Din låneradar — '+(lead?headline:month),html,text,goOmlæg:signal.canAlert,besparelse:signal.monthlyReduction,snapshot,comparison,signal,events};
+ const html='<!doctype html><html lang="da"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f1f5f2;font-family:Arial,sans-serif;color:#20362b;line-height:1.5"><div style="max-width:680px;margin:0 auto;background:#fff"><div style="background:#194d3b;color:#fff;padding:24px 20px"><div style="font-size:12px;letter-spacing:1px;color:#cbe4d5">BOLIGLÅNSRADAR · '+e(month.toUpperCase())+'</div><h1 style="font-size:25px;line-height:1.2;margin:8px 0">'+e(headline)+'</h1><p style="font-size:14px;color:#e4efe8;margin:0">'+e(ab.adresse||'Dit boliglån')+'</p></div><div style="padding:20px 16px"><div style="padding:16px;background:#f3f8f4;border-left:4px solid #194d3b;border-radius:6px"><strong>🎯 Det vigtigste denne måned</strong><p style="margin:8px 0 0;font-size:15px">'+e(intro)+'</p></div><h2 style="font-size:17px;margin:22px 5px 8px">🏠 Din bolig i tal</h2>'+cards+'<p style="font-size:12px;color:#64766b;margin:6px 5px">Restgæld: '+e(money(Number(ab.restgaeld)))+' · '+e(ab.laantype==='afdragsfri'?'Nuværende betaling uden afdrag':'Senest oplyste betaling')+'</p>'+(question?'<div style="margin:18px 5px"><strong>💬 Spørg banken</strong><p style="margin:6px 0;font-size:15px">“'+e(question)+'”</p></div>':'')+other+briefOutput.html+table+'<a href="'+e(marketUrl)+'" style="display:block;background:#194d3b;color:#fff;text-decoration:none;text-align:center;padding:15px 12px;border-radius:9px;font-weight:700;margin:22px 4px 10px">Se dine tal og lånemuligheder →</a><p style="font-size:12px;color:#64766b;margin:12px 5px">'+e(snapshot.sourceLabel)+'. '+e(boligData?.note||'Boligværdien er et estimat, ikke bankens godkendte vurdering.')+' Lånetal er senest oplyste; kontrollen er månedlig. Muligheder er ikke sikre nettobesparelser.</p><p style="font-size:12px;text-align:center;border-top:1px solid #e5ece8;padding-top:14px"><a style="color:#52665a" href="'+e(accountUrl)+'">Ret låneoplysninger eller administrér abonnement</a></p></div></div></body></html>';
+ const text=['BOLIGLÅNSRADAR — '+month,headline,intro,...statRows.map(([label,value])=>label+': '+value),'Restgæld: '+money(Number(ab.restgaeld)),ab.laantype==='afdragsfri'?'Nuværende betaling er uden afdrag.':'',question?'Spørg banken: '+question:'',...ordered.slice(1).map(event=>event.title+'\n'+short(event)),briefOutput.text,'DIN MARKEDSSAMMENLIGNING — priseksempler',...examples.map(row=>row.providerName+': '+row.nominalRate+' % rente, '+money(row.monthlyPayment)+'/md. med afdrag; før skiftegebyrer.'),'Eksempler er ikke personlige tilbud eller sikre nettobesparelser. Se også ny gæld og samlede omkostninger.','Se dine tal og lånemuligheder: '+marketUrl,snapshot.sourceLabel,boligData?.note||'Boligværdien er et estimat.','Lånetal er senest oplyste. Månedlig overvågning.','Opdatér oplysninger og administrér abonnement: '+accountUrl].filter(Boolean).join('\n');
+ return {subject:'Din låneradar — '+(lead?headline:month),html,text,goOmlæg:signal.canAlert,besparelse:signal.monthlyReduction,snapshot,comparison,signal,events,marketBriefSnapshot:briefOutput.snapshot};
 }
 function renderBankDialogueEvents(events=[]){return events.length?'<div class="section"><h2>Værd at tage op med din bank</h2>'+events.map(event=>'<h3>'+monitoringEscape(event.title)+'</h3><p>'+monitoringEscape(event.text)+'</p>').join('')+'</div>':'';}
 function buildBankDialogueEmail(ab,events){
@@ -2732,6 +2734,8 @@ app.post("/api/cron/monthly-monitoring", async (req, res) => {
   if(req.query?.dryRun==='1')return res.json({ok:true,dryRun:true,cadence:'monthly',mailConfigured:!!RESEND_API_KEY,paymentConfigured:!!stripe});
 
   const renter = await fetchLiveRenter().catch(() => ({}));
+  // One shared public-source brief per run; no subscriber details sent to sources.
+  const marketBrief=await fetchMarketBrief().catch(()=>null);
   let sendt = 0, fejl = 0, alerts = 0;
 
   for (const ab of ABONNENTER) {
@@ -2755,7 +2759,7 @@ app.post("/api/cron/monthly-monitoring", async (req, res) => {
 
       let comparison=null;
       try{comparison=(await subscriberMarketComparison(ab,{goal:'refinance',newTermYears:Number(ab.loebetid)},boligData)).comparison;}catch{ /* No verified comparison means no action alert. */ }
-      const mail=buildMonthlyEmail(ab,renter,boligData,comparison);
+      const mail=buildMonthlyEmail(ab,renter,boligData,comparison,marketBrief);
 
       // Monthly status includes all current signals. Extra messages carry only new signals.
       const monthKey=new Date().toISOString().slice(0,7);
@@ -2770,7 +2774,7 @@ app.post("/api/cron/monthly-monitoring", async (req, res) => {
         if(ok){
           const sentAt=new Date().toISOString();
           ab.monitoringEventsSent=Object.fromEntries([...Object.entries(sentEvents),...pending.flatMap(event=>event.kind==='ltv'?[[event.key,sentAt],['ltv:'+event.threshold,sentAt]]:[[event.key,sentAt]])].slice(-120));
-          if(monthlyDue){ab.lastSentAt=sentAt;sendt++;}
+          if(monthlyDue){ab.lastSentAt=sentAt;ab.lastMarketBrief=mail.marketBriefSnapshot;sendt++;}
           if(pending.length){ab.alertSentAt=sentAt;alerts++;}
         }else fejl++;
       }
