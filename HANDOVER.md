@@ -401,3 +401,11 @@ Production PR84 deployed successfully. One authorized fictional OCR request retu
 - Full333tests:324pass,0fail,9existing skips. Local8public-route HTTP checks all200 with information link/page, desktop browser footer-to-page navigation executed. Browser viewport override did not produce390px, so no mobile visual PASS claimed. Secondary human-independent code review found no accidental core-function removal.
 - Owner asked about business email: public DNS on Simply.com nameservers, no MX records found; domain mailbox provisioning not verified inside provider account. Google Gmail rename is @gmail.com; custom-domain Workspace conversion is a paid-business feature. No mail/DNS purchase/change made.
 - PR97 created and ready for review. Merge/deployment was NOT performed: automatic approval review rejected the merge because it requires explicit user approval for this release. Do not bypass through CLI or deploy an unmerged branch. Ask owner to approve PR97 merge/deploy after reviewing the concrete changes. Main remains PR96 until approved.
+
+## Privatlivspolitik og Vilkår og betingelser — 2026-11-09
+- Branch claude/footer-legal-pages. Owner requested dedicated privacy policy and disclaimer pages in the footer, matching gamma7.io style.
+- Added public/privatlivspolitik.html: full Danish GDPR privacy policy (dataansvarlig Gamma7 CVR 44378329, behandlingsgrundlag, databehandlere Stripe/Anthropic/Resend/Railway, opbevaring, rettigheder, Datatilsynet-reference, cookies).
+- Added public/disclaimer.html: full Danish terms and conditions (tjenesteudbyder, accept, tjenestens omfang, betaling/abonnement, fortrydelsesret, immaterielle rettigheder, ansvarsbegrænsning, lovvalg/værneting).
+- Added /privatlivspolitik and /disclaimer routes in server.js.
+- Added footer links to all public HTML pages: index.html, ejendomsvurdering.html, boliglaanstjek-preview.html, min-bolig.html, selvsalg.html, selvsalg-sag.html, selvsalg-start.html, vigtig-information.html.
+- No calculator, payment, monitoring or access logic changed.

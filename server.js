@@ -52,6 +52,8 @@ app.use(express.json({ limit: "25mb" }));
 
 // Product routing: Railway retains all assessment APIs and its Stripe webhook.
 app.get('/vigtig-information', (_req,res)=>res.set('Cache-Control','no-cache').sendFile(path.join(__dirname,'public','vigtig-information.html')));
+app.get('/privatlivspolitik', (_req,res)=>res.set('Cache-Control','no-cache').sendFile(path.join(__dirname,'public','privatlivspolitik.html')));
+app.get('/disclaimer', (_req,res)=>res.set('Cache-Control','no-cache').sendFile(path.join(__dirname,'public','disclaimer.html')));
 app.get("/ejendomsvurdering", (_req, res) => {
   res.set("Cache-Control", "no-cache").sendFile(path.join(__dirname, "public", "ejendomsvurdering.html"));
 });
